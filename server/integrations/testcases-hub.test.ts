@@ -25,7 +25,14 @@ import {
 } from './testcases-hub';
 
 vi.mock('../platform/logger', () => ({
-  default: { error: vi.fn(), warn: vi.fn(), info: vi.fn(), http: vi.fn(), verbose: vi.fn(), debug: vi.fn() },
+  default: {
+    error: vi.fn(),
+    warn: vi.fn(),
+    info: vi.fn(),
+    http: vi.fn(),
+    verbose: vi.fn(),
+    debug: vi.fn(),
+  },
   updateLogLevel: vi.fn(),
 }));
 
@@ -98,7 +105,11 @@ describe('parseHubDefinition', () => {
 
   it('reads the readiness written as a label and the priority in any case', () => {
     const parsed = parseHubDefinition(
-      definition({ readiness_level: '4 - Automation Ready', priority: 'highest', status: 'Deprecated' }),
+      definition({
+        readiness_level: '4 - Automation Ready',
+        priority: 'highest',
+        status: 'Deprecated',
+      }),
       { module: 'ARC', caseFolder: 'x' },
     )!;
     expect(parsed.readinessLevel).toBe(4);
@@ -107,20 +118,31 @@ describe('parseHubDefinition', () => {
   });
 
   it('falls back to the folder for a definition without an id, and rejects what is not one', () => {
-    const parsed = parseHubDefinition(definition({ id: '' }), { module: 'ARC', caseFolder: 'ARC_TC_00007' })!;
+    const parsed = parseHubDefinition(definition({ id: '' }), {
+      module: 'ARC',
+      caseFolder: 'ARC_TC_00007',
+    })!;
     expect(parsed.caseId).toBe('ARC_TC_00007');
-    expect(parseHubDefinition(definition({ id: null }), { module: 'ARC', caseFolder: '' })).toBeNull();
+    expect(
+      parseHubDefinition(definition({ id: null }), { module: 'ARC', caseFolder: '' }),
+    ).toBeNull();
     expect(parseHubDefinition([], { module: 'ARC', caseFolder: 'x' })).toBeNull();
     expect(parseHubDefinition('text', { module: 'ARC', caseFolder: 'x' })).toBeNull();
   });
 
   it('fingerprints the content, not the bookkeeping', () => {
     const a = parseHubDefinition(definition(), { module: 'ARC', caseFolder: 'x' })!;
-    const b = parseHubDefinition(definition({ excel_last_hash: 'other', updated_at: '2026-01-01' }), {
+    const b = parseHubDefinition(
+      definition({ excel_last_hash: 'other', updated_at: '2026-01-01' }),
+      {
+        module: 'ARC',
+        caseFolder: 'x',
+      },
+    )!;
+    const c = parseHubDefinition(definition({ steps: '1) Something else' }), {
       module: 'ARC',
       caseFolder: 'x',
     })!;
-    const c = parseHubDefinition(definition({ steps: '1) Something else' }), { module: 'ARC', caseFolder: 'x' })!;
     expect(hubCaseFingerprint(a)).toBe(hubCaseFingerprint(b));
     expect(hubCaseFingerprint(a)).not.toBe(hubCaseFingerprint(c));
   });
@@ -140,10 +162,13 @@ describe('hubCaseToManualSteps', () => {
 
   it('pairs unnumbered outcomes in order when there are as many as the steps', () => {
     const steps = hubCaseToManualSteps(
-      parseHubDefinition(definition({ expected_outcome: 'Archive shown\nNumber accepted\nOrder listed' }), {
-        module: 'ARC',
-        caseFolder: 'x',
-      })!,
+      parseHubDefinition(
+        definition({ expected_outcome: 'Archive shown\nNumber accepted\nOrder listed' }),
+        {
+          module: 'ARC',
+          caseFolder: 'x',
+        },
+      )!,
     );
     expect(steps.slice(1).map((step) => step.expected)).toEqual([
       'Archive shown',
@@ -189,7 +214,10 @@ describe('hubCaseToManualSteps', () => {
 
   it('uses the reference-environment variant when asked and the case has one', () => {
     const def = parseHubDefinition(
-      definition({ ref_env_steps: '1) Open the reference archive', ref_env_expected_outcome: 'Shown' }),
+      definition({
+        ref_env_steps: '1) Open the reference archive',
+        ref_env_expected_outcome: 'Shown',
+      }),
       { module: 'ARC', caseFolder: 'x' },
     )!;
     const reference = hubCaseToManualSteps(def, { variant: 'reference' });
@@ -198,18 +226,26 @@ describe('hubCaseToManualSteps', () => {
       { action: 'Open the reference archive', expected: 'Shown' },
     ]);
     const plain = parseHubDefinition(definition(), { module: 'ARC', caseFolder: 'x' })!;
-    expect(hubCaseToManualSteps(plain, { variant: 'reference' })).toEqual(hubCaseToManualSteps(plain));
+    expect(hubCaseToManualSteps(plain, { variant: 'reference' })).toEqual(
+      hubCaseToManualSteps(plain),
+    );
   });
 
   it('makes one step of a case that has no steps, so the test can still be saved', () => {
     const steps = hubCaseToManualSteps(
-      parseHubDefinition(definition({ steps: '', expected_outcome: '', input_data_precondition: '' }), {
-        module: 'ARC',
-        caseFolder: 'x',
-      })!,
+      parseHubDefinition(
+        definition({ steps: '', expected_outcome: '', input_data_precondition: '' }),
+        {
+          module: 'ARC',
+          caseFolder: 'x',
+        },
+      )!,
     );
     expect(steps).toEqual([
-      { action: 'Verify that an archived order can be found by number.\nSecond line.', expected: '' },
+      {
+        action: 'Verify that an archived order can be found by number.\nSecond line.',
+        expected: '',
+      },
     ]);
   });
 });
@@ -217,16 +253,21 @@ describe('hubCaseToManualSteps', () => {
 describe('hubTestName and priority', () => {
   it('names the test by id and first line of the objective, within the limit', () => {
     const def = parseHubDefinition(definition(), { module: 'ARC', caseFolder: 'x' })!;
-    expect(hubTestName(def)).toBe('[ARC_TC_00001] Verify that an archived order can be found by number.');
+    expect(hubTestName(def)).toBe(
+      '[ARC_TC_00001] Verify that an archived order can be found by number.',
+    );
     const long = parseHubDefinition(definition({ functional_objective: 'x'.repeat(400) }), {
       module: 'ARC',
       caseFolder: 'x',
     })!;
     expect(hubTestName(long).length).toBe(200);
-    const bare = parseHubDefinition(definition({ functional_objective: '', feature_highlight: null }), {
-      module: 'ARC',
-      caseFolder: 'x',
-    })!;
+    const bare = parseHubDefinition(
+      definition({ functional_objective: '', feature_highlight: null }),
+      {
+        module: 'ARC',
+        caseFolder: 'x',
+      },
+    )!;
     expect(hubTestName(bare)).toBe('[ARC_TC_00001] ARC');
   });
 
@@ -266,7 +307,12 @@ beforeAll(async () => {
     hubDir,
     'SAL',
     'SAL_TC_00010',
-    definition({ id: 'sal_tc_10', definition_module: 'SAL', execution_module: 'ARC', priority: null }),
+    definition({
+      id: 'sal_tc_10',
+      definition_module: 'SAL',
+      execution_module: 'ARC',
+      priority: null,
+    }),
   );
   await writeDefinition(hubDir, 'SAL', 'SAL_TC_00011', '{ not json');
   await fs.mkdir(path.join(hubDir, 'TestCasesDefinitions', 'SAL', 'SAL_TC_00012', 'images'), {
@@ -305,9 +351,11 @@ describe('resolveHubFolder', () => {
     await expect(resolveHubFolder(path.join(rootDir, '..'), env)).rejects.toMatchObject({
       code: 'path_not_allowed',
     });
-    await expect(resolveHubFolder(path.join(hubDir, '..', '..', 'etc'), env)).rejects.toMatchObject({
-      code: 'path_not_allowed',
-    });
+    await expect(resolveHubFolder(path.join(hubDir, '..', '..', 'etc'), env)).rejects.toMatchObject(
+      {
+        code: 'path_not_allowed',
+      },
+    );
     await expect(resolveHubFolder(path.join(rootDir, 'nope'), env)).rejects.toMatchObject({
       code: 'path_missing',
     });
@@ -317,7 +365,9 @@ describe('resolveHubFolder', () => {
   });
 
   it('reads several roots separated as PATH is', async () => {
-    const env = { TESTCASE_HUB_ROOTS: `${path.join(rootDir, 'other')}${path.delimiter} ${rootDir} ` };
+    const env = {
+      TESTCASE_HUB_ROOTS: `${path.join(rootDir, 'other')}${path.delimiter} ${rootDir} `,
+    };
     expect(await resolveHubFolder(hubDir, env)).toBe(await fs.realpath(hubDir));
   });
 });
@@ -335,7 +385,9 @@ describe('readHubFolder', () => {
     expect(sal.executionModule).toBe('ARC');
     expect(snapshot.modules).toEqual(['ARC', 'SAL']);
     expect(snapshot.head).toBe('a'.repeat(40));
-    expect(snapshot.warnings).toEqual(['SAL/SAL_TC_00011: definition.json is not valid JSON and was skipped.']);
+    expect(snapshot.warnings).toEqual([
+      'SAL/SAL_TC_00011: definition.json is not valid JSON and was skipped.',
+    ]);
   });
 
   it('refuses a folder that is not a hub', async () => {
@@ -356,7 +408,13 @@ function crc32(buffer: Buffer): number {
 
 /** A zip of the entries given, deflated unless `stored`, with the trailing fields a tool writes. */
 function buildZip(
-  entries: { name: string; data: Buffer; stored?: boolean; method?: number; lieUncompressed?: number }[],
+  entries: {
+    name: string;
+    data: Buffer;
+    stored?: boolean;
+    method?: number;
+    lieUncompressed?: number;
+  }[],
 ): Buffer {
   const locals: Buffer[] = [];
   const centrals: Buffer[] = [];
@@ -420,16 +478,25 @@ describe('readZipEntries', () => {
 
   it('refuses what is not a zip, an unsupported method, and an entry that claims to expand too much', () => {
     expect(() => readZipEntries(Buffer.from('nope'))).toThrow(HubSourceError);
-    expect(() => readZipEntries(buildZip([{ name: 'x', data: Buffer.from('x'), method: 12 }]))).toThrow(
-      /unsupported compression/,
-    );
+    expect(() =>
+      readZipEntries(buildZip([{ name: 'x', data: Buffer.from('x'), method: 12 }])),
+    ).toThrow(/unsupported compression/);
     expect(() =>
       readZipEntries(
-        buildZip([{ name: 'bomb', data: Buffer.from('x'), lieUncompressed: HUB_LIMITS.maxDefinitionBytes * 5 }]),
+        buildZip([
+          {
+            name: 'bomb',
+            data: Buffer.from('x'),
+            lieUncompressed: HUB_LIMITS.maxDefinitionBytes * 5,
+          },
+        ]),
       ),
     ).toThrow(/too much data/);
     expect(() =>
-      readZipEntries(buildZip([{ name: 'x', data: Buffer.from('x') }]), { ...HUB_LIMITS, maxZipEntries: 0 }),
+      readZipEntries(buildZip([{ name: 'x', data: Buffer.from('x') }]), {
+        ...HUB_LIMITS,
+        maxZipEntries: 0,
+      }),
     ).toThrow(/too many entries/);
   });
 
@@ -467,12 +534,21 @@ describe('readAzureDevOpsHub', () => {
       let raw = '';
       req.on('data', (chunk) => (raw += chunk));
       req.on('end', () => {
-        seen.push({ method: req.method!, url: req.url!, authorization: req.headers.authorization, body: raw });
+        seen.push({
+          method: req.method!,
+          url: req.url!,
+          authorization: req.headers.authorization,
+          body: raw,
+        });
         const url = new URL(req.url!, 'http://x');
         const json = (status: number, body: unknown) =>
           res.writeHead(status, { 'Content-Type': 'application/json' }).end(JSON.stringify(body));
         if (refuse) return json(refuse, { message: 'no' });
-        if (!url.pathname.startsWith('/my-org/QA%20Project/_apis/git/repositories/CoE-QA-TestCasesHub/'))
+        if (
+          !url.pathname.startsWith(
+            '/my-org/QA%20Project/_apis/git/repositories/CoE-QA-TestCasesHub/',
+          )
+        )
           return json(404, { message: 'unknown repository' });
         const tail = url.pathname.split('/').pop();
         if (tail === 'refs') {
@@ -488,23 +564,42 @@ describe('readAzureDevOpsHub', () => {
             return json(200, {
               value: [
                 { path: '/TestCasesDefinitions', gitObjectType: 'tree', objectId: '1'.repeat(40) },
-                { path: '/TestCasesDefinitions/ARC', gitObjectType: 'tree', objectId: '2'.repeat(40) },
-                { path: '/TestCasesDefinitions/ARC/ARC_TC_00001/images/shot.png', gitObjectType: 'blob', objectId: '3'.repeat(40) },
+                {
+                  path: '/TestCasesDefinitions/ARC',
+                  gitObjectType: 'tree',
+                  objectId: '2'.repeat(40),
+                },
+                {
+                  path: '/TestCasesDefinitions/ARC/ARC_TC_00001/images/shot.png',
+                  gitObjectType: 'blob',
+                  objectId: '3'.repeat(40),
+                },
                 ...Object.keys(files)
                   .filter((file) => file.startsWith('/TestCasesDefinitions/'))
-                  .map((file) => ({ path: file, gitObjectType: 'blob', objectId: blobId(files[file]), size: files[file].length })),
+                  .map((file) => ({
+                    path: file,
+                    gitObjectType: 'blob',
+                    objectId: blobId(files[file]),
+                    size: files[file].length,
+                  })),
               ],
             });
           }
           if (url.searchParams.get('path') === '/config/modules.json')
-            return json(200, { path: '/config/modules.json', gitObjectType: 'blob', objectId: blobId(files['/config/modules.json']) });
+            return json(200, {
+              path: '/config/modules.json',
+              gitObjectType: 'blob',
+              objectId: blobId(files['/config/modules.json']),
+            });
           return json(404, { message: 'no such item' });
         }
         if (tail === 'blobs' && req.method === 'POST') {
           const ids: string[] = JSON.parse(raw);
           const byId = new Map(Object.values(files).map((content) => [blobId(content), content]));
           const zip = buildZip(
-            ids.filter((id) => byId.has(id)).map((id) => ({ name: id, data: Buffer.from(byId.get(id)!) })),
+            ids
+              .filter((id) => byId.has(id))
+              .map((id) => ({ name: id, data: Buffer.from(byId.get(id)!) })),
           );
           return res.writeHead(200, { 'Content-Type': 'application/zip' }).end(zip);
         }
@@ -531,9 +626,15 @@ describe('readAzureDevOpsHub', () => {
     seen = [];
     const snapshot = await readAzureDevOpsHub(config());
     expect(snapshot.head).toBe('f'.repeat(40));
-    expect(snapshot.cases.map((c) => c.caseId).sort()).toEqual(['ARC_TC_00001', 'ARC_TC_00002', 'SAL_TC_00010']);
+    expect(snapshot.cases.map((c) => c.caseId).sort()).toEqual([
+      'ARC_TC_00001',
+      'ARC_TC_00002',
+      'SAL_TC_00010',
+    ]);
     expect(snapshot.modules).toEqual(['ARC', 'SAL']);
-    expect(snapshot.warnings).toEqual(['SAL/SAL_TC_00011: definition.json is not valid JSON and was skipped.']);
+    expect(snapshot.warnings).toEqual([
+      'SAL/SAL_TC_00011: definition.json is not valid JSON and was skipped.',
+    ]);
     const expectedAuth = `Basic ${Buffer.from(':pat-secret').toString('base64')}`;
     expect(seen.every((call) => call.authorization === expectedAuth)).toBe(true);
     expect(seen.filter((call) => call.url.includes('/blobs')).length).toBe(1);

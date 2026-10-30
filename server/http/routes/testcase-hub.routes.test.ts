@@ -78,11 +78,17 @@ async function writeCase(id: string, overrides: Record<string, unknown> = {}) {
   const module = id.split('_')[0];
   const dir = path.join(hubDir, 'TestCasesDefinitions', module, id);
   await fs.mkdir(dir, { recursive: true });
-  await fs.writeFile(path.join(dir, 'definition.json'), JSON.stringify(definition(id, overrides), null, 2));
+  await fs.writeFile(
+    path.join(dir, 'definition.json'),
+    JSON.stringify(definition(id, overrides), null, 2),
+  );
 }
 
 async function removeCase(id: string) {
-  await fs.rm(path.join(hubDir, 'TestCasesDefinitions', id.split('_')[0], id), { recursive: true, force: true });
+  await fs.rm(path.join(hubDir, 'TestCasesDefinitions', id.split('_')[0], id), {
+    recursive: true,
+    force: true,
+  });
 }
 
 beforeAll(async () => {
@@ -231,7 +237,9 @@ describe('the source', () => {
     expect(res.status).toBe(200);
     expect(res.body.hasToken).toBe(true);
     const [updated] = await auditRows('testcase_hub.updated');
-    expect(updated.metadata).toMatchObject({ fields: ['baseUrl', 'kind', 'name', 'project', 'repository'] });
+    expect(updated.metadata).toMatchObject({
+      fields: ['baseUrl', 'kind', 'name', 'project', 'repository'],
+    });
     expect(JSON.stringify(updated.metadata)).not.toContain('dev.azure.com');
   });
 
@@ -244,7 +252,9 @@ describe('the source', () => {
     const read = await request(app).get('/api/testcase-hub');
     expect(read.status).toBe(200);
     expect(read.body.name).toBe('CoE QA hub');
-    const write = await request(app).put('/api/testcase-hub').send(folderSource({ name: 'nope' }));
+    const write = await request(app)
+      .put('/api/testcase-hub')
+      .send(folderSource({ name: 'nope' }));
     expect(write.status).toBe(403);
     const refresh = await request(app).post('/api/testcase-hub/refresh');
     expect(refresh.status).toBe(403);
@@ -376,22 +386,37 @@ describe('importing', () => {
       { action: 'Open the archive', expected: '' },
       { action: 'Search the order', expected: 'The order is listed' },
     ]);
-    const versions = await privilegedDb.select().from(testVersions).where(eq(testVersions.testId, importedTest));
+    const versions = await privilegedDb
+      .select()
+      .from(testVersions)
+      .where(eq(testVersions.testId, importedTest));
     expect(versions.map((v) => v.version)).toEqual([1]);
 
     const [suite] = await privilegedDb.select().from(testSuites).where(eq(testSuites.id, suiteId));
     expect(suite).toMatchObject({ name: 'Hub smoke', kind: 'static', projectId });
-    const items = await privilegedDb.select().from(testSuiteItems).where(eq(testSuiteItems.suiteId, suiteId));
+    const items = await privilegedDb
+      .select()
+      .from(testSuiteItems)
+      .where(eq(testSuiteItems.suiteId, suiteId));
     expect(items.map((item) => [item.testType, item.testId, item.position])).toEqual([
       ['ui', importedTest, 0],
       ['ui', res.body.cases[1].testId, 1],
     ]);
 
     // The catalog remembers which test each case became; the untouched case stays unimported.
-    const rows = await privilegedDb.select().from(hubTestCases).where(eq(hubTestCases.organizationId, organizationId));
-    expect(rows.find((row) => row.caseId === 'ARC_TC_00001')).toMatchObject({ testId: importedTest, importedBy: editor.id });
+    const rows = await privilegedDb
+      .select()
+      .from(hubTestCases)
+      .where(eq(hubTestCases.organizationId, organizationId));
+    expect(rows.find((row) => row.caseId === 'ARC_TC_00001')).toMatchObject({
+      testId: importedTest,
+      importedBy: editor.id,
+    });
     expect(rows.find((row) => row.caseId === 'ARC_TC_00002')?.testId).toBeNull();
-    expect((await privilegedDb.select().from(tests).where(eq(tests.organizationId, organizationId))).length).toBe(2);
+    expect(
+      (await privilegedDb.select().from(tests).where(eq(tests.organizationId, organizationId)))
+        .length,
+    ).toBe(2);
 
     const [imported] = await auditRows('testcase_hub.imported');
     expect(imported.metadata).toMatchObject({ requested: 2, created: 2, suiteId });
@@ -406,7 +431,10 @@ describe('importing', () => {
     const list = await request(app).get('/api/testcase-hub/cases?imported=yes');
     expect(list.body.rows.map((row: any) => row.caseId)).toEqual(['ARC_TC_00001', 'SAL_TC_00010']);
     const detail = await request(app).get('/api/testcase-hub/cases/ARC_TC_00001');
-    expect(detail.body.test).toMatchObject({ id: importedTest, name: '[ARC_TC_00001] Objective of ARC_TC_00001.' });
+    expect(detail.body.test).toMatchObject({
+      id: importedTest,
+      name: '[ARC_TC_00001] Objective of ARC_TC_00001.',
+    });
     const facets = await request(app).get('/api/testcase-hub/facets');
     expect(facets.body).toMatchObject({ imported: 2, changed: 0 });
   });
@@ -417,21 +445,32 @@ describe('importing', () => {
       .send({ caseIds: ['ARC_TC_00001'], projectId, suiteId });
     expect(res.status).toBe(200);
     expect(res.body).toMatchObject({ unchanged: 1, created: 0, updated: 0, suiteId });
-    const items = await privilegedDb.select().from(testSuiteItems).where(eq(testSuiteItems.suiteId, suiteId));
+    const items = await privilegedDb
+      .select()
+      .from(testSuiteItems)
+      .where(eq(testSuiteItems.suiteId, suiteId));
     expect(items.length).toBe(2);
-    const versions = await privilegedDb.select().from(testVersions).where(eq(testVersions.testId, importedTest));
+    const versions = await privilegedDb
+      .select()
+      .from(testVersions)
+      .where(eq(testVersions.testId, importedTest));
     expect(versions.length).toBe(1);
   });
 
   it('updates the test, as a new version, when the hub changed the case', async () => {
-    await writeCase('ARC_TC_00001', { steps: '1) Open the archive\n2) Search the order\n3) Open it', priority: 'Highest' });
+    await writeCase('ARC_TC_00001', {
+      steps: '1) Open the archive\n2) Search the order\n3) Open it',
+      priority: 'Highest',
+    });
     const refresh = await request(app).post('/api/testcase-hub/refresh');
     expect(refresh.body).toMatchObject({ cases: 3, added: 0, updated: 1, missing: 0 });
     const changed = await request(app).get('/api/testcase-hub/cases?imported=changed');
     expect(changed.body.rows.map((row: any) => row.caseId)).toEqual(['ARC_TC_00001']);
     expect(changed.body.rows[0].changedSinceImport).toBe(true);
 
-    const res = await request(app).post('/api/testcase-hub/import').send({ caseIds: ['ARC_TC_00001'], projectId });
+    const res = await request(app)
+      .post('/api/testcase-hub/import')
+      .send({ caseIds: ['ARC_TC_00001'], projectId });
     expect(res.body).toMatchObject({ updated: 1 });
     const [test] = await privilegedDb.select().from(tests).where(eq(tests.id, importedTest));
     expect(test.priority).toBe('Critical');
@@ -441,7 +480,10 @@ describe('importing', () => {
       'Search the order',
       'Open it',
     ]);
-    const versions = await privilegedDb.select().from(testVersions).where(eq(testVersions.testId, importedTest));
+    const versions = await privilegedDb
+      .select()
+      .from(testVersions)
+      .where(eq(testVersions.testId, importedTest));
     expect(versions.map((v) => v.version)).toEqual([1, 2]);
     const again = await request(app).get('/api/testcase-hub/cases?imported=changed');
     expect(again.body.total).toBe(0);
@@ -450,9 +492,16 @@ describe('importing', () => {
   it('does not overwrite a test that has since been automated, nor one whose name is taken', async () => {
     await privilegedDb
       .update(tests)
-      .set({ sequence: [{ id: 'step-1', action: { id: 'click', type: 'click', name: 'Click' }, value: '' }] })
+      .set({
+        sequence: [
+          { id: 'step-1', action: { id: 'click', type: 'click', name: 'Click' }, value: '' },
+        ],
+      })
       .where(eq(tests.id, importedTest));
-    await privilegedDb.update(hubTestCases).set({ importedHash: 'stale' }).where(eq(hubTestCases.caseId, 'ARC_TC_00001'));
+    await privilegedDb
+      .update(hubTestCases)
+      .set({ importedHash: 'stale' })
+      .where(eq(hubTestCases.caseId, 'ARC_TC_00001'));
     await privilegedDb.insert(tests).values({
       name: '[ARC_TC_00002] Objective of ARC_TC_00002.',
       url: '',
@@ -467,7 +516,12 @@ describe('importing', () => {
     expect(res.status).toBe(200);
     expect(res.body.cases).toEqual([
       { caseId: 'ARC_TC_00001', outcome: 'skipped', testId: importedTest, reason: 'not_manual' },
-      { caseId: 'ARC_TC_00002', outcome: 'skipped', testId: expect.any(Number), reason: 'name_conflict' },
+      {
+        caseId: 'ARC_TC_00002',
+        outcome: 'skipped',
+        testId: expect.any(Number),
+        reason: 'name_conflict',
+      },
     ]);
     const [test] = await privilegedDb.select().from(tests).where(eq(tests.id, importedTest));
     expect((test.sequence as any[])[0].action.id).toBe('click');
@@ -475,18 +529,24 @@ describe('importing', () => {
   });
 
   it('refuses unknown cases, a dynamic or foreign suite, and a viewer', async () => {
-    const unknown = await request(app).post('/api/testcase-hub/import').send({ caseIds: ['ARC_TC_00099'] });
+    const unknown = await request(app)
+      .post('/api/testcase-hub/import')
+      .send({ caseIds: ['ARC_TC_00099'] });
     expect(unknown.status).toBe(404);
     expect(unknown.body.code).toBe('case_not_in_catalog');
     const both = await request(app)
       .post('/api/testcase-hub/import')
       .send({ caseIds: ['ARC_TC_00002'], suiteId, newSuiteName: 'x' });
     expect(both.status).toBe(400);
-    const noSuite = await request(app).post('/api/testcase-hub/import').send({ caseIds: ['ARC_TC_00002'], suiteId: 999999 });
+    const noSuite = await request(app)
+      .post('/api/testcase-hub/import')
+      .send({ caseIds: ['ARC_TC_00002'], suiteId: 999999 });
     expect(noSuite.status).toBe(404);
     expect(noSuite.body.code).toBe('suite_not_found');
     currentUser = { ...editor, role: 'viewer' };
-    const viewer = await request(app).post('/api/testcase-hub/import').send({ caseIds: ['ARC_TC_00002'] });
+    const viewer = await request(app)
+      .post('/api/testcase-hub/import')
+      .send({ caseIds: ['ARC_TC_00002'] });
     expect(viewer.status).toBe(403);
   });
 
@@ -495,11 +555,16 @@ describe('importing', () => {
     const refresh = await request(app).post('/api/testcase-hub/refresh');
     expect(refresh.body).toMatchObject({ cases: 2, missing: 1 });
     const hidden = await request(app).get('/api/testcase-hub/cases?status=all');
-    expect(hidden.body.rows.map((row: any) => row.caseId)).toEqual(['ARC_TC_00001', 'SAL_TC_00010']);
+    expect(hidden.body.rows.map((row: any) => row.caseId)).toEqual([
+      'ARC_TC_00001',
+      'SAL_TC_00010',
+    ]);
     const only = await request(app).get('/api/testcase-hub/cases?status=all&missing=only');
     expect(only.body.rows.map((row: any) => row.caseId)).toEqual(['ARC_TC_00002']);
     expect(only.body.rows[0].missingSince).not.toBeNull();
-    const res = await request(app).post('/api/testcase-hub/import').send({ caseIds: ['ARC_TC_00002'] });
+    const res = await request(app)
+      .post('/api/testcase-hub/import')
+      .send({ caseIds: ['ARC_TC_00002'] });
     expect(res.body.cases[0]).toMatchObject({ outcome: 'skipped', reason: 'missing_in_hub' });
     // Back in the hub, the row is current again.
     await writeCase('ARC_TC_00002', { status: 'deprecated' });

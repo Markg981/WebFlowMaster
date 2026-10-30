@@ -25,7 +25,12 @@ import {
   writeCatalog,
 } from '../../integrations/testcases-hub';
 import logger from '../../platform/logger';
-import { AuthoringError } from '../api-v1/authoring';
+import { AuthoringError, editableProject } from '../api-v1/authoring';
+import {
+  sessionRateLimit,
+  sharedHeavyRateLimit,
+  sharedSensitiveRateLimit,
+} from '../middleware/rate-limits';
 import { auditActor, changedFields, recordAudit } from '../../tenancy/audit';
 
 /**
@@ -126,7 +131,14 @@ function sendHubError(res: Response, error: unknown, fallback: string): void {
 }
 
 // GET /api/testcase-hub — the organization's source, or null.
-router.get('/api/testcase-hub', requireRole('viewer'), async (req, res) => {
+// Reading the catalog is bounded per user like every session route; changing the hub (it holds
+// a token) counts against the sensitive budget; reaching the hub and importing are the
+// expensive ones. Said here so the limits travel with the routes.
+const readLimit = sessionRateLimit();
+const sensitiveLimit = sharedSensitiveRateLimit();
+const heavyLimit = sharedHeavyRateLimit();
+
+router.get('/api/testcase-hub', readLimit, requireRole('viewer'), async (req, res) => {
   if (!req.isAuthenticated()) return res.status(401).json({ error: 'Unauthorized' });
   try {
     const source = await currentSource();
@@ -137,7 +149,7 @@ router.get('/api/testcase-hub', requireRole('viewer'), async (req, res) => {
 });
 
 // PUT /api/testcase-hub — create or replace the organization's source.
-router.put('/api/testcase-hub', requireRole('editor'), async (req, res) => {
+router.put('/api/testcase-hub', sensitiveLimit, requireRole('editor'), async (req, res) => {
   if (!req.isAuthenticated() || !req.user) return res.status(401).json({ error: 'Unauthorized' });
   const parsed = sourceSchema.safeParse(req.body);
   if (!parsed.success) {
@@ -232,7 +244,7 @@ router.put('/api/testcase-hub', requireRole('editor'), async (req, res) => {
 });
 
 // DELETE /api/testcase-hub — forget the source and its catalog; the imported tests stay.
-router.delete('/api/testcase-hub', requireRole('editor'), async (req, res) => {
+router.delete('/api/testcase-hub', sensitiveLimit, requireRole('editor'), async (req, res) => {
   if (!req.isAuthenticated() || !req.user) return res.status(401).json({ error: 'Unauthorized' });
   try {
     const removed = await withTenantTransaction(async (tx) => {
@@ -257,7 +269,7 @@ router.delete('/api/testcase-hub', requireRole('editor'), async (req, res) => {
 });
 
 // POST /api/testcase-hub/test — can the saved source be read?
-router.post('/api/testcase-hub/test', requireRole('editor'), async (req, res) => {
+router.post('/api/testcase-hub/test', heavyLimit, requireRole('editor'), async (req, res) => {
   if (!req.isAuthenticated() || !req.user) return res.status(401).json({ error: 'Unauthorized' });
   try {
     const source = await currentSource();
@@ -270,7 +282,7 @@ router.post('/api/testcase-hub/test', requireRole('editor'), async (req, res) =>
 });
 
 // POST /api/testcase-hub/refresh — read the hub and rewrite the catalog.
-router.post('/api/testcase-hub/refresh', requireRole('editor'), async (req, res) => {
+router.post('/api/testcase-hub/refresh', heavyLimit, requireRole('editor'), async (req, res) => {
   if (!req.isAuthenticated() || !req.user) return res.status(401).json({ error: 'Unauthorized' });
   try {
     const source = await currentSource();
@@ -385,7 +397,7 @@ function listFilters(query: z.infer<typeof listQuerySchema>): SQL[] {
 }
 
 // GET /api/testcase-hub/cases — the catalog, filtered and paged.
-router.get('/api/testcase-hub/cases', requireRole('viewer'), async (req, res) => {
+router.get('/api/testcase-hub/cases', readLimit, requireRole('viewer'), async (req, res) => {
   if (!req.isAuthenticated()) return res.status(401).json({ error: 'Unauthorized' });
   const parsed = listQuerySchema.safeParse(req.query);
   if (!parsed.success) {
@@ -415,7 +427,7 @@ router.get('/api/testcase-hub/cases', requireRole('viewer'), async (req, res) =>
 });
 
 // GET /api/testcase-hub/facets — what the filters can be set to, with counts.
-router.get('/api/testcase-hub/facets', requireRole('viewer'), async (req, res) => {
+router.get('/api/testcase-hub/facets', readLimit, requireRole('viewer'), async (req, res) => {
   if (!req.isAuthenticated()) return res.status(401).json({ error: 'Unauthorized' });
   try {
     const facets = await withTenantTransaction(async (tx) => {
@@ -472,56 +484,61 @@ router.get('/api/testcase-hub/facets', requireRole('viewer'), async (req, res) =
 });
 
 // GET /api/testcase-hub/cases/:caseId — one case, with the steps it would become.
-router.get('/api/testcase-hub/cases/:caseId', requireRole('viewer'), async (req, res) => {
-  if (!req.isAuthenticated()) return res.status(401).json({ error: 'Unauthorized' });
-  const caseId = String(req.params.caseId ?? '')
-    .trim()
-    .toUpperCase();
-  if (!caseId) return res.status(400).json({ error: 'Invalid case id' });
-  try {
-    const found = await withTenantTransaction(async (tx) => {
-      const [row] = await tx
-        .select()
-        .from(hubTestCases)
-        .where(eq(hubTestCases.caseId, caseId))
-        .limit(1);
-      if (!row) return null;
-      const [test] = row.testId
-        ? await tx
-            .select({ id: tests.id, name: tests.name, updatedAt: tests.updatedAt })
-            .from(tests)
-            .where(eq(tests.id, row.testId))
-            .limit(1)
-        : [];
-      return { row, test: test ?? null };
-    });
-    if (!found) return res.status(404).json({ error: 'The case is not in the catalog.' });
-    const { row, test } = found;
-    const definition = {
-      ...row,
-      dependsOn: row.dependsOn ?? [],
-      sourceUpdatedAt: row.sourceUpdatedAt ? row.sourceUpdatedAt.toISOString() : null,
-    };
-    const { contentHash, importedHash, ...visible } = row;
-    res.json({
-      ...visible,
-      changedSinceImport: importedHash != null && importedHash !== contentHash,
-      test,
-      testName: hubTestName(definition),
-      preview: {
-        standard: hubCaseToManualSteps(definition),
-        reference: row.refEnvSteps
-          ? hubCaseToManualSteps(definition, { variant: 'reference' })
-          : null,
-      },
-    });
-  } catch (error) {
-    sendHubError(res, error, 'Failed to load the test case.');
-  }
-});
+router.get(
+  '/api/testcase-hub/cases/:caseId',
+  readLimit,
+  requireRole('viewer'),
+  async (req, res) => {
+    if (!req.isAuthenticated()) return res.status(401).json({ error: 'Unauthorized' });
+    const caseId = String(req.params.caseId ?? '')
+      .trim()
+      .toUpperCase();
+    if (!caseId) return res.status(400).json({ error: 'Invalid case id' });
+    try {
+      const found = await withTenantTransaction(async (tx) => {
+        const [row] = await tx
+          .select()
+          .from(hubTestCases)
+          .where(eq(hubTestCases.caseId, caseId))
+          .limit(1);
+        if (!row) return null;
+        const [test] = row.testId
+          ? await tx
+              .select({ id: tests.id, name: tests.name, updatedAt: tests.updatedAt })
+              .from(tests)
+              .where(eq(tests.id, row.testId))
+              .limit(1)
+          : [];
+        return { row, test: test ?? null };
+      });
+      if (!found) return res.status(404).json({ error: 'The case is not in the catalog.' });
+      const { row, test } = found;
+      const definition = {
+        ...row,
+        dependsOn: row.dependsOn ?? [],
+        sourceUpdatedAt: row.sourceUpdatedAt ? row.sourceUpdatedAt.toISOString() : null,
+      };
+      const { contentHash, importedHash, ...visible } = row;
+      res.json({
+        ...visible,
+        changedSinceImport: importedHash != null && importedHash !== contentHash,
+        test,
+        testName: hubTestName(definition),
+        preview: {
+          standard: hubCaseToManualSteps(definition),
+          reference: row.refEnvSteps
+            ? hubCaseToManualSteps(definition, { variant: 'reference' })
+            : null,
+        },
+      });
+    } catch (error) {
+      sendHubError(res, error, 'Failed to load the test case.');
+    }
+  },
+);
 
 // POST /api/testcase-hub/import — the chosen cases become manual tests.
-router.post('/api/testcase-hub/import', requireRole('editor'), async (req, res) => {
+router.post('/api/testcase-hub/import', heavyLimit, requireRole('editor'), async (req, res) => {
   if (!req.isAuthenticated() || !req.user) return res.status(401).json({ error: 'Unauthorized' });
   const parsed = importSchema.safeParse(req.body);
   if (!parsed.success) {
@@ -546,6 +563,7 @@ router.post('/api/testcase-hub/import', requireRole('editor'), async (req, res) 
           'case_not_in_catalog',
           `Not in the catalog: ${unknown.slice(0, 5).join(', ')}${unknown.length > 5 ? '…' : ''}.`,
         );
+      await editableProject(tx, req, parsed.data.projectId);
       const result = await importCases(tx, req, { ...parsed.data, caseIds });
       await recordAudit(tx, {
         action: AUDIT_ACTIONS.TESTCASE_HUB_IMPORTED,

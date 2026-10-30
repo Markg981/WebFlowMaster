@@ -41,7 +41,6 @@ import type { TenantTx } from '../platform/middleware/tenancy';
 import { fetchTarget } from '../platform/outbound-http';
 import { recordTestVersion } from '../authoring/test-version-store';
 import { auditActor, recordAudit } from '../tenancy/audit';
-import { editableProject } from '../http/api-v1/authoring';
 import logger from '../platform/logger';
 
 /** A problem the caller can show: the status is the HTTP answer, the code is for the client. */
@@ -147,6 +146,28 @@ export interface HubSnapshot {
   warnings: string[];
 }
 
+/**
+ * One definition.json, checked and read through one handle, so the file measured is the file
+ * read even if the hub is being written to meanwhile.
+ */
+async function readDefinition(
+  file: string,
+): Promise<{ kind: 'absent' } | { kind: 'too_large' } | { kind: 'read'; text: string }> {
+  const handle = await fs.open(file, 'r').catch(() => null);
+  if (!handle) return { kind: 'absent' };
+  try {
+    const stat = await handle.stat();
+    if (!stat.isFile()) return { kind: 'absent' };
+    if (stat.size > HUB_LIMITS.maxDefinitionBytes) return { kind: 'too_large' };
+    const text = await handle.readFile('utf8');
+    return text.length > HUB_LIMITS.maxDefinitionBytes
+      ? { kind: 'too_large' }
+      : { kind: 'read', text };
+  } finally {
+    await handle.close();
+  }
+}
+
 function parseModules(json: unknown): string[] {
   if (!Array.isArray(json)) return [];
   return json
@@ -203,16 +224,16 @@ export async function readHubFolder(folder: string): Promise<HubSnapshot> {
     for (const caseEntry of await fs.readdir(moduleDir, { withFileTypes: true })) {
       if (!caseEntry.isDirectory()) continue;
       const file = path.join(moduleDir, caseEntry.name, HUB_DEFINITION_FILE);
-      const stat = await fs.stat(file).catch(() => null);
-      if (!stat?.isFile()) continue;
       const where = `${moduleEntry.name}/${caseEntry.name}`;
-      if (stat.size > HUB_LIMITS.maxDefinitionBytes) {
+      const read = await readDefinition(file);
+      if (read.kind === 'absent') continue;
+      if (read.kind === 'too_large') {
         warnings.push(`${where}: definition.json is too large and was skipped.`);
         continue;
       }
       let json: unknown;
       try {
-        json = JSON.parse(await fs.readFile(file, 'utf8'));
+        json = JSON.parse(read.text);
       } catch {
         warnings.push(`${where}: definition.json is not valid JSON and was skipped.`);
         continue;
@@ -863,13 +884,15 @@ function definitionOf(row: HubTestCase): HubCaseDefinition {
  * automated since is left alone and reported, because the automation is the tester's work. A
  * name already taken skips that case and not the others. Each test gets its version and its
  * audit entry as the library's own dialog gives them.
+ *
+ * The caller has checked that the user may edit the project (editableProject): this module
+ * sits below the HTTP layer and cannot ask it.
  */
 export async function importCases(
   tx: TenantTx,
   req: Request,
   input: ImportInput,
 ): Promise<ImportResult> {
-  await editableProject(tx, req, input.projectId);
   const organizationId = req.user!.organizationId;
   const userId = req.user!.id;
   const wanted = Array.from(new Set(input.caseIds));
