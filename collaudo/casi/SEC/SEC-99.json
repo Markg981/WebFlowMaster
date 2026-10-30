@@ -1,0 +1,15 @@
+{
+  "id": "SEC-99",
+  "area": "SEC",
+  "title": "Hub dei test case QA: percorso fuori dalle radici consentite, token mai restituito, audit senza segreti",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "TESTCASE_HUB_ROOTS del web con una sola radice. Un hub Azure DevOps salvato con PAT.",
+  "steps": [
+    "Impostazioni → hub: «Cartella sul server» con un percorso fuori dalla radice (es. la cartella di sistema), Verifica connessione; poi un percorso dentro la radice con «..» che ne esce.",
+    "GET /api/testcase-hub con la sessione e leggere la risposta.",
+    "Cambiare il nome dell'hub e leggere l'ultima voce di audit.",
+    "Su un'installazione senza TESTCASE_HUB_ROOTS scegliere «Cartella sul server» e verificare."
+  ],
+  "expected": "Entrambi i percorsi sono rifiutati con path_not_allowed senza rivelare se la cartella esiste; la risposta GET non contiene mai il token, solo l'indicazione che è salvato; i metadati di audit elencano i soli nomi dei campi cambiati, mai percorso né token; senza radici la cartella è rifiutata con folder_sources_disabled e resta possibile solo Azure DevOps."
+}

@@ -224,6 +224,38 @@ a 10 MB) importa un caso per riga, con id, priorità e obiettivo. Associate ogni
 salvato (**Scegli una sequenza**), selezionate i casi ed **Esegui i selezionati**; accanto a ogni
 caso compaiono lo stato e l'ultimo report.
 
+### Casi di test dall'hub QA {#testcase-hub}
+
+I team i cui casi stanno nell'**hub dei test case QA** (un repository con un `definition.json`
+per caso sotto `TestCasesDefinitions/<modulo>/<id>/`) non hanno bisogno del workbook:
+WebFlowMaster legge l'hub direttamente. Un editor lo collega una volta per organizzazione in
+**Impostazioni → Hub dei test case QA**, come cartella sul server (un clone del repository sotto
+una delle cartelle consentite dall'operatore con `TESTCASE_HUB_ROOTS`, vedi
+[Configurazione](../admin/configuration)) oppure come repository Azure DevOps (URL
+dell'organizzazione, progetto, repository, branch e un personal access token con _Code: read_,
+salvato cifrato e mai più mostrato). **Verifica connessione** controlla la sorgente; **Aggiorna
+catalogo** legge tutti i casi in un catalogo tenuto in WebFlowMaster e dice quanti sono nuovi,
+modificati o non più nell'hub. Nessun caso diventa ancora un test.
+
+La scheda **Hub dei test case QA** di **Test Manager** (anche `/test-manager?source=hub`) elenca
+il catalogo: id, modulo, priorità, livello di readiness, obiettivo e la posizione di ogni caso
+rispetto alla libreria (non importato, importato, modificato dopo l'import, scomparso
+dall'hub). Filtrate per modulo, status, priorità, readiness o stato, cercate per id o obiettivo
+e aprite un caso per leggerne i passi così come li tiene l'hub e come li avrebbe il test
+manuale. I casi deprecati restano nel catalogo ma sono nascosti finché non li chiedete; lo
+stesso vale per i casi scomparsi dall'hub, che non si possono importare.
+
+Selezionate i casi (fino a 500 per volta) e **Importa selezionati…**: ognuno diventa un **test
+manuale** chiamato `[ID_CASO] obiettivo`, con la priorità dell'hub, la precondizione come primo
+passo e i passi numerati abbinati ai rispettivi esiti attesi, nel progetto e nella suite che
+scegliete (una suite statica esistente o una nuova). I casi con passi scritti per l'ambiente di
+riferimento si possono importare con quella variante. Un caso già importato viene aggiornato
+come nuova versione se l'hub lo ha modificato, altrimenti resta com'è; un test automatizzato nel
+frattempo viene saltato, come un nome già usato da un altro test. I test importati sono normali
+test manuali: eseguiteli nei piani, oppure apritene uno nel builder e automatizzatelo. I viewer
+vedono il catalogo ma non importano. Rimuovere l'hub elimina il catalogo; i test importati
+restano in libreria, non più legati all'hub.
+
 ## Dati di test condivisi {#test-data}
 
 Il gestore elenca nomi, descrizioni e conteggi di righe/colonne in pagine di 25, con totale

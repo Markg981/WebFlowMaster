@@ -213,6 +213,36 @@ imports one case per row, with its id, priority and objective. Map each case to 
 (**Choose a sequence**), select the cases, and **Run selected**; the status and the latest report of
 each case are shown next to it.
 
+### Test cases from the QA hub {#testcase-hub}
+
+Teams whose cases live in the **QA test case hub** (a repository with one `definition.json` per
+case under `TestCasesDefinitions/<module>/<id>/`) need no workbook: WebFlowMaster reads the hub
+itself. An editor connects it once per organization in **Settings → QA test case hub**, either
+as a folder on the server (a clone of the repository under one of the folders the operator
+allowed with `TESTCASE_HUB_ROOTS`, see [Configuration](../admin/configuration)) or as an Azure
+DevOps repository (organization URL, project, repository, branch and a personal access token
+with _Code: read_, stored encrypted and never shown again). **Test connection** checks the
+source; **Refresh catalog** reads every case into a catalog kept in WebFlowMaster and says how
+many are new, changed or no longer in the hub. Nothing becomes a test yet.
+
+The **QA test case hub** tab of **Test Manager** (also `/test-manager?source=hub`) lists the
+catalog: id, module, priority, readiness level, objective, and where each case stands against
+the library (not imported, imported, changed since import, missing from the hub). Filter by
+module, status, priority, readiness or state, search by id or objective, and open a case to read
+its steps as the hub holds them and as the manual test would have them. Deprecated cases stay in
+the catalog but are hidden unless asked for; so are cases that disappeared from the hub, which
+cannot be imported.
+
+Select the cases (up to 500 at a time) and **Import selected…**: each becomes a **manual test**
+named `[CASE_ID] objective`, with the hub's priority, the precondition as its first step and the
+numbered steps paired with their expected outcomes, in the project and suite you choose (an
+existing static suite or a new one). Cases with steps written for the reference environment can
+be imported with that variant instead. A case imported before is updated as a new version when
+the hub changed it and left alone otherwise; a test that was automated since is skipped, and so
+is a name already taken by another test. The imported tests are ordinary manual tests: run them
+in plans, or open one in the builder and automate it. Viewers see the catalog but cannot import.
+Removing the hub drops the catalog; the imported tests stay in the library, no longer tied to it.
+
 ## Shared test data {#test-data}
 
 The same customers, products or cards used to be copied into test after test, and drifted apart.

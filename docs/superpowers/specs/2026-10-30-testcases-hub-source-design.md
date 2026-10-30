@@ -16,19 +16,19 @@ it when a user sets a path?
 Comparison of the NCC workbook `Downloads\DMO NCC Test Scripts.xlsx` (2026-10-07) with the hub
 at HEAD:
 
-| Check                                                                      | Result                                      |
-| -------------------------------------------------------------------------- | ------------------------------------------- |
-| Excel ids present in the hub                                               | 917 / 917                                   |
-| Hub NCC ids absent from the Excel                                          | 79 (18 created 2026-07, 61 created 2026-10) |
+| Check                                                                       | Result                                      |
+| --------------------------------------------------------------------------- | ------------------------------------------- |
+| Excel ids present in the hub                                                | 917 / 917                                   |
+| Hub NCC ids absent from the Excel                                           | 79 (18 created 2026-07, 61 created 2026-10) |
 | functional_objective, steps, expected_outcome, feature_highlight, devops_id | identical on all 917                        |
-| priority differs                                                           | 83 (edited in the hub after the export)     |
-| version_from differs                                                       | 7                                           |
+| priority differs                                                            | 83 (edited in the hub after the export)     |
+| version_from differs                                                        | 7                                           |
 
 The fields of a hub `definition.json` are the columns of the Excel sheet "Test Cases" one to one
 (id, priority, version from/to, SME effort, feature highlight, DevOps id, SME, functional
 objective, input data / precondition, steps, expected outcome, the three reference-environment
 variants, QA preparation/execution effort). Every case keeps `excel_last_hash`, the sha256 of the
-Excel row it was imported from. The Excel columns that are *not* in the definitions (Team
+Excel row it was imported from. The Excel columns that are _not_ in the definitions (Team
 Assigned, Stage, the four stage metrics, Final Test Result, Execution 1..3, Comments) are
 execution data: in the hub they live under `Waves/`.
 
@@ -71,11 +71,11 @@ Management.
 `definition.json` (schema_version 1.0 to 1.5, the app's current is 1.5):
 
 - Always present: `id, definition_module, execution_module, status (active|deprecated),
-  priority (Highest|High|Medium|Low), version_from, version_to, sme_effort_minutes,
-  feature_highlight, execution_group, devops_id, sme, functional_objective,
-  input_data_precondition, ref_env_precondition, steps, ref_env_steps, expected_outcome,
-  ref_env_expected_outcome, qa_preparation_effort, qa_execution_effort, default_assignee,
-  qa_review_assignee, excel_last_hash, created_at, updated_at, readiness_level (0..5)`.
+priority (Highest|High|Medium|Low), version_from, version_to, sme_effort_minutes,
+feature_highlight, execution_group, devops_id, sme, functional_objective,
+input_data_precondition, ref_env_precondition, steps, ref_env_steps, expected_outcome,
+ref_env_expected_outcome, qa_preparation_effort, qa_execution_effort, default_assignee,
+qa_review_assignee, excel_last_hash, created_at, updated_at, readiness_level (0..5)`.
 - Only in newer files: `depends_on[]` (8 577), `force_not_tested_in_waves` + note (8 545),
   `code_refs[]` (6 875), `reviewer_notes` + `design_notes` (6 710); only in older files:
   `resources` (9 722).
@@ -118,7 +118,7 @@ build_number, bug_reference, bug_priority, notes).
     `docker-compose`). It must be a hub root: `_metadata.json`, `config/modules.json` and
     `TestCasesDefinitions/` present.
   - **Azure DevOps repository**: organization URL, project, repository, branch, PAT with
-    *Code: Read*. Read through the Git REST API, so no git in the image and no LFS download.
+    _Code: Read_. Read through the Git REST API, so no git in the image and no LFS download.
   - Later, if needed: **Upload** of a zip of the hub, like the Excel upload.
   - **Test connection** returns modules, case count and head commit. **Sync now** imports;
     the card shows last sync, head, counts and warnings. Optional nightly sync.
@@ -176,7 +176,7 @@ detail.
 - Folder kind: walk the directory with the existing fs helpers; read only `definition.json`
   and `config/modules.json`.
 - Azure DevOps kind: `GET {base}/{project}/_apis/git/repositories/{repo}/items?scopePath=
-  /TestCasesDefinitions&recursionLevel=Full&versionDescriptor.version={branch}` lists the tree
+/TestCasesDefinitions&recursionLevel=Full&versionDescriptor.version={branch}` lists the tree
   with the blob ids; keep the `definition.json` entries plus `config/modules.json`; download the
   blobs with `POST .../blobs?$format=zip` in batches and unzip in memory; head commit from
   `GET .../refs?filter=heads/{branch}`. Exact API shapes to be confirmed at implementation
@@ -241,10 +241,27 @@ the QA team, so for DMO it replaces the manual upload of one workbook per module
 
 1. **First source kind.** Folder works today only on dev, self-hosted, or with a volume such as
    `- ./testcases-hub:/app/data/testcases-hub:ro` in the collaudo compose. Azure DevOps works
-   on collaudo as it is and only needs a PAT with *Code: Read* on CoE-QA. Recommendation: the
+   on collaudo as it is and only needs a PAT with _Code: Read_ on CoE-QA. Recommendation: the
    reader is shared, so build phases 1 and 2 back to back and ship both kinds.
 2. **One hub per organization** (recommended) or per project.
 3. **Deprecated cases**: import and hide by default (recommended) or skip.
 4. **Images** (274 MB): not imported in phase 1; later as attachments of the manual test.
 5. **Automatic manual tests**: no (recommended). Sync refreshes the external rows only; manual
    tests are created on request, so the testers' tests are never rewritten under them.
+
+## 8. Implementation status (2026-10-30)
+
+Shipped on branch `feat/testcase-hub`, phases 1–3 folded into one PR because the reader is
+shared by both kinds and the import is the point of the feature:
+
+- Both source kinds (folder under `TESTCASE_HUB_ROOTS`, Azure DevOps with an encrypted PAT), one
+  hub per organization, test connection, refresh on request (no scheduled sync yet).
+- The catalog in **Test Manager → QA test case hub**: filters, search, pagination, case detail
+  with the manual-test preview, deprecated and missing cases hidden by default.
+- Selective import only: the user picks the cases (up to 500 per import), the project, an
+  existing static suite or a new one, and the standard or reference-environment steps. Re-import
+  of a changed case makes a new version; automated tests and name conflicts are skipped.
+- No images, no waves (§5.4), no bulk import.
+
+Decisions of §7: 1 both kinds; 2 per organization; 3 import and hide by default; 4 no images;
+5 manual tests only on explicit import.

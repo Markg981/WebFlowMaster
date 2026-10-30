@@ -48,20 +48,20 @@ de cette organisation vous y fait aussi entrer.
 
 La barre latérale contient tout :
 
-| Section                   | À quoi elle sert                                                                                                                  |
-| ------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| **Tableau de bord**       | Vues privées et partagées des exécutions, tendances et planifications. Voir [Conversations et tableaux de bord](./collaboration). |
-| **Testeur d’API**         | Construire et enregistrer des tests API. Voir [Tests API](./api-tests).                                                           |
-| **Applications mobiles**  | Définitions d'applications natives, inspecteur et exécution sur appareil. Voir [Applications mobiles](./mobile-apps).             |
-| **Créer un Test**         | Le constructeur de tests web. Voir [Tests web](./web-tests).                                                                      |
-| **Bibliothèque de tests** | Tous les tests enregistrés, avec étiquettes et historique. Voir [Organiser les tests](./organizing).                              |
-| **Gestionnaire de tests** | Importer des cas de test depuis Excel et les associer à des tests enregistrés.                                                    |
-| **Suites**                | Listes de tests partagées par plusieurs plans.                                                                                    |
-| **Plans de test**         | Quoi exécuter, où et comment ; le bouton **Exécuter**. Voir [Exécuter les tests](./running).                                      |
-| **Relectures**            | Les modifications en attente d'approbation, quand votre organisation relit les tests avant qu'ils s'exécutent.                    |
-| **Planification**         | Les plans qui s'exécutent d'eux-mêmes.                                                                                            |
-| **Rapports**              | Toutes les exécutions terminées, les tests instables et la quarantaine. Voir [Résultats](./results).                              |
-| **Paramètres**            | Vos préférences et votre mot de passe et, selon votre rôle, environnements, projets, membres, clés et le reste.                   |
+| Section                   | À quoi elle sert                                                                                                                                       |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Tableau de bord**       | Vues privées et partagées des exécutions, tendances et planifications. Voir [Conversations et tableaux de bord](./collaboration).                      |
+| **Testeur d’API**         | Construire et enregistrer des tests API. Voir [Tests API](./api-tests).                                                                                |
+| **Applications mobiles**  | Définitions d'applications natives, inspecteur et exécution sur appareil. Voir [Applications mobiles](./mobile-apps).                                  |
+| **Créer un Test**         | Le constructeur de tests web. Voir [Tests web](./web-tests).                                                                                           |
+| **Bibliothèque de tests** | Tous les tests enregistrés, avec étiquettes et historique. Voir [Organiser les tests](./organizing).                                                   |
+| **Gestionnaire de tests** | Importer des cas de test depuis Excel, ou depuis le hub des cas de test QA comme tests manuels. Voir [Organiser les tests](./organizing#testcase-hub). |
+| **Suites**                | Listes de tests partagées par plusieurs plans.                                                                                                         |
+| **Plans de test**         | Quoi exécuter, où et comment ; le bouton **Exécuter**. Voir [Exécuter les tests](./running).                                                           |
+| **Relectures**            | Les modifications en attente d'approbation, quand votre organisation relit les tests avant qu'ils s'exécutent.                                         |
+| **Planification**         | Les plans qui s'exécutent d'eux-mêmes.                                                                                                                 |
+| **Rapports**              | Toutes les exécutions terminées, les tests instables et la quarantaine. Voir [Résultats](./results).                                                   |
+| **Paramètres**            | Vos préférences et votre mot de passe et, selon votre rôle, environnements, projets, membres, clés et le reste.                                        |
 
 **Ctrl+K** (**⌘K** sur Mac), ou **Rechercher** dans la barre du haut, ouvre la palette de commandes
 depuis n'importe quelle page : tapez une partie d'un nom pour aller à une page, exécuter un plan de

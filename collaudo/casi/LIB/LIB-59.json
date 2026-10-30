@@ -1,0 +1,15 @@
+{
+  "id": "LIB-59",
+  "area": "LIB",
+  "title": "Hub dei test case QA: re-import dopo una modifica nell'hub e casi non importabili",
+  "priority": "P2",
+  "actor": "editor.a",
+  "preconditions": "LIB-58 eseguito. Nel clone: un caso importato con i passi modificati nel suo definition.json, un caso importato cancellato; in libreria uno dei test importati reso automatico dal builder.",
+  "steps": [
+    "Impostazioni → Aggiorna catalogo.",
+    "Nel catalogo filtrare per stato «Modificato dopo l'import» e importare di nuovo il caso.",
+    "Scegliere «Mostra anche scomparsi» e aprire il caso cancellato.",
+    "Importare di nuovo il caso il cui test è stato automatizzato."
+  ],
+  "expected": "Il toast conta 1 modificato e 1 scomparso; il caso modificato ha il badge «Modificato dopo l'import» e il re-import conta 1 aggiornato, con una nuova versione del test nella cronologia; il caso cancellato ha il badge «Scomparso dall'hub» e nessun pulsante di import; il caso automatizzato viene saltato con motivo «automatizzato nel frattempo» e il test non cambia."
+}

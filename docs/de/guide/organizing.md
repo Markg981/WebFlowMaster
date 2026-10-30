@@ -244,6 +244,39 @@ geschrieben.
 gespeicherten Test zu (**Sequenz wählen**), wählen Sie die Fälle aus und **Auswahl ausführen**;
 Status und letzter Bericht jedes Falls werden daneben angezeigt.
 
+### Testfälle aus dem QA-Hub {#testcase-hub}
+
+Teams, deren Fälle im **QA-Testfall-Hub** liegen (ein Repository mit einer `definition.json` je
+Fall unter `TestCasesDefinitions/<Modul>/<Id>/`), brauchen keine Arbeitsmappe: WebFlowMaster
+liest den Hub selbst. Ein Bearbeiter verbindet ihn einmal je Organisation unter
+**Einstellungen → QA-Testfall-Hub**, entweder als Ordner auf dem Server (ein Klon des
+Repositorys unterhalb eines vom Betreiber mit `TESTCASE_HUB_ROOTS` erlaubten Ordners, siehe
+[Configuration](/en/admin/configuration), auf Englisch) oder als Azure-DevOps-Repository
+(Organisations-URL, Projekt, Repository, Branch und ein persönliches Zugriffstoken mit
+_Code: read_, verschlüsselt gespeichert und nie wieder angezeigt). **Verbindung testen** prüft
+die Quelle; **Katalog aktualisieren** liest alle Fälle in einen von WebFlowMaster gehaltenen
+Katalog und sagt, wie viele neu, geändert oder nicht mehr im Hub sind. Noch wird nichts zum Test.
+
+Der Reiter **QA-Testfall-Hub** des **Testmanagers** (auch `/test-manager?source=hub`) listet den
+Katalog: Id, Modul, Priorität, Reifegrad, Ziel und wo jeder Fall gegenüber der Bibliothek steht
+(nicht importiert, importiert, seit dem Import geändert, aus dem Hub verschwunden). Filtern Sie
+nach Modul, Status, Priorität, Reifegrad oder Zustand, suchen Sie nach Id oder Ziel und öffnen
+Sie einen Fall, um seine Schritte so zu lesen, wie der Hub sie enthält und wie der manuelle Test
+sie hätte. Veraltete Fälle bleiben im Katalog, sind aber ausgeblendet, bis man sie anfordert;
+ebenso aus dem Hub verschwundene Fälle, die nicht importiert werden können.
+
+Wählen Sie die Fälle aus (bis zu 500 auf einmal) und **Auswahl importieren…**: jeder wird zu
+einem **manuellen Test** namens `[FALL_ID] Ziel`, mit der Priorität des Hubs, der Vorbedingung
+als erstem Schritt und den nummerierten Schritten samt erwartetem Ergebnis, im Projekt und in der
+Suite Ihrer Wahl (eine bestehende statische Suite oder eine neue). Fälle mit Schritten für die
+Referenzumgebung lassen sich mit dieser Variante importieren. Ein bereits importierter Fall wird
+als neue Version aktualisiert, wenn der Hub ihn geändert hat, und sonst unverändert gelassen; ein
+inzwischen automatisierter Test wird übersprungen, ebenso ein Name, den schon ein anderer Test
+trägt. Die importierten Tests sind gewöhnliche manuelle Tests: führen Sie sie in Plänen aus oder
+öffnen Sie einen im Baukasten und automatisieren Sie ihn. Betrachter sehen den Katalog, können
+aber nicht importieren. Das Entfernen des Hubs löscht den Katalog; die importierten Tests bleiben
+in der Bibliothek, nur nicht mehr mit ihm verknüpft.
+
 ## Gemeinsame Testdaten {#test-data}
 
 Dieselben Kunden, Produkte oder Karten wurden früher von Test zu Test kopiert und liefen

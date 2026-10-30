@@ -1,0 +1,15 @@
+{
+  "id": "LIB-57",
+  "area": "LIB",
+  "title": "Hub dei test case QA: catalogo in Test Manager, filtri, ricerca e dettaglio",
+  "priority": "P2",
+  "actor": "editor.a",
+  "preconditions": "LIB-56 eseguito.",
+  "steps": [
+    "Test Manager → scheda «Hub dei test case QA» (anche /test-manager?source=hub).",
+    "Filtrare per modulo, priorità e readiness; cercare un id; cambiare pagina e dimensione pagina.",
+    "Impostare status «Deprecato», poi «Qualsiasi status».",
+    "Aprire un caso che ha i passi per l'ambiente di riferimento."
+  ],
+  "expected": "La tabella mostra Caso, Modulo, Priorità, Readiness, Obiettivo e Stato con il totale e la paginazione; i filtri e la ricerca restringono le righe; i deprecati compaiono solo quando richiesti, con il badge; il dettaglio mostra i campi del caso, i passi dell'hub e l'anteprima del test manuale nelle due varianti; la scheda «File Excel» resta com'era."
+}

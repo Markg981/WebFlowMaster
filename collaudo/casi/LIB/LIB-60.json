@@ -1,0 +1,14 @@
+{
+  "id": "LIB-60",
+  "area": "LIB",
+  "title": "Hub dei test case QA: viewer in sola lettura e rimozione dell'hub",
+  "priority": "P2",
+  "actor": "viewer.a, poi editor.a",
+  "preconditions": "LIB-58 eseguito.",
+  "steps": [
+    "Come viewer: Test Manager → scheda hub, aprire un caso; Impostazioni → Hub dei test case QA.",
+    "Come viewer: PUT /api/testcase-hub, POST /api/testcase-hub/refresh e POST /api/testcase-hub/import con la sessione.",
+    "Come editor: Impostazioni → Rimuovi l'hub e confermare; tornare in Test Manager e in libreria."
+  ],
+  "expected": "Il viewer vede catalogo e dettaglio senza caselle di selezione né pulsanti di import, e la card senza form; le tre chiamate rispondono 403; dopo la rimozione la scheda hub mostra «Nessun hub dei test case» con il link alle impostazioni, i test importati restano in libreria e si eseguono; l'audit ha testcase_hub_removed."
+}

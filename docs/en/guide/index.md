@@ -42,20 +42,20 @@ signing in through that organization's provider joins you to it as well.
 
 The sidebar has everything:
 
-| Section          | What it is for                                                                                                  |
-| ---------------- | --------------------------------------------------------------------------------------------------------------- |
-| **Dashboard**    | Private and shared views of runs, trends and schedules. See [Conversations and dashboards](./collaboration).    |
-| **API Tester**   | Building and saving API tests. See [API tests](./api-tests).                                                    |
-| **Mobile Tests** | Native app definitions, inspector and device execution. See [Mobile apps](./mobile-apps).                       |
-| **Create Test**  | The test builder for web tests. See [Web tests](./web-tests).                                                   |
-| **Test Library** | Every saved test, with tags and history. See [Organizing tests](./organizing).                                  |
-| **Test Manager** | Importing test cases from Excel and mapping them to saved tests.                                                |
-| **Suites**       | Lists of tests shared by several plans.                                                                         |
-| **Test plans**   | What to run, where and how; the **Run** button. See [Running tests](./running).                                 |
-| **Reviews**      | Changes waiting for approval, when your organization reviews tests before they run.                             |
-| **Scheduling**   | Plans that run by themselves.                                                                                   |
-| **Reports**      | Every finished run, flaky tests and the quarantine. See [Results](./results).                                   |
-| **Settings**     | Your preferences and password, and, depending on your role, environments, projects, members, keys and the rest. |
+| Section          | What it is for                                                                                                                    |
+| ---------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| **Dashboard**    | Private and shared views of runs, trends and schedules. See [Conversations and dashboards](./collaboration).                      |
+| **API Tester**   | Building and saving API tests. See [API tests](./api-tests).                                                                      |
+| **Mobile Tests** | Native app definitions, inspector and device execution. See [Mobile apps](./mobile-apps).                                         |
+| **Create Test**  | The test builder for web tests. See [Web tests](./web-tests).                                                                     |
+| **Test Library** | Every saved test, with tags and history. See [Organizing tests](./organizing).                                                    |
+| **Test Manager** | Importing test cases from Excel, or from the QA test case hub as manual tests. See [Organizing tests](./organizing#testcase-hub). |
+| **Suites**       | Lists of tests shared by several plans.                                                                                           |
+| **Test plans**   | What to run, where and how; the **Run** button. See [Running tests](./running).                                                   |
+| **Reviews**      | Changes waiting for approval, when your organization reviews tests before they run.                                               |
+| **Scheduling**   | Plans that run by themselves.                                                                                                     |
+| **Reports**      | Every finished run, flaky tests and the quarantine. See [Results](./results).                                                     |
+| **Settings**     | Your preferences and password, and, depending on your role, environments, projects, members, keys and the rest.                   |
 
 **Ctrl+K** (**⌘K** on a Mac), or **Search** in the top bar, opens the command palette from any page:
 type part of a name to go to a page, run a test plan, switch between light and dark theme or sign out.
