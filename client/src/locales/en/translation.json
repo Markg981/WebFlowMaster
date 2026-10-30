@@ -3132,11 +3132,13 @@
     },
     "categories": {
       "bdd_profile": "BDD profiles",
+      "browser_grid": "Browser grids",
       "mail_settings": "Email settings",
       "mail_template": "Email templates",
       "all": "Everything",
       "member": "Members",
       "invitation": "Invitations",
+      "issue_tracker": "Issue trackers",
       "api_key": "API keys",
       "service_account": "Service accounts",
       "webhook": "Webhooks",
@@ -3302,7 +3304,13 @@
       "step_group_selector_healed": "Step group selector healed",
       "project_element_selector_healed": "Shared element selector healed",
       "healing_proposal_approved": "Healing proposal approved",
-      "healing_proposal_rejected": "Healing proposal rejected"
+      "healing_proposal_rejected": "Healing proposal rejected",
+      "issue_tracker_created": "Issue tracker added",
+      "issue_tracker_updated": "Issue tracker changed",
+      "issue_tracker_deleted": "Issue tracker removed",
+      "browser_grid_created": "Browser grid added",
+      "browser_grid_updated": "Browser grid changed",
+      "browser_grid_deleted": "Browser grid removed"
     }
   },
   "security": {

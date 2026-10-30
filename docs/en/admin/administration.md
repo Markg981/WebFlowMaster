@@ -433,14 +433,17 @@ The limits are set by the installation's operator, not by owners (see
 **Settings → Audit log** records who did what and when: sign-ins and failed sign-ins, members
 and invitations, keys and service accounts, tests, plans, schedules, suites, projects and their
 access, reviews and publications, quarantine, environments and secrets, agents, GitHub/GitLab
-connections, runners, two-factor changes, cancelled runs and system settings.
+connections, issue trackers and browser grids (name and fields changed, never the token or key),
+runners, two-factor changes, cancelled runs and system settings.
 
 Each entry has the actor, the action, the target, the client's IP address and, for requests
 made with a key, which key. It can be filtered by category, action, person and dates, and
 exported as CSV (up to 10,000 entries per export; narrow the dates for more).
 
 The log cannot be changed or deleted from the application: the database grants it only
-reading and adding. It is removed only when the whole organization is erased.
+reading and adding, and a database trigger refuses any update or delete, even from the table's
+owner. Only the optional `AUDIT_LOG_RETENTION_DAYS` sweep and the erasure of the whole
+organization remove entries.
 
 ## System settings _(owners)_
 

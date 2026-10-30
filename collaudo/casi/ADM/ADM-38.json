@@ -1,0 +1,15 @@
+{
+  "id": "ADM-38",
+  "area": "ADM",
+  "title": "Griglia browser: creazione, modifica ed eliminazione finiscono nel registro di audit",
+  "priority": "P2",
+  "actor": "owner.a",
+  "preconditions": "Un editor; un owner.",
+  "steps": [
+    "Da un editor creare una griglia browser con una chiave di accesso.",
+    "Modificarne la chiave e l'indirizzo.",
+    "Eliminarla.",
+    "Da owner.a aprire il Registro di audit."
+  ],
+  "expected": "Tre voci (browser_grid.created, .updated, .deleted) con attore, nome e provider; nessuna contiene la chiave, l'indirizzo o l'utente della griglia."
+}

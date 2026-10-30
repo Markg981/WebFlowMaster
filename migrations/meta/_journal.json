@@ -710,6 +710,13 @@
       "when": 1792400000025,
       "tag": "0101_organizations_ai_enabled",
       "breakpoints": true
+    },
+    {
+      "idx": 102,
+      "version": "7",
+      "when": 1792400000026,
+      "tag": "0102_audit_log_immutable_trigger",
+      "breakpoints": true
     }
   ]
 }

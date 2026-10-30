@@ -1,7 +1,8 @@
 import { describe, it, expect, beforeAll, beforeEach, vi } from 'vitest';
 import express from 'express';
 import request from 'supertest';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, sql } from 'drizzle-orm';
+import { auditLogMaintenance } from '../../tests/factories';
 
 vi.mock('../../platform/logger', () => ({
   default: {
@@ -57,7 +58,7 @@ beforeAll(async () => {
 
 beforeEach(async () => {
   await privilegedDb.delete(apiKeys);
-  await privilegedDb.delete(auditLog);
+  await auditLogMaintenance(sql`DELETE FROM audit_log`);
   await privilegedDb.delete(users).where(eq(users.kind, 'service'));
   currentUser = { id: owner, username: 'sa-owner', organizationId: org, role: 'owner' };
 });

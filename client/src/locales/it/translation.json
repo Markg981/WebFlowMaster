@@ -3132,11 +3132,13 @@
     },
     "categories": {
       "bdd_profile": "Profili BDD",
+      "browser_grid": "Browser grid",
       "mail_settings": "Configurazione email",
       "mail_template": "Modelli email",
       "all": "Tutto",
       "member": "Membri",
       "invitation": "Inviti",
+      "issue_tracker": "Issue tracker",
       "api_key": "Chiavi API",
       "service_account": "Account di servizio",
       "webhook": "Webhook",
@@ -3302,7 +3304,13 @@
       "step_group_selector_healed": "Selettore del gruppo di step corretto",
       "project_element_selector_healed": "Selettore dell’elemento condiviso corretto",
       "healing_proposal_approved": "Proposta di riparazione approvata",
-      "healing_proposal_rejected": "Proposta di riparazione rifiutata"
+      "healing_proposal_rejected": "Proposta di riparazione rifiutata",
+      "issue_tracker_created": "Issue tracker aggiunto",
+      "issue_tracker_updated": "Issue tracker modificato",
+      "issue_tracker_deleted": "Issue tracker rimosso",
+      "browser_grid_created": "Browser grid aggiunto",
+      "browser_grid_updated": "Browser grid modificato",
+      "browser_grid_deleted": "Browser grid rimosso"
     }
   },
   "security": {

@@ -4,7 +4,7 @@ import { privilegedDb } from '../platform/db';
 import { runWithTenant, withTenantTransaction } from '../platform/middleware/tenancy';
 import { recordAudit } from './audit';
 import { AUDIT_ACTIONS } from '@shared/schema';
-import { createTestOrganization, createTestUser } from '../tests/factories';
+import { auditLogMaintenance, createTestOrganization, createTestUser } from '../tests/factories';
 import { eraseOrganization } from './organization-lifecycle';
 import { purgeExpiredRows, auditLogRetentionDays, evidenceRetentionDays } from './data-retention';
 
@@ -19,7 +19,7 @@ beforeEach(async () => {
       recordAudit(tx, { action: AUDIT_ACTIONS.MEMBER_REMOVED, actor: { id: user, username: 'x' } }),
     ),
   );
-  await privilegedDb.execute(sql`UPDATE audit_log SET created_at = now() - interval '400 days'`);
+  await auditLogMaintenance(sql`UPDATE audit_log SET created_at = now() - interval '400 days'`);
   await runWithTenant(org, () =>
     withTenantTransaction((tx) =>
       recordAudit(tx, { action: AUDIT_ACTIONS.MEMBER_REMOVED, actor: { id: user, username: 'y' } }),

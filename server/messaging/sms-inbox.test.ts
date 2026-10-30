@@ -1,10 +1,10 @@
 import { describe, it, expect, beforeAll, beforeEach, vi } from 'vitest';
 import request from 'supertest';
 import express, { type Application } from 'express';
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import { privilegedDb } from '../platform/db';
 import { auditLog, smsMessages, users, type User } from '@shared/schema';
-import { createTestOrganization } from '../tests/factories';
+import { createTestOrganization, auditLogMaintenance } from '../tests/factories';
 import { runWithTenant, tenancyMiddleware } from '../platform/middleware/tenancy';
 import { normalizePhone, parseSmsQuery, readInbound, receiveSms } from './sms-inbox';
 import { executeStep } from '../web/step-executor';
@@ -75,7 +75,7 @@ describe('the inbox', () => {
 
   beforeEach(async () => {
     await privilegedDb.delete(smsMessages);
-    await privilegedDb.delete(auditLog);
+    await auditLogMaintenance(sql`DELETE FROM audit_log`);
   });
 
   async function owner(name: string) {

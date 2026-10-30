@@ -3,6 +3,18 @@ import { sql } from 'drizzle-orm';
 import { privilegedDb } from '../platform/db';
 
 /**
+ * Runs a privileged statement against audit_log. The table refuses UPDATE and DELETE for every
+ * role (migration 0102) unless the transaction sets app.audit_maintenance, as retention and
+ * organization erasure do; fixtures that must age or clear entries go through here.
+ */
+export async function auditLogMaintenance(statement: ReturnType<typeof sql>): Promise<void> {
+  await privilegedDb.transaction(async (tx) => {
+    await tx.execute(sql`SELECT set_config('app.audit_maintenance', 'on', true)`);
+    await tx.execute(statement);
+  });
+}
+
+/**
  * Creates an organization and returns its id.
  *
  * Uses the privileged handle deliberately: fixtures run before any tenant context exists,

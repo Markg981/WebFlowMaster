@@ -1,10 +1,12 @@
+import { sql } from 'drizzle-orm';
 import { hashInvitationToken } from '../platform/invitation-token';
 import { describe, it, expect, beforeAll, beforeEach, afterEach, vi } from 'vitest';
 import request from 'supertest';
 import express, { type Express } from 'express';
 import { privilegedDb } from '../platform/db';
-import { users, organizations, invitations, auditLog } from '@shared/schema';
+import { users, organizations, invitations } from '@shared/schema';
 import { registrationMode } from './registration';
+import { auditLogMaintenance } from '../tests/factories';
 
 vi.mock('../platform/logger', () => ({
   default: {
@@ -30,7 +32,7 @@ beforeAll(async () => {
 beforeEach(async () => {
   // The default, which the rest of the suite overrides (vitest.config.ts).
   delete process.env.REGISTRATION;
-  await privilegedDb.delete(auditLog);
+  await auditLogMaintenance(sql`DELETE FROM audit_log`);
   await privilegedDb.delete(invitations);
   await privilegedDb.delete(users);
   await privilegedDb.delete(organizations);

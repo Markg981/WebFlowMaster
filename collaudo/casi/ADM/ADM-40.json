@@ -1,0 +1,13 @@
+{
+  "id": "ADM-40",
+  "area": "ADM",
+  "title": "Rimozione di un membro: il caso 'appartiene ad altre organizzazioni' è deciso nella transazione",
+  "priority": "P2",
+  "actor": "owner.a",
+  "preconditions": "Un membro presente anche in un'altra organizzazione; un membro solo in A.",
+  "steps": [
+    "Rimuovere il membro presente anche altrove.",
+    "Rimuovere il membro solo in A."
+  ],
+  "expected": "1: il suo account resta, perde solo l'appartenenza ad A (accountDeleted false). 2: l'account è cancellato (accountDeleted true)."
+}

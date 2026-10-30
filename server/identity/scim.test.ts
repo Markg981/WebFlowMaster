@@ -1,9 +1,10 @@
 import { describe, it, expect, beforeAll, beforeEach, vi } from 'vitest';
 import request from 'supertest';
 import express, { type Express } from 'express';
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import { privilegedDb } from '../platform/db';
 import { auditLog, invitations, organizations, scimGroups, tests, users } from '@shared/schema';
+import { auditLogMaintenance } from '../tests/factories';
 
 // SCIM against the real (PGlite) test database, as Entra ID and Okta talk to it. Only the logger is mocked.
 vi.mock('../platform/logger', () => ({
@@ -45,7 +46,7 @@ beforeAll(async () => {
 beforeEach(async () => {
   const { resetScimUsageThrottle } = await import('./scim');
   resetScimUsageThrottle();
-  await privilegedDb.delete(auditLog);
+  await auditLogMaintenance(sql`DELETE FROM audit_log`);
   await privilegedDb.delete(invitations);
   await privilegedDb.delete(tests);
   await privilegedDb.delete(users);

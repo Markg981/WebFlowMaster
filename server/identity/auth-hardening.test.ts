@@ -4,11 +4,12 @@ import express, { type Express } from 'express';
 import { readFileSync } from 'node:fs';
 import { eq, sql } from 'drizzle-orm';
 import { privilegedDb } from '../platform/db';
-import { users, organizations, invitations, auditLog, passwordResets } from '@shared/schema';
+import { users, organizations, invitations, passwordResets } from '@shared/schema';
 import { storage } from './storage';
 import { hashInvitationToken } from '../platform/invitation-token';
 import { runWithTenant, withTenantTransaction } from '../platform/middleware/tenancy';
 import { issuePasswordReset, issueSelfServiceReset } from './password-reset';
+import { auditLogMaintenance } from '../tests/factories';
 
 vi.mock('../platform/logger', () => ({
   default: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), http: vi.fn(), debug: vi.fn() },
@@ -37,7 +38,7 @@ beforeAll(async () => {
 });
 
 beforeEach(async () => {
-  await privilegedDb.delete(auditLog);
+  await auditLogMaintenance(sql`DELETE FROM audit_log`);
   await privilegedDb.delete(passwordResets);
   await privilegedDb.delete(invitations);
   await privilegedDb.delete(users);

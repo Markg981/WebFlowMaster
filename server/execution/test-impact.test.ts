@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, beforeAll, vi } from 'vitest';
 import request from 'supertest';
 import express, { type Application } from 'express';
 import { v4 as uuidv4 } from 'uuid';
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import { privilegedDb } from '../platform/db';
 import {
   apiTests,
@@ -18,7 +18,7 @@ import {
   users,
   type User,
 } from '@shared/schema';
-import { createTestOrganization } from '../tests/factories';
+import { createTestOrganization, auditLogMaintenance } from '../tests/factories';
 import { tenancyMiddleware } from '../platform/middleware/tenancy';
 import { globToRegExp, validatePattern } from './test-impact';
 import { readExecutionSnapshot } from './execution-snapshot';
@@ -74,7 +74,7 @@ describe('a run narrowed to what a change affects', () => {
   });
 
   beforeEach(async () => {
-    await privilegedDb.delete(auditLog);
+    await auditLogMaintenance(sql`DELETE FROM audit_log`);
     await privilegedDb.delete(impactRules);
     await privilegedDb.delete(reportTestCaseResults);
     await privilegedDb.delete(testPlanExecutions);

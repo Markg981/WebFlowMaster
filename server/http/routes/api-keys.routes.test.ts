@@ -1,10 +1,10 @@
 import { describe, it, expect, beforeAll, beforeEach, vi } from 'vitest';
 import express from 'express';
 import request from 'supertest';
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import { privilegedDb } from '../../platform/db';
 import { apiKeys, auditLog, users } from '@shared/schema';
-import { createTestOrganization, createTestUser } from '../../tests/factories';
+import { createTestOrganization, createTestUser, auditLogMaintenance } from '../../tests/factories';
 import { hashApiKey } from '../../identity/api-keys';
 
 vi.mock('../../platform/logger', () => ({
@@ -52,7 +52,7 @@ beforeAll(async () => {
 
 beforeEach(async () => {
   await privilegedDb.delete(apiKeys);
-  await privilegedDb.delete(auditLog);
+  await auditLogMaintenance(sql`DELETE FROM audit_log`);
   currentUser = { id: userId, username: 'keys-user', organizationId, role: 'editor' };
 });
 

@@ -1,7 +1,8 @@
 import { describe, it, expect, beforeAll, beforeEach, vi } from 'vitest';
 import request from 'supertest';
 import express, { type Express } from 'express';
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
+import { auditLogMaintenance } from '../tests/factories';
 
 /**
  * The second factor, end to end: the algorithm against the RFC's own vectors, then enrolment,
@@ -53,7 +54,7 @@ beforeAll(async () => {
 
 beforeEach(async () => {
   (await import('./login-throttle')).resetLoginThrottleForTests();
-  await privilegedDb.delete(auditLog);
+  await auditLogMaintenance(sql`DELETE FROM audit_log`);
   await privilegedDb.delete(invitations);
   await privilegedDb.delete(userMfa);
   await privilegedDb.delete(users);

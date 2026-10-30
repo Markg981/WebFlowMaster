@@ -1,0 +1,14 @@
+{
+  "id": "SEC-96",
+  "area": "SEC",
+  "title": "Registro di audit: UPDATE e DELETE rifiutati dal database anche al proprietario",
+  "priority": "P1",
+  "actor": "owner.a",
+  "preconditions": "Accesso al database come proprietario delle tabelle (ambiente di prova).",
+  "steps": [
+    "Eseguire UPDATE audit_log SET action = 'x'.",
+    "Eseguire DELETE FROM audit_log.",
+    "Eliminare un utente che ha voci di audit."
+  ],
+  "expected": "1 e 2: errore 'audit_log is append-only'. 3: l'utente è eliminato, le sue voci restano con actor_user_id nullo e actor_username conservato."
+}

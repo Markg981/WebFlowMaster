@@ -189,6 +189,9 @@ export async function eraseOrganization(
     .transaction(async (tx) => {
       const deleted: Record<string, number> = {};
 
+      // audit_log is guarded by a trigger (migration 0102); erasure is a maintenance act.
+      await tx.execute(sql`SELECT set_config('app.audit_maintenance', 'on', true)`);
+
       // Members who also belong elsewhere are moved there first (migration 0086): erasing an
       // organization takes its accounts with it, not the seats those people hold in others.
       deleted.members_relocated = await relocateMembersBeforeErasure(tx, organizationId);

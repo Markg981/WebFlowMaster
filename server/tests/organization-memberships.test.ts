@@ -22,6 +22,7 @@ import {
   switchOrganization,
 } from '../tenancy/organization-memberships';
 import organizationRoutes from '../http/routes/organization.routes';
+import { auditLogMaintenance } from './factories';
 
 /**
  * A person in several organizations (migration 0086).
@@ -66,7 +67,7 @@ beforeAll(async () => {
 });
 
 beforeEach(async () => {
-  await privilegedDb.delete(auditLog);
+  await auditLogMaintenance(sql`DELETE FROM audit_log`);
   await privilegedDb.delete(apiKeys);
   await privilegedDb.delete(projects);
   await privilegedDb.delete(invitations);

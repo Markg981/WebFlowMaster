@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, beforeEach, afterEach, vi } from 'vitest';
 import request from 'supertest';
 import express, { type Express } from 'express';
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import { privilegedDb } from './platform/db';
 import {
   auditLog,
@@ -18,6 +18,7 @@ import type { RunSummary } from './integrations/notifications';
 import { mailSettings } from '@shared/mail-settings';
 import { issuePasswordReset } from './identity/password-reset';
 import { runWithTenant, withTenantTransaction } from './platform/middleware/tenancy';
+import { auditLogMaintenance } from './tests/factories';
 
 vi.mock('./platform/logger', () => ({
   default: {
@@ -58,7 +59,7 @@ beforeAll(async () => {
 beforeEach(async () => {
   sent = [];
   mailerDeps.transport = transport as any;
-  await privilegedDb.delete(auditLog);
+  await auditLogMaintenance(sql`DELETE FROM audit_log`);
   await privilegedDb.delete(passwordResets);
   await privilegedDb.delete(invitations);
   await privilegedDb.delete(userSettings);

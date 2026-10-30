@@ -4,8 +4,9 @@ import request from 'supertest';
 import express, { type Express } from 'express';
 import { privilegedDb } from '../platform/db';
 import { users, organizations, invitations, auditLog } from '@shared/schema';
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import { storage } from './storage';
+import { auditLogMaintenance } from '../tests/factories';
 
 // Only the logger is mocked; auth runs against the real (PGlite) test database
 // with an in-memory session store (NODE_ENV=test).
@@ -35,7 +36,7 @@ beforeEach(async () => {
   // FK order. audit_log first: accepting an invitation writes an entry, and audit_log
   // references organizations with no cascade, so leaving one behind blocks the organizations
   // delete on the *next* run of this hook — which surfaces as unrelated tests failing.
-  await privilegedDb.delete(auditLog);
+  await auditLogMaintenance(sql`DELETE FROM audit_log`);
   await privilegedDb.delete(invitations);
   await privilegedDb.delete(users);
   await privilegedDb.delete(organizations);

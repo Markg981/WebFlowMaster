@@ -1,0 +1,12 @@
+{
+  "id": "ADM-39",
+  "area": "ADM",
+  "title": "Gruppo mobile: i campi extra nel corpo della richiesta sono ignorati",
+  "priority": "P3",
+  "actor": "editor.a",
+  "preconditions": "Un editor.",
+  "steps": [
+    "Creare un gruppo mobile con un corpo che include anche id, organizationId e createdBy di altri."
+  ],
+  "expected": "Il gruppo è creato con id generato, organizzazione e autore della sessione; i campi extra non hanno effetto."
+}

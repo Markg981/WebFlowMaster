@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { asc, eq, sql } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 import playwright from 'playwright';
-import { browserGrids, testPlans } from '@shared/schema';
+import { AUDIT_ACTIONS, browserGrids, testPlans } from '@shared/schema';
 import {
   BROWSER_GRID_PROVIDERS,
   GRID_FIELDS,
@@ -19,6 +19,7 @@ import { appiumTransport } from '../../mobile/mobile-runner';
 import logger from '../../platform/logger';
 import { assertEgressAllowed } from '../../platform/egress-policy';
 import { partialUpdate } from '@shared/partial-update';
+import { auditActor, changedFields, recordAudit } from '../../tenancy/audit';
 
 /**
  * An organization's browser grids (shared/browser-grids.ts).
@@ -105,8 +106,8 @@ router.post('/api/browser-grids', requireRole('editor'), async (req, res) => {
     const encrypted = parsed.data.key
       ? await encryptSecret(parsed.data.key, req.user!.organizationId)
       : null;
-    const [created] = await withTenantTransaction((tx) =>
-      tx
+    const [created] = await withTenantTransaction(async (tx) => {
+      const rows = await tx
         .insert(browserGrids)
         .values({
           id: uuidv4(),
@@ -131,8 +132,17 @@ router.post('/api/browser-grids', requireRole('editor'), async (req, res) => {
             GRID_FIELDS[parsed.data.provider].key === 'none' ? null : (encrypted?.authTag ?? null),
           createdBy: req.user!.id,
         })
-        .returning(),
-    );
+        .returning();
+      // Names the grid, never the access key, the endpoint or the user name (may embed credentials).
+      await recordAudit(tx, {
+        action: AUDIT_ACTIONS.BROWSER_GRID_CREATED,
+        actor: auditActor(req),
+        targetType: 'browser_grid',
+        targetId: rows[0].id,
+        metadata: { name: rows[0].name, provider: rows[0].provider },
+      });
+      return rows;
+    });
     res.status(201).json(toListed(created));
   } catch (error: any) {
     if (isUniqueViolation(error))
@@ -192,6 +202,18 @@ router.put('/api/browser-grids/:id', requireRole('editor'), async (req, res) => 
         .set(changes)
         .where(eq(browserGrids.id, req.params.id))
         .returning();
+      await recordAudit(tx, {
+        action: AUDIT_ACTIONS.BROWSER_GRID_UPDATED,
+        actor: auditActor(req),
+        targetType: 'browser_grid',
+        targetId: req.params.id,
+        // Field names only: the values may hold a key or a URL with credentials.
+        metadata: {
+          name: updated.name,
+          fields: changedFields(parsed.data),
+          keyReplaced: !!parsed.data.key,
+        },
+      });
       return { status: 200, grid: updated } as const;
     });
     if ('error' in outcome) return res.status(outcome.status).json({ error: outcome.error });
@@ -297,6 +319,15 @@ router.delete('/api/browser-grids/:id', requireRole('editor'), async (req, res) 
         .delete(browserGrids)
         .where(eq(browserGrids.id, req.params.id))
         .returning();
+      if (deleted.length > 0) {
+        await recordAudit(tx, {
+          action: AUDIT_ACTIONS.BROWSER_GRID_DELETED,
+          actor: auditActor(req),
+          targetType: 'browser_grid',
+          targetId: req.params.id,
+          metadata: { name: deleted[0].name, plansMovedToRunners: Number(count) },
+        });
+      }
       return { deleted: deleted.length, plans: Number(count) };
     });
     if (outcome.deleted === 0) return res.status(404).json({ error: 'Grid not found.' });
