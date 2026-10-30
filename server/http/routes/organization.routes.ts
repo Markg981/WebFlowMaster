@@ -745,16 +745,16 @@ router.delete(
         .json({ error: 'Invalid payload', details: flattenZodError(body.error) });
     }
 
+    // Whether the person belongs anywhere else decides what "remove" means: taking this
+    // organization away from an account that lives on, or deleting the account as before. Asked
+    // before the tenant transaction: from inside it the other memberships are not visible (RLS),
+    // and a privileged read while the transaction holds its connection deadlocks a one-connection
+    // pool.
+    const belongsElsewhere = await hasOtherMembership(userId, organizationId);
+
     const outcome = await withTenantTransaction(async (tx) => {
       const target = await memberOf(tx, organizationId, userId);
       if (!target) return { status: 404 as const };
-
-      // Whether the person belongs anywhere else decides what "remove" means: taking this
-      // organization away from an account that lives on, or deleting the account as before. Asked
-      // inside the transaction, after the member is known to exist, to keep the window to the
-      // deletion as short as possible: the tenant connection cannot see other organizations'
-      // memberships (RLS), so the read itself goes through the privileged pool.
-      const belongsElsewhere = await hasOtherMembership(userId, organizationId);
 
       if (target.role === 'owner') {
         if ((await otherOwnerCount(tx, organizationId, userId)) === 0)
