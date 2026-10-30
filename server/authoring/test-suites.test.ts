@@ -406,7 +406,8 @@ describe('rows that point across organizations', () => {
     // A run's manifest unit belongs to a run of the same organization (0091); its attempts and
     // result rows are tied to it by composite keys that carry the organization.
     // A healing proposal's test and project (0094).
-    expect(rows.length).toBe(103);
+    // A hub case's source and the test it was imported as (0103).
+    expect(rows.length).toBe(105);
     expect(rows.filter((r) => !r.convalidated)).toEqual([]);
   });
 
@@ -468,6 +469,8 @@ describe('rows that point across organizations', () => {
       'mobile_test_runs.requested_by',
       'load_tests.created_by',
       'load_test_runs.requested_by',
+      'test_case_sources.created_by',
+      'hub_test_cases.imported_by',
       // The one link that crosses organizations by design: a membership names a person whose
       // current organization (users.organization_id) may be another one (migration 0086).
       'organization_memberships.user_id',

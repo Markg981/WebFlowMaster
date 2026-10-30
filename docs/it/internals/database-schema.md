@@ -926,6 +926,10 @@ erDiagram
   test_plan_executions |o--o{ issue_links : "first_execution_id"
   test_plan_executions |o--o{ issue_links : "last_execution_id"
   users |o--o{ source_hosts : "created_by"
+  users |o--o{ test_case_sources : "created_by"
+  test_case_sources ||--o{ hub_test_cases : "source_id"
+  tests |o--o{ hub_test_cases : "test_id"
+  users |o--o{ hub_test_cases : "imported_by"
   users |o--o{ test_management_connections : "created_by"
   test_management_connections ||--o{ test_case_links : "connection_id"
   tests |o--o{ test_case_links : "test_id"
@@ -976,6 +980,63 @@ erDiagram
     timestamp resolved_at
     timestamp created_at
     timestamp updated_at
+  }
+  test_case_sources {
+    text id PK
+    int organization_id FK
+    text kind
+    text name
+    text path
+    text base_url
+    text project
+    text repository
+    text branch
+    text encrypted_token
+    text token_iv
+    text token_auth_tag
+    timestamp last_refresh_at
+    text last_refresh_head
+    text last_refresh_status
+    text last_refresh_error
+    int case_count
+    int created_by FK
+    timestamp created_at
+    timestamp updated_at
+  }
+  hub_test_cases {
+    int id PK
+    int organization_id FK
+    text source_id FK
+    text case_id
+    text raw_id
+    text module
+    text execution_module
+    text status
+    text priority
+    int readiness_level
+    text version_from
+    text version_to
+    text devops_id
+    text sme
+    text feature_highlight
+    text execution_group
+    text functional_objective
+    text precondition
+    text steps
+    text expected_outcome
+    text ref_env_precondition
+    text ref_env_steps
+    text ref_env_expected_outcome
+    jsonb depends_on
+    boolean force_not_tested
+    timestamp source_updated_at
+    text content_hash
+    timestamp refreshed_at
+    timestamp missing_since
+    int test_id FK
+    text imported_hash
+    timestamp imported_at
+    int imported_by FK
   }
   source_hosts {
     text id PK

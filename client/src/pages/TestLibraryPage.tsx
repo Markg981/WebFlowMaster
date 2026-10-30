@@ -1,5 +1,6 @@
 import { useConfirm } from '@/hooks/use-confirm';
 import React, { useEffect, useState } from 'react';
+import { useSearch } from 'wouter';
 import { errorMessage } from '@/lib/queryClient';
 import { useTranslation } from 'react-i18next';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -74,8 +75,10 @@ const TestLibraryPage: React.FC = () => {
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const canEdit = user?.role !== 'viewer';
+  // /tests?search=[CASE_ID] opens the library on one imported hub case.
+  const query = useSearch();
   const { search, setSearch, debouncedSearch, page, setPage, pageSize, setPageSize } =
-    useCatalogControls();
+    useCatalogControls(new URLSearchParams(query).get('search') ?? '');
   const [detailBusyId, setDetailBusyId] = useState<number | null>(null);
   const [activeTagIds, setActiveTagIds] = useState<string[]>([]);
   const [historyFor, setHistoryFor] = useState<{ id: number; name: string } | null>(null);

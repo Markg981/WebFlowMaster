@@ -1,0 +1,15 @@
+{
+  "id": "LIB-58",
+  "area": "LIB",
+  "title": "Hub dei test case QA: import selettivo come test manuali ed esecuzione in un piano",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "LIB-57 eseguito.",
+  "steps": [
+    "Selezionare tre casi attivi non importati e premere «Importa selezionati…».",
+    "Scegliere un progetto, «Una nuova suite…» con un nome, i passi standard; confermare.",
+    "Apri la libreria e aprire uno dei tre test; aggiungere la suite a un piano ed eseguirlo.",
+    "Tornare al catalogo e rilanciare lo stesso import sui tre casi."
+  ],
+  "expected": "Il risultato conta 3 creati; in libreria tre test manuali «[ID] obiettivo» con la priorità dell'hub, la precondizione come primo passo e i passi numerati con l'esito atteso, nella suite nuova; nel catalogo lo stato è «Importato» con «Apri il test»; il piano li esegue come test manuali; il secondo import conta 3 già aggiornati e non crea nulla; l'audit ha testcase_hub_imported."
+}

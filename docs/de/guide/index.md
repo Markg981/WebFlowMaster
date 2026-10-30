@@ -45,20 +45,20 @@ Anmeldung über den Anbieter dieser Organisation ebenfalls Mitglied.
 
 Die Seitenleiste enthält alles:
 
-| Bereich            | Wofür er da ist                                                                                                      |
-| ------------------ | -------------------------------------------------------------------------------------------------------------------- |
-| **Übersicht**      | Private und geteilte Ansichten von Läufen, Trends und Zeitplänen. Siehe [Gespräche und Dashboards](./collaboration). |
-| **API-Tester**     | API-Tests bauen und speichern. Siehe [API-Tests](./api-tests).                                                       |
-| **Mobile Apps**    | Definitionen nativer Apps, Inspector und Ausführung auf Geräten. Siehe [Mobile Apps](./mobile-apps).                 |
-| **Test erstellen** | Der Testbaukasten für Webtests. Siehe [Webtests](./web-tests).                                                       |
-| **Testbibliothek** | Jeder gespeicherte Test, mit Tags und Verlauf. Siehe [Tests organisieren](./organizing).                             |
-| **Testmanager**    | Testfälle aus Excel importieren und gespeicherten Tests zuordnen.                                                    |
-| **Suiten**         | Listen von Tests, die mehrere Pläne gemeinsam nutzen.                                                                |
-| **Testpläne**      | Was wo und wie ausgeführt wird; die Schaltfläche **Ausführen**. Siehe [Tests ausführen](./running).                  |
-| **Prüfungen**      | Änderungen, die auf Freigabe warten, wenn Ihre Organisation Tests vor dem Ausführen prüft.                           |
-| **Planung**        | Pläne, die von selbst laufen.                                                                                        |
-| **Berichte**       | Jeder abgeschlossene Lauf, instabile Tests und die Quarantäne. Siehe [Ergebnisse](./results).                        |
-| **Einstellungen**  | Ihre Vorlieben und Ihr Passwort und, je nach Rolle, Umgebungen, Projekte, Mitglieder, Schlüssel und der Rest.        |
+| Bereich            | Wofür er da ist                                                                                                                         |
+| ------------------ | --------------------------------------------------------------------------------------------------------------------------------------- |
+| **Übersicht**      | Private und geteilte Ansichten von Läufen, Trends und Zeitplänen. Siehe [Gespräche und Dashboards](./collaboration).                    |
+| **API-Tester**     | API-Tests bauen und speichern. Siehe [API-Tests](./api-tests).                                                                          |
+| **Mobile Apps**    | Definitionen nativer Apps, Inspector und Ausführung auf Geräten. Siehe [Mobile Apps](./mobile-apps).                                    |
+| **Test erstellen** | Der Testbaukasten für Webtests. Siehe [Webtests](./web-tests).                                                                          |
+| **Testbibliothek** | Jeder gespeicherte Test, mit Tags und Verlauf. Siehe [Tests organisieren](./organizing).                                                |
+| **Testmanager**    | Testfälle aus Excel oder aus dem QA-Testfall-Hub als manuelle Tests importieren. Siehe [Tests organisieren](./organizing#testcase-hub). |
+| **Suiten**         | Listen von Tests, die mehrere Pläne gemeinsam nutzen.                                                                                   |
+| **Testpläne**      | Was wo und wie ausgeführt wird; die Schaltfläche **Ausführen**. Siehe [Tests ausführen](./running).                                     |
+| **Prüfungen**      | Änderungen, die auf Freigabe warten, wenn Ihre Organisation Tests vor dem Ausführen prüft.                                              |
+| **Planung**        | Pläne, die von selbst laufen.                                                                                                           |
+| **Berichte**       | Jeder abgeschlossene Lauf, instabile Tests und die Quarantäne. Siehe [Ergebnisse](./results).                                           |
+| **Einstellungen**  | Ihre Vorlieben und Ihr Passwort und, je nach Rolle, Umgebungen, Projekte, Mitglieder, Schlüssel und der Rest.                           |
 
 **Strg+K** (**⌘K** auf dem Mac) oder **Suchen** in der oberen Leiste öffnet von jeder Seite aus die
 Befehlspalette: Tippen Sie einen Teil eines Namens, um zu einer Seite zu gehen, einen Testplan

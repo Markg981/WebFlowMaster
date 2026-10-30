@@ -53,6 +53,7 @@ import nlAuthoringRoutes from './http/routes/nl-authoring.routes';
 import tagsRoutes from './http/routes/tags.routes';
 import testVersionsRoutes from './http/routes/test-versions.routes';
 import issueTrackersRoutes from './http/routes/issue-trackers.routes';
+import testcaseHubRoutes from './http/routes/testcase-hub.routes';
 import issuesRoutes from './http/routes/issues.routes';
 import authRoutes from './http/routes/auth.routes';
 import observabilityRoutes from './http/routes/observability.routes';
@@ -170,6 +171,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use(tagsRoutes);
   app.use(testVersionsRoutes);
   app.use(issueTrackersRoutes);
+  app.use(testcaseHubRoutes);
   app.use(issuesRoutes);
   app.use(observabilityRoutes);
   app.use(environmentRoutes);

@@ -32,6 +32,7 @@ import {
   MessageSquareText,
   Tag,
   CreditCard,
+  FolderGit2,
 } from 'lucide-react';
 
 import EnvironmentsCard from '@/components/settings/EnvironmentsCard';
@@ -68,6 +69,7 @@ import TagsCard from '@/components/settings/TagsCard';
 import ImpactMapCard from '@/components/settings/ImpactMapCard';
 import SmsInboxCard from '@/components/settings/SmsInboxCard';
 import IssueTrackersCard from '@/components/settings/IssueTrackersCard';
+import TestCaseHubCard from '@/components/settings/TestCaseHubCard';
 import BrowserGridsCard from '@/components/settings/BrowserGridsCard';
 import TestManagementCard from '@/components/settings/TestManagementCard';
 import BddProfilesCard from '@/components/settings/BddProfilesCard';
@@ -223,6 +225,16 @@ export default function SettingsPage() {
       ),
       icon: Bug,
       content: <IssueTrackersCard />,
+    },
+    {
+      id: 'testCaseHub',
+      label: t('settings.sections.testCaseHub', 'QA test case hub'),
+      description: t(
+        'settings.sections.testCaseHubDescription',
+        'The QA team’s test case repository, read into a catalog you import tests from.',
+      ),
+      icon: FolderGit2,
+      content: <TestCaseHubCard />,
     },
     {
       id: 'testManagement',

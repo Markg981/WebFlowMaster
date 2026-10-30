@@ -20,6 +20,7 @@ export interface AuditEntry {
     | 'bdd_profile'
     | 'user'
     | 'invitation'
+    | 'testcase_hub'
     | 'organization'
     | 'api_key'
     | 'webhook'

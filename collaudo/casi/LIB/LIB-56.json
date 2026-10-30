@@ -1,0 +1,14 @@
+{
+  "id": "LIB-56",
+  "area": "LIB",
+  "title": "Hub dei test case QA: collegamento, verifica e aggiornamento del catalogo",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "Catalogo versione 95. Un clone di CoE-QA-TestCasesHub sotto una radice elencata in TESTCASE_HUB_ROOTS del processo web (in alternativa un PAT Azure DevOps con Code: Read sul repository).",
+  "steps": [
+    "Impostazioni → Hub dei test case QA: scegliere «Cartella sul server», inserire nome e percorso del clone, Verifica connessione.",
+    "Collega l'hub, poi Aggiorna catalogo.",
+    "Ricaricare la pagina e aprire il registro di audit."
+  ],
+  "expected": "La verifica risponde «Raggiungibile» con i moduli trovati; il salvataggio riesce; l'aggiornamento mostra il totale dei casi con nuovi, modificati e scomparsi; la card riporta «Catalogo aggiornato», data e numero di casi; l'audit ha testcase_hub_configured e testcase_hub_refreshed, con i soli nomi dei campi nei metadati."
+}

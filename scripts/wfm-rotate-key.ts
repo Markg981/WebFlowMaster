@@ -81,6 +81,7 @@ export const ENCRYPTED_COLUMNS: readonly EncryptedColumn[] = [
   threeColumns('source_hosts', 'encrypted_token', 'token_iv', 'token_auth_tag'),
   threeColumns('issue_trackers', 'encrypted_token', 'token_iv', 'token_auth_tag'),
   threeColumns('test_management_connections', 'encrypted_token', 'token_iv', 'token_auth_tag'),
+  threeColumns('test_case_sources', 'encrypted_token', 'token_iv', 'token_auth_tag'),
   threeColumns(
     'organization_sso',
     'client_secret_encrypted',

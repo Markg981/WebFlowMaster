@@ -243,6 +243,39 @@ priorité et son objectif. Associez chaque cas à un test enregistré (**Choisis
 sélectionnez les cas, puis **Exécuter la sélection** ; le statut et le dernier rapport de chaque
 cas s'affichent à côté.
 
+### Cas de test depuis le hub QA {#testcase-hub}
+
+Les équipes dont les cas vivent dans le **hub des cas de test QA** (un dépôt avec un
+`definition.json` par cas sous `TestCasesDefinitions/<module>/<id>/`) n'ont pas besoin de
+classeur : WebFlowMaster lit le hub lui-même. Un éditeur le relie une fois par organisation dans
+**Paramètres → Hub des cas de test QA**, soit comme dossier sur le serveur (un clone du dépôt
+sous l'un des dossiers autorisés par l'opérateur avec `TESTCASE_HUB_ROOTS`, voir
+[Configuration](/en/admin/configuration), en anglais), soit comme dépôt Azure DevOps (URL de
+l'organisation, projet, dépôt, branche et jeton d'accès personnel avec _Code: read_, enregistré
+chiffré et jamais réaffiché). **Tester la connexion** vérifie la source ; **Actualiser le
+catalogue** lit tous les cas dans un catalogue conservé par WebFlowMaster et indique combien sont
+nouveaux, modifiés ou disparus du hub. Rien ne devient encore un test.
+
+L'onglet **Hub des cas de test QA** du **Gestionnaire de tests** (aussi
+`/test-manager?source=hub`) liste le catalogue : identifiant, module, priorité, niveau de
+maturité, objectif et la position de chaque cas par rapport à la bibliothèque (non importé,
+importé, modifié depuis l'import, disparu du hub). Filtrez par module, statut, priorité,
+maturité ou état, cherchez par identifiant ou objectif, et ouvrez un cas pour lire ses étapes
+telles que le hub les contient et telles que le test manuel les aurait. Les cas obsolètes restent
+dans le catalogue mais sont masqués sauf demande ; de même pour les cas disparus du hub, qui ne
+peuvent pas être importés.
+
+Sélectionnez les cas (jusqu'à 500 à la fois) et **Importer la sélection…** : chacun devient un
+**test manuel** nommé `[ID_CAS] objectif`, avec la priorité du hub, la précondition comme première
+étape et les étapes numérotées appariées à leurs résultats attendus, dans le projet et la suite de
+votre choix (une suite statique existante ou une nouvelle). Les cas dont les étapes sont écrites
+pour l'environnement de référence peuvent être importés avec cette variante. Un cas déjà importé
+est mis à jour comme nouvelle version si le hub l'a modifié, et laissé tel quel sinon ; un test
+automatisé depuis est ignoré, comme un nom déjà pris par un autre test. Les tests importés sont
+des tests manuels ordinaires : exécutez-les dans des plans, ou ouvrez-en un dans le constructeur
+et automatisez-le. Les lecteurs voient le catalogue mais n'importent pas. Supprimer le hub
+supprime le catalogue ; les tests importés restent dans la bibliothèque, sans plus y être liés.
+
 ## Données de test partagées {#test-data}
 
 Les mêmes clients, produits ou cartes étaient autrefois copiés de test en test, et finissaient par

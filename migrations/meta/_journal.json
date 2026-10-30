@@ -701,8 +701,13 @@
       "when": 1792400000022,
       "tag": "0099_api_keys_mandatory_scopes",
       "breakpoints": true
-    },{
-      "idx": 100,"version": "7","when": 1792400000023,"tag": "0100_test_management_partial_status","breakpoints": true
+    },
+    {
+      "idx": 100,
+      "version": "7",
+      "when": 1792400000023,
+      "tag": "0100_test_management_partial_status",
+      "breakpoints": true
     },
     {
       "idx": 101,
@@ -716,6 +721,13 @@
       "version": "7",
       "when": 1792400000026,
       "tag": "0102_audit_log_immutable_trigger",
+      "breakpoints": true
+    },
+    {
+      "idx": 103,
+      "version": "7",
+      "when": 1792400000027,
+      "tag": "0103_test_case_hub",
       "breakpoints": true
     }
   ]
