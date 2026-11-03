@@ -30,7 +30,7 @@ test('root lock resolves corrected mail, proxy and source-map dependencies', () 
 });
 test('Lighthouse no longer carries abandoned ZIP extraction dependencies', () => {
   const lock = json('deployment/lighthouse/package-lock.json').packages;
-  assert.equal(lock[''].dependencies.lighthouse, '13.5.0');
+  assert.equal(lock[''].dependencies.lighthouse, '13.6.0');
   assert.ok(!Object.keys(lock).some((path) => path.endsWith('/extract-zip')));
 });
 test('runtime images use Resolute and exclude workspace build tooling and global npm', () => {
