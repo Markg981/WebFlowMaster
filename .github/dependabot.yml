@@ -31,6 +31,14 @@ updates:
       # ERESOLVE. Lift this when the plugin supports it.
       - dependency-name: mermaid
         update-types: [version-update:semver-major]
+      # undici 8 changes fetch and the dispatcher API: the cleanup requests stop going out
+      # (server/cleanup.test.ts) and the release gate expects the 6.x line (#551). Migrate by hand.
+      - dependency-name: undici
+        update-types: [version-update:semver-major]
+      # @xmldom/xmldom 0.9 replaces the errorHandler object with a function: SAML and SOAP stop
+      # compiling and answer 500 (#549). 0.8 patches still arrive. Migrate by hand.
+      - dependency-name: '@xmldom/xmldom'
+        update-types: [version-update:semver-minor, version-update:semver-major]
     groups:
       minor-and-patch:
         update-types: [minor, patch]
