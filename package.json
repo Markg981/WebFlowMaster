@@ -117,7 +117,7 @@
     "@opentelemetry/resources": "^3.0.0",
     "@opentelemetry/sdk-trace": "^3.0.0",
     "@tanstack/react-virtual": "^3.14.24",
-    "@xmldom/xmldom": "^0.8.15",
+    "@xmldom/xmldom": "^0.9.12",
     "axe-core": "^4.14.0",
     "bullmq": "^5.76.4",
     "connect-redis": "^10.0.0",
