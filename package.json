@@ -103,7 +103,7 @@
     "@aws-sdk/client-s3": "^3.1161.0",
     "@cucumber/cucumber": "12.9.0",
     "@cucumber/gherkin": "42.0.1",
-    "@cucumber/messages": "32.3.1",
+    "@cucumber/messages": "34.2.1",
     "@electric-sql/pglite": "^0.4.5",
     "@google/generative-ai": "^0.24.1",
     "@grpc/grpc-js": "^1.14.7",
