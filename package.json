@@ -198,7 +198,7 @@
     "prettier": "^3.9.10",
     "supertest": "^7.3.1",
     "tsx": "^4.23.15",
-    "typescript": "5.6.3",
+    "typescript": "7.0.2",
     "vitepress": "^1.6.4",
     "vitepress-plugin-mermaid": "^2.0.17",
     "vitest": "^5.0.5"
