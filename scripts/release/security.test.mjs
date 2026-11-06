@@ -30,7 +30,7 @@ test('root lock resolves corrected mail, proxy and source-map dependencies', () 
 });
 test('Lighthouse no longer carries abandoned ZIP extraction dependencies', () => {
   const lock = json('deployment/lighthouse/package-lock.json').packages;
-  assert.equal(lock[''].dependencies.lighthouse, '13.5.0');
+  assert.equal(lock[''].dependencies.lighthouse, '13.6.0');
   assert.ok(!Object.keys(lock).some((path) => path.endsWith('/extract-zip')));
 });
 test('runtime images use Resolute and exclude workspace build tooling and global npm', () => {
@@ -52,6 +52,7 @@ test('every base stage applies fixed OS packages and preserves the runtime UID',
   assert.match(script, /openssl_version=3\.5\.5-1ubuntu3\.7/);
   assert.match(script, /curl_version=8\.18\.0-1ubuntu2\.8/);
   assert.match(script, /brotli_version=1\.2\.0-3ubuntu0\.1/);
+  assert.match(script, /apt_version=3\.2\.1ubuntu0\.1/);
   assert.match(script, /rm -f \/usr\/bin\/pebble/);
   assert.match(script, /usermod -u 1000 pwuser/);
   assert.doesNotMatch(script, /apt-get (?:dist-)?upgrade/);

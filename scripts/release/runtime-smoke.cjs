@@ -24,7 +24,7 @@ if (process.cwd() === '/app') {
   const version = require('node:child_process')
     .execFileSync(process.env.LIGHTHOUSE_BIN, ['--version'], { encoding: 'utf8' })
     .trim();
-  assert.equal(version, '13.5.0');
+  assert.equal(version, '13.6.0');
 }
 (async () => {
   const browsers = {};
