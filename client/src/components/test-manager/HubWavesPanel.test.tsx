@@ -164,7 +164,9 @@ describe('HubWavesPanel', () => {
     const row = await screen.findByTestId('hub-wave-row-W-01');
     expect(within(row).getByText('October regression')).toBeInTheDocument();
     expect(within(row).getByText('Not imported')).toBeInTheDocument();
-    expect(within(screen.getByTestId('hub-wave-row-W-02')).getByText('Not in the hub')).toBeInTheDocument();
+    expect(
+      within(screen.getByTestId('hub-wave-row-W-02')).getByText('Not in the hub'),
+    ).toBeInTheDocument();
     expect(within(screen.getByTestId('hub-waves-kpis')).getByText('20')).toBeInTheDocument();
     // A wave gone from the hub cannot be chosen for an import.
     expect(screen.getByRole('checkbox', { name: 'Select Old smoke' })).toBeDisabled();
@@ -188,7 +190,13 @@ describe('HubWavesPanel', () => {
       'GET /api/testcase-hub/jobs/job-1': () =>
         ++polls === 1
           ? job('running')
-          : job('succeeded', 'waves_sync', { waves: 2, added: 1, updated: 1, unchanged: 0, missing: 1 }),
+          : job('succeeded', 'waves_sync', {
+              waves: 2,
+              added: 1,
+              updated: 1,
+              unchanged: 0,
+              missing: 1,
+            }),
     });
     renderPanel();
     fireEvent.click(await screen.findByTestId('hub-waves-sync'));

@@ -269,7 +269,11 @@ const HubWavesPanel: React.FC = () => {
               <div className="h-64 w-full min-w-0">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={trend} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
+                    <CartesianGrid
+                      strokeDasharray="3 3"
+                      vertical={false}
+                      stroke="hsl(var(--border))"
+                    />
                     <XAxis
                       dataKey="name"
                       tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
@@ -282,9 +286,24 @@ const HubWavesPanel: React.FC = () => {
                     />
                     <Tooltip />
                     <Legend />
-                    <Bar dataKey="passed" stackId="s" name={statusLabel('passed')} fill="hsl(var(--success))" />
-                    <Bar dataKey="failed" stackId="s" name={statusLabel('failed')} fill="hsl(var(--destructive))" />
-                    <Bar dataKey="on_hold" stackId="s" name={statusLabel('on_hold')} fill="hsl(var(--warning))" />
+                    <Bar
+                      dataKey="passed"
+                      stackId="s"
+                      name={statusLabel('passed')}
+                      fill="hsl(var(--success))"
+                    />
+                    <Bar
+                      dataKey="failed"
+                      stackId="s"
+                      name={statusLabel('failed')}
+                      fill="hsl(var(--destructive))"
+                    />
+                    <Bar
+                      dataKey="on_hold"
+                      stackId="s"
+                      name={statusLabel('on_hold')}
+                      fill="hsl(var(--warning))"
+                    />
                     <Bar
                       dataKey="other"
                       stackId="s"
@@ -306,7 +325,9 @@ const HubWavesPanel: React.FC = () => {
                       <Checkbox
                         checked={allSelected}
                         onCheckedChange={(checked) =>
-                          setSelected(checked === true ? new Set(selectable.map((w) => w.id)) : new Set())
+                          setSelected(
+                            checked === true ? new Set(selectable.map((w) => w.id)) : new Set(),
+                          )
                         }
                         aria-label={t('hubWaves.selectAll', 'Select every wave')}
                       />
@@ -316,7 +337,9 @@ const HubWavesPanel: React.FC = () => {
                   <TableHead>{t('hubWaves.columns.release', 'Release')}</TableHead>
                   <TableHead>{t('hubWaves.columns.type', 'Type')}</TableHead>
                   <TableHead>{t('hubWaves.columns.start', 'Start')}</TableHead>
-                  <TableHead className="text-right">{t('hubWaves.columns.cases', 'Cases')}</TableHead>
+                  <TableHead className="text-right">
+                    {t('hubWaves.columns.cases', 'Cases')}
+                  </TableHead>
                   <TableHead className="text-right">{statusLabel('failed')}</TableHead>
                   <TableHead>{t('hubWaves.columns.rates', 'Progress')}</TableHead>
                   <TableHead>{t('hubWaves.columns.state', 'In WebFlowMaster')}</TableHead>
@@ -375,7 +398,9 @@ const HubWavesPanel: React.FC = () => {
                 <TableHeader>
                   <TableRow>
                     <TableHead>{t('hubWaves.columns.module', 'Module')}</TableHead>
-                    <TableHead className="text-right">{t('hubWaves.columns.results', 'Results')}</TableHead>
+                    <TableHead className="text-right">
+                      {t('hubWaves.columns.results', 'Results')}
+                    </TableHead>
                     <TableHead className="text-right">{statusLabel('failed')}</TableHead>
                     <TableHead>{t('hubWaves.columns.rates', 'Progress')}</TableHead>
                   </TableRow>
@@ -407,7 +432,10 @@ const HubWavesPanel: React.FC = () => {
           setSelected(new Set());
         }}
       />
-      <HubWaveDetailDialog waveRowId={detailId} onOpenChange={(open) => !open && setDetailId(null)} />
+      <HubWaveDetailDialog
+        waveRowId={detailId}
+        onOpenChange={(open) => !open && setDetailId(null)}
+      />
     </div>
   );
 };

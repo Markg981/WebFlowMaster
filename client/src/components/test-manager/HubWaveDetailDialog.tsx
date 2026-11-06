@@ -166,7 +166,10 @@ const HubWaveDetailDialog: React.FC<Props> = ({ waveRowId, onOpenChange }) => {
 
   return (
     <Dialog open={waveRowId !== null} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] max-w-6xl overflow-y-auto" data-testid="hub-wave-detail">
+      <DialogContent
+        className="max-h-[90vh] max-w-6xl overflow-y-auto"
+        data-testid="hub-wave-detail"
+      >
         {isLoading || !wave ? (
           <div className="space-y-3">
             <Skeleton className="h-6 w-72" />
@@ -210,12 +213,16 @@ const HubWaveDetailDialog: React.FC<Props> = ({ waveRowId, onOpenChange }) => {
             </div>
 
             <section className="space-y-2">
-              <h3 className="text-sm font-semibold">{t('hubWaves.detail.byModule', 'By module')}</h3>
+              <h3 className="text-sm font-semibold">
+                {t('hubWaves.detail.byModule', 'By module')}
+              </h3>
               <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead>{t('hubWaves.columns.module', 'Module')}</TableHead>
-                    <TableHead className="text-right">{t('hubWaves.columns.cases', 'Cases')}</TableHead>
+                    <TableHead className="text-right">
+                      {t('hubWaves.columns.cases', 'Cases')}
+                    </TableHead>
                     <TableHead className="text-right">{statusLabel('failed')}</TableHead>
                     <TableHead>{t('hubWaves.columns.rates', 'Progress')}</TableHead>
                     <TableHead className="w-0" />
@@ -274,11 +281,16 @@ const HubWaveDetailDialog: React.FC<Props> = ({ waveRowId, onOpenChange }) => {
                   />
                 </div>
                 <Select value={module} onValueChange={setModule}>
-                  <SelectTrigger className="w-[180px]" aria-label={t('hubWaves.columns.module', 'Module')}>
+                  <SelectTrigger
+                    className="w-[180px]"
+                    aria-label={t('hubWaves.columns.module', 'Module')}
+                  >
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value={ALL}>{t('hubWaves.detail.allModules', 'All modules')}</SelectItem>
+                    <SelectItem value={ALL}>
+                      {t('hubWaves.detail.allModules', 'All modules')}
+                    </SelectItem>
                     {modules.map((value) => (
                       <SelectItem key={value} value={value}>
                         {value}
@@ -286,12 +298,20 @@ const HubWaveDetailDialog: React.FC<Props> = ({ waveRowId, onOpenChange }) => {
                     ))}
                   </SelectContent>
                 </Select>
-                <Select value={status} onValueChange={(value) => setStatus(value as HubResultStatus)}>
-                  <SelectTrigger className="w-[160px]" aria-label={t('hubWaves.columns.status', 'Status')}>
+                <Select
+                  value={status}
+                  onValueChange={(value) => setStatus(value as HubResultStatus)}
+                >
+                  <SelectTrigger
+                    className="w-[160px]"
+                    aria-label={t('hubWaves.columns.status', 'Status')}
+                  >
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value={ALL}>{t('hubWaves.detail.allStatuses', 'All statuses')}</SelectItem>
+                    <SelectItem value={ALL}>
+                      {t('hubWaves.detail.allStatuses', 'All statuses')}
+                    </SelectItem>
                     {HUB_RESULT_STATUSES.map((value) => (
                       <SelectItem key={value} value={value}>
                         {statusLabel(value)}
