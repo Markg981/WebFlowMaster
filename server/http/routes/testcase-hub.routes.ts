@@ -106,12 +106,12 @@ function toSummary(row: TestCaseSource) {
   };
 }
 
-async function currentSource(): Promise<TestCaseSource | null> {
+export async function currentSource(): Promise<TestCaseSource | null> {
   const [row] = await withTenantTransaction((tx) => tx.select().from(testCaseSources).limit(1));
   return row ?? null;
 }
 
-async function tokenOf(source: TestCaseSource): Promise<string | null> {
+export async function tokenOf(source: TestCaseSource): Promise<string | null> {
   if (!source.encryptedToken || !source.tokenIv || !source.tokenAuthTag) return null;
   return decryptSecret(
     source.encryptedToken,
@@ -121,7 +121,7 @@ async function tokenOf(source: TestCaseSource): Promise<string | null> {
   );
 }
 
-function sendHubError(res: Response, error: unknown, fallback: string): void {
+export function sendHubError(res: Response, error: unknown, fallback: string): void {
   if (error instanceof HubSourceError || error instanceof AuthoringError) {
     res.status(error.status).json({ error: error.message, code: error.code });
     return;
