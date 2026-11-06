@@ -316,7 +316,8 @@ export function waveRates(counts: HubStatusCounts): {
 
 /** The import options a person chooses (the wave import job's params). */
 export interface HubWaveImportParams {
-  waveIds: string[];
+  /** The waves' row ids, as the waves list gives them. */
+  waveIds: number[];
   projectId: number | null;
   variant: 'standard' | 'reference';
 }
