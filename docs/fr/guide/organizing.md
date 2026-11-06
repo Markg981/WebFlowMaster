@@ -298,14 +298,14 @@ des nouveaux tests. Les cas des vagues qui ne sont pas encore des tests sont d'a
 catalogue, une suite par module ; puis chaque vague devient un **plan de test avec une exécution
 terminée** qui contient les résultats de l'équipe QA, de sorte que tableau de bord, rapports,
 historique des tests et analyse des échecs montrent les vagues comme toute autre exécution. Les
-statuts deviennent : passed → Passed, failed → Failed, not tested → Skipped, **on hold → Skipped
-avec le verdict _blocked_** (il ne fait pas échouer l'exécution et reste distinct d'un cas
+statuts deviennent : passed → Passed, failed → Failed, not tested → Skipped, **on hold → Bloqué**
+(enregistré comme Skipped avec le verdict _blocked_, comme le Bloqué d'un testeur) (il ne fait pas échouer l'exécution et reste distinct d'un cas
 écarté), pending → Pending, laissé ouvert pour un verdict dans WebFlowMaster. Importer de nouveau
 une vague met à jour son exécution et garde les verdicts donnés dans WebFlowMaster.
 
 Depuis le détail d'une vague, les éditeurs peuvent **relancer les cas** : un nouveau plan avec
 les cas de la vague qui sont des tests, du module choisi et avec les résultats cochés (par défaut
-échoués et en attente). Les résultats de chaque module se téléchargent au format
+échoués et bloqués). Les résultats de chaque module se téléchargent au format
 `results_<Module>.json` du hub, avec les verdicts donnés dans WebFlowMaster, ou tous en CSV, pour
 que l'équipe QA les charge dans son application de bureau ; WebFlowMaster n'écrit jamais dans le
 hub. Les lecteurs voient les vagues et leurs résultats mais ne peuvent ni les lire, ni les

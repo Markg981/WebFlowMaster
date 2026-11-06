@@ -277,14 +277,14 @@ nuovi test. I casi citati dalle wave che non sono ancora test vengono prima impo
 catalogo, una suite per modulo; poi ogni wave diventa un **test plan con una esecuzione conclusa**
 che contiene i risultati del team QA, così dashboard, report, storico dei test e analisi dei
 fallimenti mostrano le wave come qualunque altra esecuzione. Gli stati diventano: passed →
-Passed, failed → Failed, not tested → Skipped, **on hold → Skipped con il verdetto _blocked_**
+Passed, failed → Failed, not tested → Skipped, **on hold → Bloccato** (salvato come Skipped con il verdetto _blocked_, come il Bloccato di un tester)
 (non fa fallire l'esecuzione e resta distinto da un caso escluso), pending → Pending, lasciato
 aperto per un verdetto in WebFlowMaster. Importare di nuovo una wave aggiorna la sua esecuzione e
 mantiene i verdetti dati in WebFlowMaster.
 
 Dal dettaglio di una wave gli editor possono **eseguire di nuovo i casi**: un nuovo plan con i
 casi della wave che sono test, del modulo scelto e con i risultati spuntati (di default falliti e
-in attesa). I risultati di ogni modulo si scaricano nel formato `results_<Module>.json` dell'hub,
+bloccati). I risultati di ogni modulo si scaricano nel formato `results_<Module>.json` dell'hub,
 con i verdetti dati in WebFlowMaster, oppure tutti in CSV, perché il team QA li carichi nella sua
 applicazione desktop; WebFlowMaster non scrive mai nell'hub. I viewer vedono le wave e i loro
 risultati ma non possono leggerle, importarle o eseguirle di nuovo.

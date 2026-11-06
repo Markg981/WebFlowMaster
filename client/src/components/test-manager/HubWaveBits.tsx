@@ -25,7 +25,7 @@ const STATUS_CLASS: Record<HubResultStatus, string> = {
 const STATUS_DEFAULT: Record<HubResultStatus, string> = {
   passed: 'Passed',
   failed: 'Failed',
-  on_hold: 'On hold',
+  on_hold: 'Blocked',
   not_tested: 'Not tested',
   pending: 'Pending',
 };

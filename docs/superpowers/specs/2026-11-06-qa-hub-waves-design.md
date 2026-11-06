@@ -66,13 +66,13 @@ Hub (folder / Azure DevOps)
 
 Status mapping (the original stays in the mirror):
 
-| Hub        | WFM                                                                                                                                                          |
-| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| passed     | Passed                                                                                                                                                       |
-| failed     | Failed                                                                                                                                                       |
-| not_tested | Skipped (reason "Not tested")                                                                                                                                |
-| on_hold    | Skipped with the `blocked` verdict (reason "On hold"): counted with the skipped, so it does not fail the run, and exported back as `on_hold` (decision §7.4) |
-| pending    | Pending (the open wave stays open, and its verdicts can be recorded in WFM)                                                                                  |
+| Hub        | WFM                                                                                                                                                                                                               |
+| ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| passed     | Passed                                                                                                                                                                                                            |
+| failed     | Failed                                                                                                                                                                                                            |
+| not_tested | Skipped (reason "Not tested")                                                                                                                                                                                     |
+| on_hold    | shown as Blocked, stored as Skipped with the `blocked` verdict (reason "Blocked"), like a tester's Blocked: counted with the skipped, so it does not fail the run, and exported back as `on_hold` (decision §7.4) |
+| pending    | Pending (the open wave stays open, and its verdicts can be recorded in WFM)                                                                                                                                       |
 
 Attempts (`executions[]`): the last one is the result; the earlier ones go into the `attempt`
 column / mirror and show up in the detail. Testers: name kept as text, optional mapping to WFM
@@ -152,7 +152,7 @@ hub-format changes (tolerant parsing, 2.2.x schemas); per-hour API limits on the
   waves, per-module totals, the waves list with sync, import and job progress; a wave detail with
   per-module and per-status results, search and pagination, a link to the run.
 - **Running again**: `POST /waves/:id/session` creates a plan with the wave's cases that are tests
-  in WFM, filtered by module, stage, status and tester (the dialog proposes failed and on hold).
+  in WFM, filtered by module, stage, status and tester (the dialog proposes failed and blocked).
 - **Export**: `GET /waves/:id/export?format=json&module=` (the hub's `qa_wave_results_v1`, with the
   WFM verdicts) or `format=csv`.
 - **Case history** across the waves: `GET /waves/cases/:caseId/history` (API only for now).

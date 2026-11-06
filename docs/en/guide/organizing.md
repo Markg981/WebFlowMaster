@@ -264,12 +264,12 @@ tests. The cases the waves name that are not tests yet are imported from the cat
 suite per module; then each wave becomes a **test plan with one ended run** holding the QA team's
 results, so the dashboard, reports, test history and failure analysis show the waves like any
 other run. Statuses map as passed → Passed, failed → Failed, not tested → Skipped, **on hold →
-Skipped with the _blocked_ verdict** (it does not fail the run and stays distinct from a case
+Blocked** (stored as Skipped with the _blocked_ verdict, like a tester's Blocked) (it does not fail the run and stays distinct from a case
 left out), pending → Pending, left open for a verdict in WebFlowMaster. Importing a wave again
 updates its run and keeps the verdicts given in WebFlowMaster.
 
 From a wave's detail, editors can **run the cases again**: a new plan with the cases of that wave
-that are tests, from the chosen module and with the ticked results (failed and on hold by
+that are tests, from the chosen module and with the ticked results (failed and blocked by
 default). Each module's results can be downloaded in the hub's own `results_<Module>.json` format
 with the verdicts given in WebFlowMaster, or every result as CSV, for the QA team to load into
 its desktop app; WebFlowMaster never writes into the hub. Viewers see the waves and their results

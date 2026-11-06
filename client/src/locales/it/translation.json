@@ -3987,7 +3987,7 @@
     "status": {
       "passed": "Superato",
       "failed": "Fallito",
-      "on_hold": "In attesa",
+      "on_hold": "Bloccato",
       "not_tested": "Non testato",
       "pending": "Da eseguire"
     },
@@ -4358,7 +4358,8 @@
       "blocked": "Bloccato",
       "passed": "Superato",
       "failed": "Fallito",
-      "error": "Errore"
+      "error": "Errore",
+      "skipped": "Non testato"
     }
   },
   "failureAnalysis": {

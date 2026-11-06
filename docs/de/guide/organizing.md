@@ -298,14 +298,14 @@ wählen. Fälle, die noch keine Tests sind, werden zuerst aus dem Katalog import
 pro Modul; dann wird jede Welle ein **Testplan mit einer abgeschlossenen Ausführung** mit den
 Ergebnissen des QA-Teams, sodass Dashboard, Berichte, Testverlauf und Fehleranalyse die Wellen
 wie jede andere Ausführung zeigen. Die Status werden so übernommen: passed → Passed, failed →
-Failed, not tested → Skipped, **on hold → Skipped mit dem Urteil _blocked_** (lässt die
+Failed, not tested → Skipped, **on hold → Blockiert** (gespeichert als Skipped mit dem Urteil _blocked_, wie ein Blockiert eines Testers) (lässt die
 Ausführung nicht fehlschlagen und bleibt von einem ausgelassenen Fall unterscheidbar), pending →
 Pending, offen für ein Urteil in WebFlowMaster. Ein erneuter Import aktualisiert die Ausführung
 und behält die in WebFlowMaster gegebenen Urteile.
 
 In der Detailansicht einer Welle können Editoren die **Fälle erneut ausführen**: ein neuer Plan
 mit den Fällen der Welle, die Tests sind, aus dem gewählten Modul und mit den angekreuzten
-Ergebnissen (standardmäßig fehlgeschlagen und zurückgestellt). Die Ergebnisse jedes Moduls lassen
+Ergebnissen (standardmäßig fehlgeschlagen und blockiert). Die Ergebnisse jedes Moduls lassen
 sich im Hub-eigenen Format `results_<Module>.json` mit den Urteilen aus WebFlowMaster
 herunterladen, oder alle als CSV, damit das QA-Team sie in seine Desktop-Anwendung lädt;
 WebFlowMaster schreibt nie in den Hub. Betrachter sehen die Wellen und ihre Ergebnisse, können

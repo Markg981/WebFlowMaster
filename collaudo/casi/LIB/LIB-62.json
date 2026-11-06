@@ -11,5 +11,5 @@
     "Aprire la Dashboard e lo storico di un test importato.",
     "Nel report dare a un caso un verdetto diverso, poi reimportare la stessa wave."
   ],
-  "expected": "1: l'avviso conta wave, risultati e casi importati come test; la wave è «Importata». 2: un test plan con il nome della wave e una esecuzione conclusa, una suite per modulo; passed → Passed, failed → Failed, not_tested → Skipped, on_hold → Skipped con verdetto blocked (l'esecuzione non fallisce per gli on hold). 3: l'esecuzione compare nei widget e nello storico del test. 4: il reimport non crea un secondo piano e il verdetto dato in WebFlowMaster resta; l'audit ha testcase_hub.waves_imported."
+  "expected": "1: l'avviso conta wave, risultati e casi importati come test; la wave è «Importata». 2: un test plan con il nome della wave e una esecuzione conclusa, una suite per modulo; passed → Passed, failed → Failed, not_tested → Skipped, on_hold → «Bloccato» (Skipped con verdetto blocked, come il Bloccato di un tester; l'esecuzione non fallisce per i bloccati), mentre i not_tested compaiono come «Non testato». 3: l'esecuzione compare nei widget e nello storico del test. 4: il reimport non crea un secondo piano e il verdetto dato in WebFlowMaster resta; l'audit ha testcase_hub.waves_imported."
 }

@@ -3987,7 +3987,7 @@
     "status": {
       "passed": "Réussi",
       "failed": "Échoué",
-      "on_hold": "En attente",
+      "on_hold": "Bloqué",
       "not_tested": "Non testé",
       "pending": "À faire"
     },
@@ -4358,7 +4358,8 @@
       "blocked": "Bloqué",
       "passed": "Réussi",
       "failed": "Échoué",
-      "error": "Erreur"
+      "error": "Erreur",
+      "skipped": "Non testé"
     }
   },
   "failureAnalysis": {

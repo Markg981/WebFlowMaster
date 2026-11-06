@@ -261,7 +261,7 @@ export function hubResultToWfm(status: HubResultStatus): WfmOutcome {
     case 'failed':
       return { status: 'Failed', verdict: 'failed', reason: null };
     case 'on_hold':
-      return { status: 'Skipped', verdict: 'blocked', reason: 'On hold' };
+      return { status: 'Skipped', verdict: 'blocked', reason: 'Blocked' };
     case 'not_tested':
       return { status: 'Skipped', verdict: null, reason: 'Not tested' };
     default:
