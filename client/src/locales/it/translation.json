@@ -3316,6 +3316,9 @@
       "testcase_hub_removed": "Hub dei test case rimosso",
       "testcase_hub_refreshed": "Catalogo dell'hub dei test case aggiornato",
       "testcase_hub_imported": "Test case importati dall'hub",
+      "testcase_hub_waves_synced": "Wave dell'hub QA sincronizzate",
+      "testcase_hub_waves_imported": "Wave dell'hub QA importate come esecuzioni",
+      "testcase_hub_wave_session_created": "Sessione creata da una wave dell'hub QA",
       "browser_grid_created": "Browser grid aggiunto",
       "browser_grid_updated": "Browser grid modificato",
       "browser_grid_deleted": "Browser grid rimosso"
@@ -3773,7 +3776,8 @@
     "loading": "Caricamento…",
     "tabs": {
       "excel": "File Excel",
-      "hub": "Hub dei test case QA"
+      "hub": "Hub dei test case QA",
+      "waves": "Wave QA"
     },
     "status": {
       "ok": "Catalogo aggiornato",
@@ -3947,7 +3951,120 @@
       "no_source": "Nessun hub dei test case configurato.",
       "case_not_in_catalog": "Il caso non è nel catalogo.",
       "suite_not_found": "Suite non trovata.",
-      "suite_dynamic": "Una suite dinamica seleziona per tag; non vi si possono inserire test."
+      "suite_dynamic": "Una suite dinamica seleziona per tag; non vi si possono inserire test.",
+      "wave_not_found": "La wave non esiste.",
+      "job_running": "Un job dell’hub è già in corso: attendi che finisca.",
+      "no_linked_tests": "Nessuno dei casi scelti è ancora un test: importa prima la wave.",
+      "too_many_waves": "L’hub contiene più wave di quante una sincronizzazione ne possa leggere."
+    }
+  },
+  "hubWaves": {
+    "subtitle": "Le sessioni di test del team QA e i loro risultati, da seguire ed eseguire di nuovo.",
+    "sync": "Leggi le wave",
+    "lastJob": "Ultimo job {{date}}",
+    "importSelected_one": "Importa {{count}} wave",
+    "importSelected_other": "Importa {{count}} wave",
+    "selectAll": "Seleziona tutte le wave",
+    "select": "Seleziona {{name}}",
+    "trend": "Risultati nelle wave",
+    "modules": "Moduli in tutte le wave",
+    "notRun": "Non eseguiti",
+    "noSource": {
+      "title": "Nessun hub dei test case",
+      "description": "Configura prima l’hub dei test case QA: le wave si leggono dallo stesso repository."
+    },
+    "empty": {
+      "title": "Nessuna wave",
+      "description": "Leggi le wave per portare dall’hub le sessioni del team QA e i loro risultati."
+    },
+    "kpi": {
+      "waves": "Wave",
+      "imported": "Importate",
+      "cases": "Casi testati",
+      "executed": "Eseguiti",
+      "passRate": "Superati"
+    },
+    "status": {
+      "passed": "Superato",
+      "failed": "Fallito",
+      "on_hold": "Bloccato",
+      "not_tested": "Non testato",
+      "pending": "Da eseguire"
+    },
+    "state": {
+      "missing": "Non più nell’hub",
+      "changed": "Modificata dopo l’import",
+      "imported": "Importata",
+      "notImported": "Non importata"
+    },
+    "rates": {
+      "short": "{{executed}}% eseguiti · {{pass}}% superati"
+    },
+    "columns": {
+      "wave": "Wave",
+      "release": "Release",
+      "type": "Tipo",
+      "start": "Inizio",
+      "cases": "Casi",
+      "results": "Risultati",
+      "rates": "Avanzamento",
+      "state": "In WebFlowMaster",
+      "module": "Modulo",
+      "status": "Stato",
+      "case": "Caso",
+      "tester": "Tester",
+      "stage": "Stage",
+      "build": "Build",
+      "bug": "Bug",
+      "notes": "Note"
+    },
+    "job": {
+      "syncing": "Lettura delle wave dall’hub…",
+      "importing": "Import delle wave…",
+      "cancel": "Ferma",
+      "stopping": "Arresto…",
+      "failed": "Il job è fallito",
+      "cancelled": "Il job è stato fermato",
+      "synced": "Wave lette dall’hub",
+      "syncSummary": "{{waves}} wave: {{added}} nuove, {{updated}} modificate, {{missing}} non più nell’hub.",
+      "imported": "Wave importate",
+      "importSummary": "{{waves}} wave, {{results}} risultati, {{imported}} casi importati come test.",
+      "syncFailed": "Non è stato possibile leggere le wave"
+    },
+    "import": {
+      "title_one": "Importa {{count}} wave",
+      "title_other": "Importa {{count}} wave",
+      "description": "Ogni wave diventa un test plan con una esecuzione che contiene i risultati del team QA. I casi che non sono ancora test vengono prima importati dal catalogo. Un nuovo import aggiorna l’esecuzione e mantiene i verdetti dati in WebFlowMaster.",
+      "project": "Progetto",
+      "noProject": "Nessun progetto",
+      "variant": "Step dei nuovi test",
+      "standard": "Gli step ordinari",
+      "reference": "Gli step dell’ambiente di riferimento",
+      "tooMany": "Importa al massimo {{max}} wave alla volta.",
+      "submit": "Importa"
+    },
+    "detail": {
+      "openRun": "Apri l’esecuzione",
+      "byModule": "Per modulo",
+      "results": "Risultati",
+      "search": "Cerca id, note, bug…",
+      "allModules": "Tutti i moduli",
+      "allStatuses": "Tutti gli stati",
+      "notInCatalog": "Non nel catalogo",
+      "noResults": "Nessun caso corrisponde ai filtri."
+    },
+    "export": {
+      "failed": "L’esportazione è fallita",
+      "jsonHint": "Il file dei risultati del modulo, come lo tiene l’hub, con i verdetti dati in WebFlowMaster"
+    },
+    "session": {
+      "title": "Esegui di nuovo i casi",
+      "description": "Un nuovo test plan con i casi di questa wave che sono test in WebFlowMaster, del modulo scelto sopra e con i risultati spuntati qui.",
+      "create": "Crea il plan",
+      "created": "Sessione pronta da eseguire",
+      "summary": "Il plan “{{name}}” contiene {{tests}} test. {{notImported}} casi scelti non sono ancora test.",
+      "failed": "Non è stato possibile creare la sessione",
+      "open": "Esegui “{{name}}”"
     }
   },
   "testLibrary": {
@@ -4241,7 +4358,8 @@
       "blocked": "Bloccato",
       "passed": "Superato",
       "failed": "Fallito",
-      "error": "Errore"
+      "error": "Errore",
+      "skipped": "Non testato"
     }
   },
   "failureAnalysis": {

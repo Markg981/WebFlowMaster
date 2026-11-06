@@ -223,7 +223,9 @@ export const ManualResultsCard: React.FC<{
                 {row.status === 'Pending'
                   ? t('manualResults.status.pending', 'Waiting')
                   : row.status === 'Skipped'
-                    ? t('manualResults.status.blocked', 'Blocked')
+                    ? log?.verdict?.outcome === 'blocked'
+                      ? t('manualResults.status.blocked', 'Blocked')
+                      : t('manualResults.status.skipped', 'Not tested')
                     : t(`manualResults.status.${row.status.toLowerCase()}`, row.status)}
               </Badge>
             </button>

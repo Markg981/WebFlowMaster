@@ -273,13 +273,13 @@ export interface HubReaderDeps {
   fetchImpl?: typeof fetch;
 }
 
-const API_VERSION = '7.0';
+export const API_VERSION = '7.0';
 
 function normaliseBaseUrl(baseUrl: string): string {
   return baseUrl.trim().replace(/\/+$/, '');
 }
 
-function repositoryUrl(config: AzureDevOpsHubConfig): string {
+export function repositoryUrl(config: AzureDevOpsHubConfig): string {
   const base = normaliseBaseUrl(config.baseUrl);
   return `${base}/${encodeURIComponent(config.project.trim())}/_apis/git/repositories/${encodeURIComponent(config.repository.trim())}`;
 }
@@ -309,7 +309,7 @@ function describeHttpFailure(status: number, what: string): HubSourceError {
 /** What the Azure DevOps REST API answers with: a list under `value`, or one object. */
 type AdoJson = { value?: Array<Record<string, unknown>>; objectId?: unknown } | null;
 
-async function adoGetJson(
+export async function adoGetJson(
   config: AzureDevOpsHubConfig,
   deps: HubReaderDeps,
   url: string,
@@ -403,7 +403,7 @@ async function azureDevOpsTree(
 }
 
 /** The blobs named, as a zip whose entries are named by blob id. */
-async function azureDevOpsBlobsZip(
+export async function azureDevOpsBlobsZip(
   config: AzureDevOpsHubConfig,
   deps: HubReaderDeps,
   objectIds: string[],
@@ -527,7 +527,7 @@ export function readZipEntries(zip: Buffer, limits = HUB_LIMITS): Map<string, Bu
 }
 
 /** Entry names come back as the blob id, sometimes with a folder or extension around it. */
-function blobIdOfEntry(name: string): string {
+export function blobIdOfEntry(name: string): string {
   const base = name.split('/').pop() ?? name;
   const match = /[0-9a-f]{40}/i.exec(base);
   return (match ? match[0] : base).toLowerCase();

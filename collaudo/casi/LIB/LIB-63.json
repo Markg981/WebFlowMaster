@@ -1,0 +1,14 @@
+{
+  "id": "LIB-63",
+  "area": "LIB",
+  "title": "Wave QA: dettaglio, export e nuova sessione dai casi falliti",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "LIB-62 eseguito.",
+  "steps": [
+    "Aprire la wave importata: filtrare per un modulo, per stato «Fallito» e cercare un id.",
+    "Nella tabella per modulo scaricare il JSON di un modulo; scaricare il CSV dei risultati.",
+    "In «Esegui di nuovo i casi» lasciare Fallito e Bloccato, premere «Crea il plan» ed eseguire il plan."
+  ],
+  "expected": "1: conteggi per stato, percentuali e tabella per modulo coerenti con i filtri, paginazione attiva. 2: results_<Modulo>.json nel formato qa_wave_results_v1 con i verdetti dati in WebFlowMaster (blocked ritorna on_hold); il CSV ha una riga per risultato. 3: l'avviso dice quanti test contiene il plan e quanti casi non sono ancora test; il plan contiene solo i falliti e i bloccati della wave nel modulo filtrato e si esegue come test manuali; l'audit ha testcase_hub.wave_session_created; nulla viene scritto nel repository dell'hub."
+}

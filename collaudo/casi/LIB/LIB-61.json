@@ -1,0 +1,14 @@
+{
+  "id": "LIB-61",
+  "area": "LIB",
+  "title": "Wave QA: lettura delle wave dall'hub come job in background",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "Catalogo versione 96. LIB-57 eseguito (hub collegato e catalogo aggiornato); il clone contiene la cartella Waves/.",
+  "steps": [
+    "Test Manager → scheda «Wave QA» e premere «Leggi le wave».",
+    "Mentre il banner mostra l'avanzamento, ricaricare la pagina.",
+    "A job concluso, premere di nuovo «Leggi le wave»; poi aprire il registro di audit."
+  ],
+  "expected": "Il banner «Lettura delle wave dall'hub…» compare con il pulsante Ferma e il pulsante Leggi le wave è disabilitato; dopo il ricaricamento il banner riprende lo stesso job; alla fine un avviso dice quante wave sono nuove, modificate e non più nell'hub; compaiono KPI, grafico dei risultati, moduli ed elenco delle wave con stato «Non importata»; la seconda lettura conta 0 nuove e 0 modificate; l'audit ha testcase_hub.waves_synced."
+}

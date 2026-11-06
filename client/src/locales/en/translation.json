@@ -3316,6 +3316,9 @@
       "testcase_hub_removed": "Test case hub removed",
       "testcase_hub_refreshed": "Test case hub catalog refreshed",
       "testcase_hub_imported": "Test cases imported from the hub",
+      "testcase_hub_waves_synced": "QA hub waves synced",
+      "testcase_hub_waves_imported": "QA hub waves imported as runs",
+      "testcase_hub_wave_session_created": "Session created from a QA hub wave",
       "browser_grid_created": "Browser grid added",
       "browser_grid_updated": "Browser grid changed",
       "browser_grid_deleted": "Browser grid removed"
@@ -3773,7 +3776,8 @@
     "loading": "Loading…",
     "tabs": {
       "excel": "Excel file",
-      "hub": "QA test case hub"
+      "hub": "QA test case hub",
+      "waves": "QA waves"
     },
     "status": {
       "ok": "Catalog up to date",
@@ -3947,7 +3951,120 @@
       "no_source": "No test case hub is configured.",
       "case_not_in_catalog": "The case is not in the catalog.",
       "suite_not_found": "The suite was not found.",
-      "suite_dynamic": "A dynamic suite selects by tag; tests cannot be placed in it."
+      "suite_dynamic": "A dynamic suite selects by tag; tests cannot be placed in it.",
+      "wave_not_found": "The wave does not exist.",
+      "job_running": "A hub job is already running: wait for it to end.",
+      "no_linked_tests": "None of the chosen cases is a test yet: import the wave first.",
+      "too_many_waves": "The hub holds more waves than one sync can take."
+    }
+  },
+  "hubWaves": {
+    "subtitle": "The QA team’s test sessions and their results, to follow and run again.",
+    "sync": "Read the waves",
+    "lastJob": "Last job {{date}}",
+    "importSelected_one": "Import {{count}} wave",
+    "importSelected_other": "Import {{count}} waves",
+    "selectAll": "Select every wave",
+    "select": "Select {{name}}",
+    "trend": "Results across the waves",
+    "modules": "Modules across every wave",
+    "notRun": "Not run",
+    "noSource": {
+      "title": "No test case hub yet",
+      "description": "Set up the QA test case hub first: its waves are read from the same repository."
+    },
+    "empty": {
+      "title": "No waves yet",
+      "description": "Read the waves to bring in the QA team’s sessions and their results from the hub."
+    },
+    "kpi": {
+      "waves": "Waves",
+      "imported": "Imported",
+      "cases": "Cases tested",
+      "executed": "Executed",
+      "passRate": "Pass rate"
+    },
+    "status": {
+      "passed": "Passed",
+      "failed": "Failed",
+      "on_hold": "Blocked",
+      "not_tested": "Not tested",
+      "pending": "Pending"
+    },
+    "state": {
+      "missing": "Not in the hub",
+      "changed": "Changed since import",
+      "imported": "Imported",
+      "notImported": "Not imported"
+    },
+    "rates": {
+      "short": "{{executed}}% run · {{pass}}% passed"
+    },
+    "columns": {
+      "wave": "Wave",
+      "release": "Release",
+      "type": "Type",
+      "start": "Start",
+      "cases": "Cases",
+      "results": "Results",
+      "rates": "Progress",
+      "state": "In WebFlowMaster",
+      "module": "Module",
+      "status": "Status",
+      "case": "Case",
+      "tester": "Tester",
+      "stage": "Stage",
+      "build": "Build",
+      "bug": "Bug",
+      "notes": "Notes"
+    },
+    "job": {
+      "syncing": "Reading the waves from the hub…",
+      "importing": "Importing the waves…",
+      "cancel": "Stop",
+      "stopping": "Stopping…",
+      "failed": "The job failed",
+      "cancelled": "The job was stopped",
+      "synced": "Waves read from the hub",
+      "syncSummary": "{{waves}} waves: {{added}} new, {{updated}} changed, {{missing}} no longer in the hub.",
+      "imported": "Waves imported",
+      "importSummary": "{{waves}} waves, {{results}} results, {{imported}} cases imported as tests.",
+      "syncFailed": "The waves could not be read"
+    },
+    "import": {
+      "title_one": "Import {{count}} wave",
+      "title_other": "Import {{count}} waves",
+      "description": "Each wave becomes a test plan with one run holding the QA team’s results. Cases that are not tests yet are imported from the catalog first. Importing again updates the run and keeps the verdicts given in WebFlowMaster.",
+      "project": "Project",
+      "noProject": "No project",
+      "variant": "Steps of the new tests",
+      "standard": "The ordinary steps",
+      "reference": "The reference environment steps",
+      "tooMany": "Import at most {{max}} waves at a time.",
+      "submit": "Import"
+    },
+    "detail": {
+      "openRun": "Open the run",
+      "byModule": "By module",
+      "results": "Results",
+      "search": "Search id, notes, bug…",
+      "allModules": "All modules",
+      "allStatuses": "All statuses",
+      "notInCatalog": "Not in the catalog",
+      "noResults": "No case matches these filters."
+    },
+    "export": {
+      "failed": "The export failed",
+      "jsonHint": "The module’s results file, as the hub keeps it, with the verdicts given in WebFlowMaster"
+    },
+    "session": {
+      "title": "Run the cases again",
+      "description": "A new test plan with the cases of this wave that are tests in WebFlowMaster, from the module chosen above and with the results ticked here.",
+      "create": "Create the plan",
+      "created": "Session ready to run",
+      "summary": "The plan “{{name}}” holds {{tests}} tests. {{notImported}} chosen cases are not tests yet.",
+      "failed": "The session could not be created",
+      "open": "Run “{{name}}”"
     }
   },
   "testLibrary": {
@@ -4241,7 +4358,8 @@
       "blocked": "Blocked",
       "passed": "Passed",
       "failed": "Failed",
-      "error": "Error"
+      "error": "Error",
+      "skipped": "Not tested"
     }
   },
   "failureAnalysis": {

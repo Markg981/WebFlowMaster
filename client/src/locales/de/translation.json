@@ -3316,6 +3316,9 @@
       "testcase_hub_removed": "Testfall-Hub entfernt",
       "testcase_hub_refreshed": "Katalog des Testfall-Hubs aktualisiert",
       "testcase_hub_imported": "Testfälle aus dem Hub importiert",
+      "testcase_hub_waves_synced": "QA-Hub-Waves synchronisiert",
+      "testcase_hub_waves_imported": "QA-Hub-Waves als Läufe importiert",
+      "testcase_hub_wave_session_created": "Sitzung aus einer QA-Hub-Wave erstellt",
       "browser_grid_created": "Browser-Grid hinzugefügt",
       "browser_grid_updated": "Browser-Grid geändert",
       "browser_grid_deleted": "Browser-Grid entfernt"
@@ -3773,7 +3776,8 @@
     "loading": "Wird geladen…",
     "tabs": {
       "excel": "Excel-Datei",
-      "hub": "QA-Testfall-Hub"
+      "hub": "QA-Testfall-Hub",
+      "waves": "QA-Wellen"
     },
     "status": {
       "ok": "Katalog aktuell",
@@ -3947,7 +3951,120 @@
       "no_source": "Kein Testfall-Hub konfiguriert.",
       "case_not_in_catalog": "Der Fall ist nicht im Katalog.",
       "suite_not_found": "Suite nicht gefunden.",
-      "suite_dynamic": "Eine dynamische Suite wählt nach Tag aus; Tests können nicht hineingelegt werden."
+      "suite_dynamic": "Eine dynamische Suite wählt nach Tag aus; Tests können nicht hineingelegt werden.",
+      "wave_not_found": "Die Welle existiert nicht.",
+      "job_running": "Ein Hub-Job läuft bereits: Warten Sie, bis er endet.",
+      "no_linked_tests": "Keiner der gewählten Fälle ist bereits ein Test: Importieren Sie zuerst die Welle.",
+      "too_many_waves": "Der Hub enthält mehr Wellen, als eine Synchronisierung aufnehmen kann."
+    }
+  },
+  "hubWaves": {
+    "subtitle": "Die Testsitzungen des QA-Teams und ihre Ergebnisse, zum Verfolgen und erneuten Ausführen.",
+    "sync": "Wellen lesen",
+    "lastJob": "Letzter Job {{date}}",
+    "importSelected_one": "{{count}} Welle importieren",
+    "importSelected_other": "{{count}} Wellen importieren",
+    "selectAll": "Alle Wellen auswählen",
+    "select": "{{name}} auswählen",
+    "trend": "Ergebnisse über die Wellen",
+    "modules": "Module über alle Wellen",
+    "notRun": "Nicht ausgeführt",
+    "noSource": {
+      "title": "Noch kein Testfall-Hub",
+      "description": "Richten Sie zuerst den QA-Testfall-Hub ein: Seine Wellen werden aus demselben Repository gelesen."
+    },
+    "empty": {
+      "title": "Noch keine Wellen",
+      "description": "Lesen Sie die Wellen, um die Sitzungen des QA-Teams und ihre Ergebnisse aus dem Hub zu holen."
+    },
+    "kpi": {
+      "waves": "Wellen",
+      "imported": "Importiert",
+      "cases": "Getestete Fälle",
+      "executed": "Ausgeführt",
+      "passRate": "Bestanden"
+    },
+    "status": {
+      "passed": "Bestanden",
+      "failed": "Fehlgeschlagen",
+      "on_hold": "Blockiert",
+      "not_tested": "Nicht getestet",
+      "pending": "Ausstehend"
+    },
+    "state": {
+      "missing": "Nicht mehr im Hub",
+      "changed": "Seit dem Import geändert",
+      "imported": "Importiert",
+      "notImported": "Nicht importiert"
+    },
+    "rates": {
+      "short": "{{executed}} % ausgeführt · {{pass}} % bestanden"
+    },
+    "columns": {
+      "wave": "Welle",
+      "release": "Release",
+      "type": "Typ",
+      "start": "Beginn",
+      "cases": "Fälle",
+      "results": "Ergebnisse",
+      "rates": "Fortschritt",
+      "state": "In WebFlowMaster",
+      "module": "Modul",
+      "status": "Status",
+      "case": "Fall",
+      "tester": "Tester",
+      "stage": "Stufe",
+      "build": "Build",
+      "bug": "Bug",
+      "notes": "Notizen"
+    },
+    "job": {
+      "syncing": "Wellen werden aus dem Hub gelesen…",
+      "importing": "Wellen werden importiert…",
+      "cancel": "Stoppen",
+      "stopping": "Wird gestoppt…",
+      "failed": "Der Job ist fehlgeschlagen",
+      "cancelled": "Der Job wurde gestoppt",
+      "synced": "Wellen aus dem Hub gelesen",
+      "syncSummary": "{{waves}} Wellen: {{added}} neu, {{updated}} geändert, {{missing}} nicht mehr im Hub.",
+      "imported": "Wellen importiert",
+      "importSummary": "{{waves}} Wellen, {{results}} Ergebnisse, {{imported}} Fälle als Tests importiert.",
+      "syncFailed": "Die Wellen konnten nicht gelesen werden"
+    },
+    "import": {
+      "title_one": "{{count}} Welle importieren",
+      "title_other": "{{count}} Wellen importieren",
+      "description": "Jede Welle wird ein Testplan mit einer Ausführung, die die Ergebnisse des QA-Teams enthält. Fälle, die noch keine Tests sind, werden zuerst aus dem Katalog importiert. Ein erneuter Import aktualisiert die Ausführung und behält die in WebFlowMaster gegebenen Urteile.",
+      "project": "Projekt",
+      "noProject": "Kein Projekt",
+      "variant": "Schritte der neuen Tests",
+      "standard": "Die normalen Schritte",
+      "reference": "Die Schritte der Referenzumgebung",
+      "tooMany": "Importieren Sie höchstens {{max}} Wellen auf einmal.",
+      "submit": "Importieren"
+    },
+    "detail": {
+      "openRun": "Ausführung öffnen",
+      "byModule": "Nach Modul",
+      "results": "Ergebnisse",
+      "search": "ID, Notizen, Bug suchen…",
+      "allModules": "Alle Module",
+      "allStatuses": "Alle Status",
+      "notInCatalog": "Nicht im Katalog",
+      "noResults": "Kein Fall entspricht diesen Filtern."
+    },
+    "export": {
+      "failed": "Der Export ist fehlgeschlagen",
+      "jsonHint": "Die Ergebnisdatei des Moduls, wie der Hub sie führt, mit den in WebFlowMaster gegebenen Urteilen"
+    },
+    "session": {
+      "title": "Fälle erneut ausführen",
+      "description": "Ein neuer Testplan mit den Fällen dieser Welle, die in WebFlowMaster Tests sind, aus dem oben gewählten Modul und mit den hier angekreuzten Ergebnissen.",
+      "create": "Plan erstellen",
+      "created": "Sitzung bereit zur Ausführung",
+      "summary": "Der Plan „{{name}}“ enthält {{tests}} Tests. {{notImported}} gewählte Fälle sind noch keine Tests.",
+      "failed": "Die Sitzung konnte nicht erstellt werden",
+      "open": "„{{name}}“ ausführen"
     }
   },
   "testLibrary": {
@@ -4241,7 +4358,8 @@
       "blocked": "Blockiert",
       "passed": "Bestanden",
       "failed": "Fehlgeschlagen",
-      "error": "Fehler"
+      "error": "Fehler",
+      "skipped": "Nicht getestet"
     }
   },
   "failureAnalysis": {

@@ -276,6 +276,41 @@ des tests manuels ordinaires : exécutez-les dans des plans, ou ouvrez-en un dan
 et automatisez-le. Les lecteurs voient le catalogue mais n'importent pas. Supprimer le hub
 supprime le catalogue ; les tests importés restent dans la bibliothèque, sans plus y être liés.
 
+### Vagues QA {#qa-waves}
+
+Le hub contient aussi les **vagues** de l'équipe QA : une session de test pour une version
+(Smoke, Beta Regression…), les cas couverts par module et leurs résultats, sous
+`Waves/<wave_id>/`. L'onglet **Vagues QA** du **Gestionnaire de tests** (aussi
+`/test-manager?source=waves`) les lit dans le hub connecté ci-dessus. **Lire les vagues** tourne
+en arrière-plan (un bandeau montre l'avancement et permet de l'arrêter) et indique à la fin
+combien de vagues sont nouvelles, modifiées ou plus dans le hub ; seules les vagues dont les
+fichiers ont changé sont relues.
+
+L'onglet affiche les totaux (vagues, importées, cas testés, exécutés, taux de réussite), les
+résultats de chaque vague en barres empilées, les modules sur toutes les vagues et la liste des
+vagues avec version, type, date de début, cas, échecs, avancement et état dans WebFlowMaster (non
+importée, importée, modifiée depuis l'import, plus dans le hub). Une vague ouverte montre ses
+résultats par module et par cas, avec recherche, filtres de module et de statut, et le testeur,
+l'étape, le build, le bug et les notes de chaque résultat.
+
+Sélectionner des vagues (25 au plus à la fois) et **Importer** : choisir le projet et les étapes
+des nouveaux tests. Les cas des vagues qui ne sont pas encore des tests sont d'abord importés du
+catalogue, une suite par module ; puis chaque vague devient un **plan de test avec une exécution
+terminée** qui contient les résultats de l'équipe QA, de sorte que tableau de bord, rapports,
+historique des tests et analyse des échecs montrent les vagues comme toute autre exécution. Les
+statuts deviennent : passed → Passed, failed → Failed, not tested → Skipped, **on hold → Bloqué**
+(enregistré comme Skipped avec le verdict _blocked_, comme le Bloqué d'un testeur) (il ne fait pas échouer l'exécution et reste distinct d'un cas
+écarté), pending → Pending, laissé ouvert pour un verdict dans WebFlowMaster. Importer de nouveau
+une vague met à jour son exécution et garde les verdicts donnés dans WebFlowMaster.
+
+Depuis le détail d'une vague, les éditeurs peuvent **relancer les cas** : un nouveau plan avec
+les cas de la vague qui sont des tests, du module choisi et avec les résultats cochés (par défaut
+échoués et bloqués). Les résultats de chaque module se téléchargent au format
+`results_<Module>.json` du hub, avec les verdicts donnés dans WebFlowMaster, ou tous en CSV, pour
+que l'équipe QA les charge dans son application de bureau ; WebFlowMaster n'écrit jamais dans le
+hub. Les lecteurs voient les vagues et leurs résultats mais ne peuvent ni les lire, ni les
+importer, ni les relancer.
+
 ## Données de test partagées {#test-data}
 
 Les mêmes clients, produits ou cartes étaient autrefois copiés de test en test, et finissaient par

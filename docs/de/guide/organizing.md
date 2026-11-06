@@ -277,6 +277,40 @@ trägt. Die importierten Tests sind gewöhnliche manuelle Tests: führen Sie sie
 aber nicht importieren. Das Entfernen des Hubs löscht den Katalog; die importierten Tests bleiben
 in der Bibliothek, nur nicht mehr mit ihm verknüpft.
 
+### QA-Wellen {#qa-waves}
+
+Der Hub enthält auch die **Wellen** des QA-Teams: eine Testsitzung für ein Release (Smoke, Beta
+Regression…), die abgedeckten Fälle nach Modul und ihre Ergebnisse, unter `Waves/<wave_id>/`. Der
+Reiter **QA-Wellen** im **Testmanager** (auch `/test-manager?source=waves`) liest sie aus dem oben
+verbundenen Hub. **Wellen lesen** läuft im Hintergrund (ein Banner zeigt den Fortschritt und kann
+ihn stoppen) und meldet am Ende, wie viele Wellen neu, geändert oder nicht mehr im Hub sind; nur
+Wellen mit geänderten Dateien werden erneut gelesen.
+
+Der Reiter zeigt die Summen (Wellen, importiert, getestete Fälle, ausgeführt, Bestehensquote), die
+Ergebnisse jeder Welle als gestapeltes Diagramm, die Module über alle Wellen und die Liste der
+Wellen mit Release, Typ, Beginn, Fällen, Fehlschlägen, Fortschritt und Stand in WebFlowMaster
+(nicht importiert, importiert, seit dem Import geändert, nicht mehr im Hub). Eine geöffnete Welle
+zeigt ihre Ergebnisse nach Modul und nach Fall, mit Suche, Modul- und Statusfiltern sowie Tester,
+Stufe, Build, Bug und Notizen jedes Ergebnisses.
+
+Wellen auswählen (bis zu 25 auf einmal) und **Importieren**: Projekt und Schritte der neuen Tests
+wählen. Fälle, die noch keine Tests sind, werden zuerst aus dem Katalog importiert, eine Suite
+pro Modul; dann wird jede Welle ein **Testplan mit einer abgeschlossenen Ausführung** mit den
+Ergebnissen des QA-Teams, sodass Dashboard, Berichte, Testverlauf und Fehleranalyse die Wellen
+wie jede andere Ausführung zeigen. Die Status werden so übernommen: passed → Passed, failed →
+Failed, not tested → Skipped, **on hold → Blockiert** (gespeichert als Skipped mit dem Urteil _blocked_, wie ein Blockiert eines Testers) (lässt die
+Ausführung nicht fehlschlagen und bleibt von einem ausgelassenen Fall unterscheidbar), pending →
+Pending, offen für ein Urteil in WebFlowMaster. Ein erneuter Import aktualisiert die Ausführung
+und behält die in WebFlowMaster gegebenen Urteile.
+
+In der Detailansicht einer Welle können Editoren die **Fälle erneut ausführen**: ein neuer Plan
+mit den Fällen der Welle, die Tests sind, aus dem gewählten Modul und mit den angekreuzten
+Ergebnissen (standardmäßig fehlgeschlagen und blockiert). Die Ergebnisse jedes Moduls lassen
+sich im Hub-eigenen Format `results_<Module>.json` mit den Urteilen aus WebFlowMaster
+herunterladen, oder alle als CSV, damit das QA-Team sie in seine Desktop-Anwendung lädt;
+WebFlowMaster schreibt nie in den Hub. Betrachter sehen die Wellen und ihre Ergebnisse, können
+sie aber weder lesen, importieren noch erneut ausführen.
+
 ## Gemeinsame Testdaten {#test-data}
 
 Dieselben Kunden, Produkte oder Karten wurden früher von Test zu Test kopiert und liefen

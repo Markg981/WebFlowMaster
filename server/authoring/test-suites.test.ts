@@ -407,7 +407,8 @@ describe('rows that point across organizations', () => {
     // result rows are tied to it by composite keys that carry the organization.
     // A healing proposal's test and project (0094).
     // A hub case's source and the test it was imported as (0103).
-    expect(rows.length).toBe(105);
+    // A hub wave's source, plan and execution, a wave result's wave, a hub job's source (0104).
+    expect(rows.length).toBe(110);
     expect(rows.filter((r) => !r.convalidated)).toEqual([]);
   });
 
@@ -471,6 +472,8 @@ describe('rows that point across organizations', () => {
       'load_test_runs.requested_by',
       'test_case_sources.created_by',
       'hub_test_cases.imported_by',
+      'hub_waves.materialized_by',
+      'hub_jobs.requested_by',
       // The one link that crosses organizations by design: a membership names a person whose
       // current organization (users.organization_id) may be another one (migration 0086).
       'organization_memberships.user_id',

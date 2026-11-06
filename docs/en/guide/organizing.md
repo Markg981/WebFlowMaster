@@ -243,6 +243,38 @@ is a name already taken by another test. The imported tests are ordinary manual 
 in plans, or open one in the builder and automate it. Viewers see the catalog but cannot import.
 Removing the hub drops the catalog; the imported tests stay in the library, no longer tied to it.
 
+### QA waves {#qa-waves}
+
+The hub also keeps the QA team's **waves**: a test session for a release (Smoke, Beta
+Regression…), the cases it covers by module and their results, under `Waves/<wave_id>/`. The
+**QA waves** tab of **Test Manager** (also `/test-manager?source=waves`) reads them from the hub
+connected above. **Read the waves** runs in the background (a banner shows the progress and can
+stop it) and ends with how many waves are new, changed or no longer in the hub; only the waves
+whose files changed are read again.
+
+The tab opens on the totals (waves, imported, cases tested, executed, pass rate), the results of
+each wave as a stacked chart, the modules across every wave, and the list of waves with release,
+type, start date, cases, failures, progress and where each stands in WebFlowMaster (not imported,
+imported, changed since import, no longer in the hub). Open a wave for its results by module and
+by case, with search, module and status filters and the tester, stage, build, bug and notes of
+each result.
+
+Select waves (up to 25 at a time) and **Import**: choose the project and the steps of the new
+tests. The cases the waves name that are not tests yet are imported from the catalog first, one
+suite per module; then each wave becomes a **test plan with one ended run** holding the QA team's
+results, so the dashboard, reports, test history and failure analysis show the waves like any
+other run. Statuses map as passed → Passed, failed → Failed, not tested → Skipped, **on hold →
+Blocked** (stored as Skipped with the _blocked_ verdict, like a tester's Blocked) (it does not fail the run and stays distinct from a case
+left out), pending → Pending, left open for a verdict in WebFlowMaster. Importing a wave again
+updates its run and keeps the verdicts given in WebFlowMaster.
+
+From a wave's detail, editors can **run the cases again**: a new plan with the cases of that wave
+that are tests, from the chosen module and with the ticked results (failed and blocked by
+default). Each module's results can be downloaded in the hub's own `results_<Module>.json` format
+with the verdicts given in WebFlowMaster, or every result as CSV, for the QA team to load into
+its desktop app; WebFlowMaster never writes into the hub. Viewers see the waves and their results
+but cannot read, import or run them again.
+
 ## Shared test data {#test-data}
 
 The same customers, products or cards used to be copied into test after test, and drifted apart.

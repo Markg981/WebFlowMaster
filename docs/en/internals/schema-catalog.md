@@ -4,7 +4,7 @@ Generated from `shared/schema/` (one file per domain) with `node scripts/generat
 
 Read the [domain schema](./database-schema) for explanations and relationships, then find the table here. Each row lists the TypeScript property, SQL name and complete builder: type, nullability, default and references declared on the column. Table callback constraints are not expanded here.
 
-**83 tables / 978 declared columns.**
+**86 tables / 1039 declared columns.**
 
 ## Index
 
@@ -90,6 +90,9 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 | [issue_links](#issue-links)                                   | `issueLinks`                 | 16      |
 | [test_case_sources](#test-case-sources)                       | `testCaseSources`            | 20      |
 | [hub_test_cases](#hub-test-cases)                             | `hubTestCases`               | 33      |
+| [hub_waves](#hub-waves)                                       | `hubWaves`                   | 27      |
+| [hub_wave_results](#hub-wave-results)                         | `hubWaveResults`             | 19      |
+| [hub_jobs](#hub-jobs)                                         | `hubJobs`                    | 15      |
 | [billing_plans](#billing-plans)                               | `billingPlans`               | 16      |
 | [organization_subscriptions](#organization-subscriptions)     | `organizationSubscriptions`  | 15      |
 | [billing_events](#billing-events)                             | `billingEvents`              | 9       |
@@ -467,7 +470,7 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 
 ## sessions {#sessions}
 
-`sessions` — `shared/schema/identity.ts:871`
+`sessions` — `shared/schema/identity.ts:875`
 
 | TS property | SQL column | Declaration                     |
 | ----------- | ---------- | ------------------------------- |
@@ -1366,7 +1369,7 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 
 ## source_hosts {#source-hosts}
 
-`sourceHosts` — `shared/schema/integrations.ts:35`
+`sourceHosts` — `shared/schema/integrations.ts:42`
 
 | TS property         | SQL column            | Declaration                                                                  |
 | ------------------- | --------------------- | ---------------------------------------------------------------------------- |
@@ -1385,7 +1388,7 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 
 ## issue_trackers {#issue-trackers}
 
-`issueTrackers` — `shared/schema/integrations.ts:76`
+`issueTrackers` — `shared/schema/integrations.ts:83`
 
 | TS property      | SQL column        | Declaration                                                                  |
 | ---------------- | ----------------- | ---------------------------------------------------------------------------- |
@@ -1406,7 +1409,7 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 
 ## requirements {#requirements}
 
-`requirements` — `shared/schema/integrations.ts:106`
+`requirements` — `shared/schema/integrations.ts:113`
 
 | TS property      | SQL column        | Declaration                                                                                      |
 | ---------------- | ----------------- | ------------------------------------------------------------------------------------------------ |
@@ -1428,7 +1431,7 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 
 ## test_management_connections {#test-management-connections}
 
-`testManagementConnections` — `shared/schema/integrations.ts:142`
+`testManagementConnections` — `shared/schema/integrations.ts:149`
 
 | TS property      | SQL column        | Declaration                                                                  |
 | ---------------- | ----------------- | ---------------------------------------------------------------------------- |
@@ -1450,7 +1453,7 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 
 ## test_case_links {#test-case-links}
 
-`testCaseLinks` — `shared/schema/integrations.ts:169`
+`testCaseLinks` — `shared/schema/integrations.ts:176`
 
 | TS property      | SQL column        | Declaration                                                                                                 |
 | ---------------- | ----------------- | ----------------------------------------------------------------------------------------------------------- |
@@ -1467,7 +1470,7 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 
 ## test_management_publications {#test-management-publications}
 
-`testManagementPublications` — `shared/schema/integrations.ts:192`
+`testManagementPublications` — `shared/schema/integrations.ts:199`
 
 | TS property           | SQL column               | Declaration                                                                                                    |
 | --------------------- | ------------------------ | -------------------------------------------------------------------------------------------------------------- |
@@ -1488,7 +1491,7 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 
 ## requirement_tests {#requirement-tests}
 
-`requirementTests` — `shared/schema/integrations.ts:224`
+`requirementTests` — `shared/schema/integrations.ts:231`
 
 | TS property      | SQL column        | Declaration                                                                                        |
 | ---------------- | ----------------- | -------------------------------------------------------------------------------------------------- |
@@ -1504,7 +1507,7 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 
 ## issue_links {#issue-links}
 
-`issueLinks` — `shared/schema/integrations.ts:265`
+`issueLinks` — `shared/schema/integrations.ts:272`
 
 | TS property        | SQL column           | Declaration                                                                                     |
 | ------------------ | -------------------- | ----------------------------------------------------------------------------------------------- |
@@ -1527,7 +1530,7 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 
 ## test_case_sources {#test-case-sources}
 
-`testCaseSources` — `shared/schema/integrations.ts:317`
+`testCaseSources` — `shared/schema/integrations.ts:324`
 
 | TS property         | SQL column            | Declaration                                                                  |
 | ------------------- | --------------------- | ---------------------------------------------------------------------------- |
@@ -1554,7 +1557,7 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 
 ## hub_test_cases {#hub-test-cases}
 
-`hubTestCases` — `shared/schema/integrations.ts:364`
+`hubTestCases` — `shared/schema/integrations.ts:371`
 
 | TS property             | SQL column                 | Declaration                                                                                   |
 | ----------------------- | -------------------------- | --------------------------------------------------------------------------------------------- |
@@ -1591,6 +1594,88 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 | `importedHash`          | `imported_hash`            | `text('imported_hash')`                                                                       |
 | `importedAt`            | `imported_at`              | `timestamp('imported_at')`                                                                    |
 | `importedBy`            | `imported_by`              | `integer('imported_by').references(() => users.id, { onDelete: 'set null' })`                 |
+
+## hub_waves {#hub-waves}
+
+`hubWaves` — `shared/schema/integrations.ts:442`
+
+| TS property        | SQL column          | Declaration                                                                                   |
+| ------------------ | ------------------- | --------------------------------------------------------------------------------------------- |
+| `id`               | `id`                | `serial('id').primaryKey()`                                                                   |
+| `organizationId`   | `organization_id`   | `integer('organization_id') .notNull() .references(() => organizations.id)`                   |
+| `sourceId`         | `source_id`         | `text('source_id') .notNull() .references(() => testCaseSources.id, { onDelete: 'cascade' })` |
+| `waveId`           | `wave_id`           | `text('wave_id').notNull()`                                                                   |
+| `name`             | `name`              | `text('name').notNull()`                                                                      |
+| `description`      | `description`       | `text('description')`                                                                         |
+| `release`          | `release`           | `text('release')`                                                                             |
+| `majorRelease`     | `major_release`     | `text('major_release')`                                                                       |
+| `waveType`         | `wave_type`         | `text('wave_type')`                                                                           |
+| `status`           | `status`            | `text('status')`                                                                              |
+| `startDate`        | `start_date`        | `text('start_date')`                                                                          |
+| `targetDate`       | `target_date`       | `text('target_date')`                                                                         |
+| `modules`          | `modules`           | `jsonb('modules').$type<string[]>().default([]).notNull()`                                    |
+| `workbookLinks`    | `workbook_links`    | `jsonb('workbook_links').$type<HubWorkbookLink[]>().default([]).notNull()`                    |
+| `createdByName`    | `created_by_name`   | `text('created_by_name')`                                                                     |
+| `sourceCreatedAt`  | `source_created_at` | `timestamp('source_created_at')`                                                              |
+| `sourceUpdatedAt`  | `source_updated_at` | `timestamp('source_updated_at')`                                                              |
+| `entryCount`       | `entry_count`       | `integer('entry_count').default(0).notNull()`                                                 |
+| `contentHash`      | `content_hash`      | `text('content_hash').notNull()`                                                              |
+| `fileHashes`       | `file_hashes`       | `jsonb('file_hashes').$type<Record<string, string>>().default({}).notNull()`                  |
+| `syncedAt`         | `synced_at`         | `timestamp('synced_at').defaultNow().notNull()`                                               |
+| `missingSince`     | `missing_since`     | `timestamp('missing_since')`                                                                  |
+| `testPlanId`       | `test_plan_id`      | `text('test_plan_id').references(() => testPlans.id, { onDelete: 'set null' })`               |
+| `executionId`      | `execution_id`      | `text('execution_id').references(() => testPlanExecutions.id, { onDelete: 'set null', })`     |
+| `materializedHash` | `materialized_hash` | `text('materialized_hash')`                                                                   |
+| `materializedAt`   | `materialized_at`   | `timestamp('materialized_at')`                                                                |
+| `materializedBy`   | `materialized_by`   | `integer('materialized_by').references(() => users.id, { onDelete: 'set null' })`             |
+
+## hub_wave_results {#hub-wave-results}
+
+`hubWaveResults` — `shared/schema/integrations.ts:510`
+
+| TS property        | SQL column          | Declaration                                                                                 |
+| ------------------ | ------------------- | ------------------------------------------------------------------------------------------- |
+| `id`               | `id`                | `serial('id').primaryKey()`                                                                 |
+| `organizationId`   | `organization_id`   | `integer('organization_id') .notNull() .references(() => organizations.id)`                 |
+| `waveRowId`        | `wave_row_id`       | `integer('wave_row_id') .notNull() .references(() => hubWaves.id, { onDelete: 'cascade' })` |
+| `caseId`           | `case_id`           | `text('case_id').notNull()`                                                                 |
+| `rawCaseId`        | `raw_case_id`       | `text('raw_case_id').notNull()`                                                             |
+| `module`           | `module`            | `text('module')`                                                                            |
+| `definitionModule` | `definition_module` | `text('definition_module')`                                                                 |
+| `assignedTester`   | `assigned_tester`   | `text('assigned_tester')`                                                                   |
+| `stage`            | `stage`             | `text('stage')`                                                                             |
+| `stageMetrics`     | `stage_metrics`     | `jsonb('stage_metrics').$type<Partial<HubStageMetrics>>().default({}).notNull()`            |
+| `status`           | `status`            | `text('status').$type<HubResultStatus>().notNull()`                                         |
+| `executedBy`       | `executed_by`       | `text('executed_by')`                                                                       |
+| `executionDate`    | `execution_date`    | `text('execution_date')`                                                                    |
+| `buildNumber`      | `build_number`      | `text('build_number')`                                                                      |
+| `bugReference`     | `bug_reference`     | `text('bug_reference')`                                                                     |
+| `bugPriority`      | `bug_priority`      | `text('bug_priority')`                                                                      |
+| `notes`            | `notes`             | `text('notes')`                                                                             |
+| `attempts`         | `attempts`          | `jsonb('attempts').$type<HubWaveAttempt[]>().default([]).notNull()`                         |
+| `attemptCount`     | `attempt_count`     | `integer('attempt_count').default(0).notNull()`                                             |
+
+## hub_jobs {#hub-jobs}
+
+`hubJobs` — `shared/schema/integrations.ts:569`
+
+| TS property         | SQL column            | Declaration                                                                                   |
+| ------------------- | --------------------- | --------------------------------------------------------------------------------------------- |
+| `id`                | `id`                  | `text('id').primaryKey()`                                                                     |
+| `organizationId`    | `organization_id`     | `integer('organization_id') .notNull() .references(() => organizations.id)`                   |
+| `sourceId`          | `source_id`           | `text('source_id') .notNull() .references(() => testCaseSources.id, { onDelete: 'cascade' })` |
+| `kind`              | `kind`                | `text('kind').$type<HubJobKind>().notNull()`                                                  |
+| `status`            | `status`              | `text('status').$type<HubJobStatus>().default('queued').notNull()`                            |
+| `params`            | `params`              | `jsonb('params').$type<Record<string, unknown>>().default({}).notNull()`                      |
+| `progress`          | `progress`            | `jsonb('progress').$type<HubJobProgress>().default({}).notNull()`                             |
+| `summary`           | `summary`             | `jsonb('summary').$type<Record<string, unknown>>()`                                           |
+| `error`             | `error`               | `text('error')`                                                                               |
+| `requestedBy`       | `requested_by`        | `integer('requested_by').references(() => users.id, { onDelete: 'set null' })`                |
+| `createdAt`         | `created_at`          | `timestamp('created_at').defaultNow().notNull()`                                              |
+| `startedAt`         | `started_at`          | `timestamp('started_at')`                                                                     |
+| `finishedAt`        | `finished_at`         | `timestamp('finished_at')`                                                                    |
+| `heartbeatAt`       | `heartbeat_at`        | `timestamp('heartbeat_at')`                                                                   |
+| `cancelRequestedAt` | `cancel_requested_at` | `timestamp('cancel_requested_at')`                                                            |
 
 ## billing_plans {#billing-plans}
 

@@ -13,6 +13,13 @@ import {
   foreignKey,
   type AnyPgColumn,
 } from 'drizzle-orm/pg-core';
+import { sql } from 'drizzle-orm';
+import type {
+  HubResultStatus,
+  HubStageMetrics,
+  HubWaveAttempt,
+  HubWorkbookLink,
+} from '../hub-waves';
 import type { RequirementKind } from '../requirements';
 import type { TestManagementProvider } from '../test-management';
 import type { HubSourceKind } from '../testcases-hub';
@@ -422,3 +429,179 @@ export const hubTestCases = pgTable(
 
 export type HubTestCase = typeof hubTestCases.$inferSelect;
 export type InsertHubTestCase = typeof hubTestCases.$inferInsert;
+
+/**
+ * A wave of the QA hub: one test session of the QA team (Waves/<wave_id>/wave.json), as the last
+ * waves sync read it (shared/hub-waves.ts).
+ *
+ * `file_hashes` is the content hash of each file of the wave, so a sync re-reads only the waves
+ * that changed. `test_plan_id` / `execution_id` are what the wave became when it was imported:
+ * one plan and one execution, `triggered_by` 'hub-import', so the dashboard and the reports show
+ * it like any run. `materialized_hash` is the content that import was made from.
+ */
+export const hubWaves = pgTable(
+  'hub_waves',
+  {
+    id: serial('id').primaryKey(),
+    organizationId: integer('organization_id')
+      .notNull()
+      .references(() => organizations.id),
+    sourceId: text('source_id')
+      .notNull()
+      .references(() => testCaseSources.id, { onDelete: 'cascade' }),
+    waveId: text('wave_id').notNull(),
+    name: text('name').notNull(),
+    description: text('description'),
+    release: text('release'),
+    majorRelease: text('major_release'),
+    waveType: text('wave_type'),
+    status: text('status'),
+    startDate: text('start_date'),
+    targetDate: text('target_date'),
+    modules: jsonb('modules').$type<string[]>().default([]).notNull(),
+    workbookLinks: jsonb('workbook_links').$type<HubWorkbookLink[]>().default([]).notNull(),
+    createdByName: text('created_by_name'),
+    sourceCreatedAt: timestamp('source_created_at'),
+    sourceUpdatedAt: timestamp('source_updated_at'),
+    entryCount: integer('entry_count').default(0).notNull(),
+    contentHash: text('content_hash').notNull(),
+    fileHashes: jsonb('file_hashes').$type<Record<string, string>>().default({}).notNull(),
+    syncedAt: timestamp('synced_at').defaultNow().notNull(),
+    missingSince: timestamp('missing_since'),
+    testPlanId: text('test_plan_id').references(() => testPlans.id, { onDelete: 'set null' }),
+    executionId: text('execution_id').references(() => testPlanExecutions.id, {
+      onDelete: 'set null',
+    }),
+    materializedHash: text('materialized_hash'),
+    materializedAt: timestamp('materialized_at'),
+    materializedBy: integer('materialized_by').references(() => users.id, { onDelete: 'set null' }),
+  },
+  (table) => [
+    foreignKey({
+      name: 'hub_waves_source_id_same_org_fk',
+      columns: [table.sourceId, table.organizationId],
+      foreignColumns: [testCaseSources.id, testCaseSources.organizationId],
+    }),
+    foreignKey({
+      name: 'hub_waves_test_plan_id_same_org_fk',
+      columns: [table.testPlanId, table.organizationId],
+      foreignColumns: [testPlans.id, testPlans.organizationId],
+    }),
+    foreignKey({
+      name: 'hub_waves_execution_id_same_org_fk',
+      columns: [table.executionId, table.organizationId],
+      foreignColumns: [testPlanExecutions.id, testPlanExecutions.organizationId],
+    }),
+    unique('hub_waves_id_organization_unique').on(table.id, table.organizationId),
+    index('hub_waves_organization_id_idx').on(table.organizationId),
+    uniqueIndex('hub_waves_source_wave_unique').on(table.sourceId, table.waveId),
+    index('hub_waves_execution_id_idx').on(table.executionId),
+    index('hub_waves_test_plan_id_idx').on(table.testPlanId),
+  ],
+);
+
+export type HubWave = typeof hubWaves.$inferSelect;
+export type InsertHubWave = typeof hubWaves.$inferInsert;
+
+/**
+ * One case of a wave: its entry (module, tester, stage) and the result the QA team recorded,
+ * kept as the hub has it — the raw status, every attempt. The WFM status is worked out on import.
+ */
+export const hubWaveResults = pgTable(
+  'hub_wave_results',
+  {
+    id: serial('id').primaryKey(),
+    organizationId: integer('organization_id')
+      .notNull()
+      .references(() => organizations.id),
+    waveRowId: integer('wave_row_id')
+      .notNull()
+      .references(() => hubWaves.id, { onDelete: 'cascade' }),
+    caseId: text('case_id').notNull(),
+    rawCaseId: text('raw_case_id').notNull(),
+    module: text('module'),
+    definitionModule: text('definition_module'),
+    assignedTester: text('assigned_tester'),
+    stage: text('stage'),
+    stageMetrics: jsonb('stage_metrics').$type<Partial<HubStageMetrics>>().default({}).notNull(),
+    status: text('status').$type<HubResultStatus>().notNull(),
+    executedBy: text('executed_by'),
+    executionDate: text('execution_date'),
+    buildNumber: text('build_number'),
+    bugReference: text('bug_reference'),
+    bugPriority: text('bug_priority'),
+    notes: text('notes'),
+    attempts: jsonb('attempts').$type<HubWaveAttempt[]>().default([]).notNull(),
+    attemptCount: integer('attempt_count').default(0).notNull(),
+  },
+  (table) => [
+    foreignKey({
+      name: 'hub_wave_results_wave_row_id_same_org_fk',
+      columns: [table.waveRowId, table.organizationId],
+      foreignColumns: [hubWaves.id, hubWaves.organizationId],
+    }),
+    index('hub_wave_results_organization_id_idx').on(table.organizationId),
+    uniqueIndex('hub_wave_results_wave_case_unique').on(table.waveRowId, table.caseId),
+    index('hub_wave_results_case_idx').on(table.organizationId, table.caseId),
+  ],
+);
+
+export type HubWaveResultRow = typeof hubWaveResults.$inferSelect;
+export type InsertHubWaveResultRow = typeof hubWaveResults.$inferInsert;
+
+export const HUB_JOB_KINDS = ['waves_sync', 'wave_import'] as const;
+export type HubJobKind = (typeof HUB_JOB_KINDS)[number];
+export const HUB_JOB_STATUSES = ['queued', 'running', 'succeeded', 'failed', 'cancelled'] as const;
+export type HubJobStatus = (typeof HUB_JOB_STATUSES)[number];
+
+/** Where a job is: what it is on and how far it got. */
+export interface HubJobProgress {
+  phase?: string;
+  done?: number;
+  total?: number;
+  current?: string | null;
+}
+
+/**
+ * The long work on a hub source — a waves sync, a wave import — run after the response, with its
+ * progress and outcome. At most one queued or running per source.
+ */
+export const hubJobs = pgTable(
+  'hub_jobs',
+  {
+    id: text('id').primaryKey(),
+    organizationId: integer('organization_id')
+      .notNull()
+      .references(() => organizations.id),
+    sourceId: text('source_id')
+      .notNull()
+      .references(() => testCaseSources.id, { onDelete: 'cascade' }),
+    kind: text('kind').$type<HubJobKind>().notNull(),
+    status: text('status').$type<HubJobStatus>().default('queued').notNull(),
+    params: jsonb('params').$type<Record<string, unknown>>().default({}).notNull(),
+    progress: jsonb('progress').$type<HubJobProgress>().default({}).notNull(),
+    summary: jsonb('summary').$type<Record<string, unknown>>(),
+    error: text('error'),
+    requestedBy: integer('requested_by').references(() => users.id, { onDelete: 'set null' }),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    startedAt: timestamp('started_at'),
+    finishedAt: timestamp('finished_at'),
+    heartbeatAt: timestamp('heartbeat_at'),
+    cancelRequestedAt: timestamp('cancel_requested_at'),
+  },
+  (table) => [
+    foreignKey({
+      name: 'hub_jobs_source_id_same_org_fk',
+      columns: [table.sourceId, table.organizationId],
+      foreignColumns: [testCaseSources.id, testCaseSources.organizationId],
+    }),
+    index('hub_jobs_organization_id_idx').on(table.organizationId),
+    index('hub_jobs_source_created_idx').on(table.sourceId, table.createdAt),
+    uniqueIndex('hub_jobs_one_live_per_source')
+      .on(table.sourceId)
+      .where(sql`${table.status} IN ('queued', 'running')`),
+  ],
+);
+
+export type HubJob = typeof hubJobs.$inferSelect;
+export type InsertHubJob = typeof hubJobs.$inferInsert;

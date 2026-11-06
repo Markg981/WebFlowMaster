@@ -729,6 +729,13 @@
       "when": 1792400000027,
       "tag": "0103_test_case_hub",
       "breakpoints": true
+    },
+    {
+      "idx": 104,
+      "version": "7",
+      "when": 1792400000028,
+      "tag": "0104_hub_waves",
+      "breakpoints": true
     }
   ]
 }

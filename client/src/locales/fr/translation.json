@@ -3316,6 +3316,9 @@
       "testcase_hub_removed": "Hub des cas de test supprimé",
       "testcase_hub_refreshed": "Catalogue du hub des cas de test actualisé",
       "testcase_hub_imported": "Cas de test importés depuis le hub",
+      "testcase_hub_waves_synced": "Vagues du hub QA synchronisées",
+      "testcase_hub_waves_imported": "Vagues du hub QA importées comme exécutions",
+      "testcase_hub_wave_session_created": "Session créée à partir d'une vague du hub QA",
       "browser_grid_created": "Grille de navigateurs ajouté",
       "browser_grid_updated": "Grille de navigateurs modifié",
       "browser_grid_deleted": "Grille de navigateurs supprimé"
@@ -3773,7 +3776,8 @@
     "loading": "Chargement…",
     "tabs": {
       "excel": "Fichier Excel",
-      "hub": "Hub des cas de test QA"
+      "hub": "Hub des cas de test QA",
+      "waves": "Vagues QA"
     },
     "status": {
       "ok": "Catalogue à jour",
@@ -3947,7 +3951,120 @@
       "no_source": "Aucun hub des cas de test n'est configuré.",
       "case_not_in_catalog": "Le cas n'est pas dans le catalogue.",
       "suite_not_found": "Suite introuvable.",
-      "suite_dynamic": "Une suite dynamique sélectionne par étiquette ; on ne peut pas y placer de tests."
+      "suite_dynamic": "Une suite dynamique sélectionne par étiquette ; on ne peut pas y placer de tests.",
+      "wave_not_found": "La vague n’existe pas.",
+      "job_running": "Une tâche du hub est déjà en cours : attendez qu’elle se termine.",
+      "no_linked_tests": "Aucun des cas choisis n’est encore un test : importez d’abord la vague.",
+      "too_many_waves": "Le hub contient plus de vagues qu’une synchronisation ne peut en lire."
+    }
+  },
+  "hubWaves": {
+    "subtitle": "Les sessions de test de l’équipe QA et leurs résultats, à suivre et à relancer.",
+    "sync": "Lire les vagues",
+    "lastJob": "Dernière tâche {{date}}",
+    "importSelected_one": "Importer {{count}} vague",
+    "importSelected_other": "Importer {{count}} vagues",
+    "selectAll": "Sélectionner toutes les vagues",
+    "select": "Sélectionner {{name}}",
+    "trend": "Résultats au fil des vagues",
+    "modules": "Modules sur toutes les vagues",
+    "notRun": "Non exécutés",
+    "noSource": {
+      "title": "Pas encore de hub de cas de test",
+      "description": "Configurez d’abord le hub des cas de test QA : ses vagues sont lues dans le même dépôt."
+    },
+    "empty": {
+      "title": "Pas encore de vagues",
+      "description": "Lisez les vagues pour importer du hub les sessions de l’équipe QA et leurs résultats."
+    },
+    "kpi": {
+      "waves": "Vagues",
+      "imported": "Importées",
+      "cases": "Cas testés",
+      "executed": "Exécutés",
+      "passRate": "Réussis"
+    },
+    "status": {
+      "passed": "Réussi",
+      "failed": "Échoué",
+      "on_hold": "Bloqué",
+      "not_tested": "Non testé",
+      "pending": "À faire"
+    },
+    "state": {
+      "missing": "Plus dans le hub",
+      "changed": "Modifiée depuis l’import",
+      "imported": "Importée",
+      "notImported": "Non importée"
+    },
+    "rates": {
+      "short": "{{executed}} % exécutés · {{pass}} % réussis"
+    },
+    "columns": {
+      "wave": "Vague",
+      "release": "Version",
+      "type": "Type",
+      "start": "Début",
+      "cases": "Cas",
+      "results": "Résultats",
+      "rates": "Avancement",
+      "state": "Dans WebFlowMaster",
+      "module": "Module",
+      "status": "Statut",
+      "case": "Cas",
+      "tester": "Testeur",
+      "stage": "Étape",
+      "build": "Build",
+      "bug": "Bug",
+      "notes": "Notes"
+    },
+    "job": {
+      "syncing": "Lecture des vagues depuis le hub…",
+      "importing": "Import des vagues…",
+      "cancel": "Arrêter",
+      "stopping": "Arrêt…",
+      "failed": "La tâche a échoué",
+      "cancelled": "La tâche a été arrêtée",
+      "synced": "Vagues lues depuis le hub",
+      "syncSummary": "{{waves}} vagues : {{added}} nouvelles, {{updated}} modifiées, {{missing}} plus dans le hub.",
+      "imported": "Vagues importées",
+      "importSummary": "{{waves}} vagues, {{results}} résultats, {{imported}} cas importés comme tests.",
+      "syncFailed": "Les vagues n’ont pas pu être lues"
+    },
+    "import": {
+      "title_one": "Importer {{count}} vague",
+      "title_other": "Importer {{count}} vagues",
+      "description": "Chaque vague devient un plan de test avec une exécution qui contient les résultats de l’équipe QA. Les cas qui ne sont pas encore des tests sont d’abord importés du catalogue. Un nouvel import met à jour l’exécution et garde les verdicts donnés dans WebFlowMaster.",
+      "project": "Projet",
+      "noProject": "Aucun projet",
+      "variant": "Étapes des nouveaux tests",
+      "standard": "Les étapes ordinaires",
+      "reference": "Les étapes de l’environnement de référence",
+      "tooMany": "Importez au plus {{max}} vagues à la fois.",
+      "submit": "Importer"
+    },
+    "detail": {
+      "openRun": "Ouvrir l’exécution",
+      "byModule": "Par module",
+      "results": "Résultats",
+      "search": "Chercher id, notes, bug…",
+      "allModules": "Tous les modules",
+      "allStatuses": "Tous les statuts",
+      "notInCatalog": "Pas dans le catalogue",
+      "noResults": "Aucun cas ne correspond à ces filtres."
+    },
+    "export": {
+      "failed": "L’export a échoué",
+      "jsonHint": "Le fichier de résultats du module, tel que le hub le garde, avec les verdicts donnés dans WebFlowMaster"
+    },
+    "session": {
+      "title": "Relancer les cas",
+      "description": "Un nouveau plan de test avec les cas de cette vague qui sont des tests dans WebFlowMaster, du module choisi ci-dessus et avec les résultats cochés ici.",
+      "create": "Créer le plan",
+      "created": "Session prête à lancer",
+      "summary": "Le plan « {{name}} » contient {{tests}} tests. {{notImported}} cas choisis ne sont pas encore des tests.",
+      "failed": "La session n’a pas pu être créée",
+      "open": "Lancer « {{name}} »"
     }
   },
   "testLibrary": {
@@ -4241,7 +4358,8 @@
       "blocked": "Bloqué",
       "passed": "Réussi",
       "failed": "Échoué",
-      "error": "Erreur"
+      "error": "Erreur",
+      "skipped": "Non testé"
     }
   },
   "failureAnalysis": {

@@ -29,6 +29,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useSearch } from 'wouter';
 import HubCatalogPanel from '@/components/test-manager/HubCatalogPanel';
+import HubWavesPanel from '@/components/test-manager/HubWavesPanel';
 
 import { useTestSequences } from '@/hooks/useTestSequences';
 import { useExcelImport } from '@/hooks/useExcelImport';
@@ -45,6 +46,8 @@ import {
   AlertTriangle,
   Loader2,
 } from 'lucide-react';
+
+type TestManagerTab = 'excel' | 'hub' | 'waves';
 
 /** What happened to a row's last run: an icon and a word, coloured by outcome. */
 const RowStatusLabel: React.FC<{ result?: RowResult }> = ({ result }) => {
@@ -80,11 +83,12 @@ const hasReport = (result?: RowResult) =>
 
 const TestManager: React.FC = () => {
   const { t } = useTranslation();
-  // The hub tab is a page of its own to link to: /test-manager?source=hub.
+  // The hub tabs are pages of their own to link to: /test-manager?source=hub (or waves).
   const query = useSearch();
-  const [tab, setTab] = React.useState<'excel' | 'hub'>(() =>
-    new URLSearchParams(query).get('source') === 'hub' ? 'hub' : 'excel',
-  );
+  const [tab, setTab] = React.useState<TestManagerTab>(() => {
+    const source = new URLSearchParams(query).get('source');
+    return source === 'hub' || source === 'waves' ? source : 'excel';
+  });
 
   // Custom Hooks Integration
   const { sequences } = useTestSequences();
@@ -113,7 +117,12 @@ const TestManager: React.FC = () => {
                   'testCaseHub.catalog.subtitle',
                   'Choose cases from the QA team’s hub and import them as manual tests.',
                 )
-              : t('testManager.subtitle')}
+              : tab === 'waves'
+                ? t(
+                    'hubWaves.subtitle',
+                    'The QA team’s test sessions and their results, to follow and run again.',
+                  )
+                : t('testManager.subtitle')}
           </p>
         </div>
         {/* While the table is empty the empty state carries the file picker, so repeating it
@@ -129,13 +138,16 @@ const TestManager: React.FC = () => {
         )}
       </header>
 
-      <Tabs value={tab} onValueChange={(value) => setTab(value as 'excel' | 'hub')}>
+      <Tabs value={tab} onValueChange={(value) => setTab(value as TestManagerTab)}>
         <TabsList className="mb-4">
           <TabsTrigger value="excel" data-testid="test-manager-tab-excel">
             {t('testCaseHub.tabs.excel', 'Excel file')}
           </TabsTrigger>
           <TabsTrigger value="hub" data-testid="test-manager-tab-hub">
             {t('testCaseHub.tabs.hub', 'QA test case hub')}
+          </TabsTrigger>
+          <TabsTrigger value="waves" data-testid="test-manager-tab-waves">
+            {t('testCaseHub.tabs.waves', 'QA waves')}
           </TabsTrigger>
         </TabsList>
         <TabsContent value="excel">
@@ -345,6 +357,9 @@ const TestManager: React.FC = () => {
         </TabsContent>
         <TabsContent value="hub">
           <HubCatalogPanel />
+        </TabsContent>
+        <TabsContent value="waves">
+          <HubWavesPanel />
         </TabsContent>
       </Tabs>
     </div>
