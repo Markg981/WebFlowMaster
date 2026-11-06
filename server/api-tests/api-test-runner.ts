@@ -629,9 +629,10 @@ export async function runApiRequest(
     // Only the encoder knows the boundary, so whatever the request said is replaced.
     withoutContentType(headers);
     headers['Content-Type'] = contentType;
-    options.body = bytes;
+    options.body = new Uint8Array(bytes);
   } else if (carriesBody && spec.binary) {
-    options.body = Buffer.from(spec.binary.base64, 'base64');
+    // TypeScript 5.7+: a Buffer is not a BodyInit; a plain Uint8Array view is.
+    options.body = new Uint8Array(Buffer.from(spec.binary.base64, 'base64'));
     if (!headers['content-type'] && !headers['Content-Type']) {
       headers['Content-Type'] = spec.binary.contentType || 'application/octet-stream';
     }

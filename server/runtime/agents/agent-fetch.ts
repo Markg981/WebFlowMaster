@@ -66,7 +66,8 @@ async function requestIn(
     method === 'HEAD' || NULL_BODY_STATUSES.has(response.status()) ? null : await response.body();
   const headers = new Headers();
   for (const { name, value } of response.headersArray()) headers.append(name, value);
-  return new Response(body, {
+  // TypeScript 5.7+: a Buffer is not a BodyInit; a plain Uint8Array view is.
+  return new Response(body && new Uint8Array(body), {
     status: response.status(),
     statusText: response.statusText(),
     headers,
@@ -121,7 +122,7 @@ export function fetchThroughBrowser(browser: () => Promise<Browser>): typeof fet
           : await Promise.race([response.body(), abandoned]);
       const headers = new Headers();
       for (const { name, value } of response.headersArray()) headers.append(name, value);
-      return new Response(body, {
+      return new Response(body && new Uint8Array(body), {
         status: response.status(),
         statusText: response.statusText(),
         headers,
