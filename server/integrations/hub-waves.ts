@@ -119,18 +119,22 @@ function isWaveFile(name: string): boolean {
   return name === HUB_WAVE_FILE || isWaveResultsFile(name);
 }
 
-async function hashFile(file: string): Promise<string | null> {
+/** Reads a wave file through one handle, so the size check and the read see the same file. */
+async function readWaveFile(file: string): Promise<Buffer | null> {
   const handle = await fs.open(file, 'r').catch(() => null);
   if (!handle) return null;
   try {
     const stat = await handle.stat();
     if (!stat.isFile() || stat.size > WAVE_LIMITS.maxFileBytes) return null;
-    return createHash('sha256')
-      .update(await handle.readFile())
-      .digest('hex');
+    return await handle.readFile();
   } finally {
     await handle.close();
   }
+}
+
+async function hashFile(file: string): Promise<string | null> {
+  const content = await readWaveFile(file);
+  return content ? createHash('sha256').update(content).digest('hex') : null;
 }
 
 /** Waves of a hub checkout. A folder with no Waves/ has no waves — not an error. */
@@ -160,10 +164,8 @@ export function folderWaveReader(folder: string): WaveReader {
     async read(wave) {
       const out = new Map<string, Buffer>();
       for (const name of Object.keys(wave.files)) {
-        const file = path.join(root, wave.folder, name);
-        const stat = await fs.stat(file).catch(() => null);
-        if (!stat?.isFile() || stat.size > WAVE_LIMITS.maxFileBytes) continue;
-        out.set(name, await fs.readFile(file));
+        const content = await readWaveFile(path.join(root, wave.folder, name));
+        if (content) out.set(name, content);
       }
       return out;
     },
