@@ -312,7 +312,8 @@ Every build/runtime stage applies `deployment/releases/harden-base.sh`. It insta
 the exact Ubuntu security versions `3.5.5-1ubuntu3.7` for libssl3t64, openssl and
 openssl-provider-legacy, and `8.18.0-1ubuntu2.8` for curl, libcurl4t64 and
 libcurl3t64-gnutls (CVE-2026-92392), and `1.2.0-3ubuntu0.1` for libbrotli1
-(CVE-2026-111497), removes the unused `/usr/bin/pebble` service manager,
+(CVE-2026-111497), and `3.2.1ubuntu0.1` for apt and libapt-pkg7.0
+(CVE-2026-109518), removes the unused `/usr/bin/pebble` service manager,
 and preserves `pwuser` UID/GID 1000 for existing volumes. Global npm is removed
 only from final stages. The script removes APT indexes, caches and variable logs
 before layer export. If a pinned package disappears from the signed Ubuntu
