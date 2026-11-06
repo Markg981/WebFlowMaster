@@ -55,6 +55,8 @@ const PROVENANCE = [
   'source_hosts.created_by',
   'test_case_sources.created_by',
   'hub_test_cases.imported_by',
+  'hub_waves.materialized_by',
+  'hub_jobs.requested_by',
   'test_plan_executions.requested_by_user_id',
   'test_publications.published_by',
   'test_quarantines.quarantined_by',

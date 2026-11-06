@@ -3316,6 +3316,9 @@
       "testcase_hub_removed": "Testfall-Hub entfernt",
       "testcase_hub_refreshed": "Katalog des Testfall-Hubs aktualisiert",
       "testcase_hub_imported": "Testfälle aus dem Hub importiert",
+      "testcase_hub_waves_synced": "QA-Hub-Waves synchronisiert",
+      "testcase_hub_waves_imported": "QA-Hub-Waves als Läufe importiert",
+      "testcase_hub_wave_session_created": "Sitzung aus einer QA-Hub-Wave erstellt",
       "browser_grid_created": "Browser-Grid hinzugefügt",
       "browser_grid_updated": "Browser-Grid geändert",
       "browser_grid_deleted": "Browser-Grid entfernt"

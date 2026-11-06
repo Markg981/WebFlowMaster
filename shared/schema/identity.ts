@@ -864,6 +864,10 @@ export const AUDIT_ACTIONS = {
   TESTCASE_HUB_REMOVED: 'testcase_hub.removed',
   TESTCASE_HUB_REFRESHED: 'testcase_hub.refreshed',
   TESTCASE_HUB_IMPORTED: 'testcase_hub.imported',
+  // Its waves: a sync read them, an import made runs of them, a session was planned from one.
+  TESTCASE_HUB_WAVES_SYNCED: 'testcase_hub.waves_synced',
+  TESTCASE_HUB_WAVES_IMPORTED: 'testcase_hub.waves_imported',
+  TESTCASE_HUB_WAVE_SESSION_CREATED: 'testcase_hub.wave_session_created',
 } as const;
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[keyof typeof AUDIT_ACTIONS];

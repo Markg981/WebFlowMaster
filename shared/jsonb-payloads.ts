@@ -55,6 +55,18 @@ export const JSONB_PAYLOADS: Record<string, JsonbStrategy> = {
   'healing_proposals.call_path': 'snapshot',
   // The ids of the hub cases a case depends on, as the hub lists them: a plain array of strings.
   'hub_test_cases.depends_on': 'migration',
+  // A hub job's options, progress and outcome (migration 0104): rewritten while it runs, read by
+  // the page that follows it; nothing reads an old shape.
+  'hub_jobs.params': 'migration',
+  'hub_jobs.progress': 'migration',
+  'hub_jobs.summary': 'migration',
+  // A wave result's attempts and stage flags, as the hub recorded them: copied, never rewritten.
+  'hub_wave_results.attempts': 'snapshot',
+  'hub_wave_results.stage_metrics': 'snapshot',
+  // A wave's file hashes, modules and workbook links, as the last sync read them.
+  'hub_waves.file_hashes': 'migration',
+  'hub_waves.modules': 'migration',
+  'hub_waves.workbook_links': 'migration',
   'load_test_runs.definition': 'snapshot',
   'load_test_runs.summary': 'migration',
   'load_tests.stages': 'migration',

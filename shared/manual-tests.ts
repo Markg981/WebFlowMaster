@@ -142,6 +142,21 @@ export interface ManualResultLog {
     byUserId: number;
     byUsername: string;
     at: string;
+    /**
+     * Set when the verdict was not given in WFM but brought in from the QA hub's wave results
+     * (server/integrations/hub-waves.ts): who ran the case there, when, on which build, with
+     * which bug. `byUserId` / `byUsername` are then the person who imported the wave.
+     */
+    imported?: {
+      source: 'qa-hub';
+      waveId: string;
+      tester: string | null;
+      executionDate: string | null;
+      buildNumber: string | null;
+      bugReference: string | null;
+      hubStatus: string;
+      attempts: number;
+    };
   };
 }
 

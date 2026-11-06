@@ -3316,6 +3316,9 @@
       "testcase_hub_removed": "Hub des cas de test supprimé",
       "testcase_hub_refreshed": "Catalogue du hub des cas de test actualisé",
       "testcase_hub_imported": "Cas de test importés depuis le hub",
+      "testcase_hub_waves_synced": "Vagues du hub QA synchronisées",
+      "testcase_hub_waves_imported": "Vagues du hub QA importées comme exécutions",
+      "testcase_hub_wave_session_created": "Session créée à partir d'une vague du hub QA",
       "browser_grid_created": "Grille de navigateurs ajouté",
       "browser_grid_updated": "Grille de navigateurs modifié",
       "browser_grid_deleted": "Grille de navigateurs supprimé"

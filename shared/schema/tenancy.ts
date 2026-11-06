@@ -43,6 +43,10 @@ export const ORG_SCOPED_TABLES = [
   // The QA test case hub: where the definitions come from, and the catalog read from it.
   'test_case_sources',
   'hub_test_cases',
+  // Its waves (the QA team's test sessions), their results, and the long work run on it.
+  'hub_waves',
+  'hub_wave_results',
+  'hub_jobs',
   // api_keys is org-scoped and policed like the rest. Unlike `invitations`, which cannot be,
   // the one lookup that must happen before an organization is known — authenticating a
   // request that carries a key — is a privileged bootstrap read in middleware, the same shape
