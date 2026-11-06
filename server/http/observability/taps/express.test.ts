@@ -13,14 +13,25 @@ let root: string;
 // generateRepro writes under repoRoot, not rootDir. Without its own temp directory
 // these tests would scatter .repro.ts files across the real working tree.
 let reproRoot: string;
+// The tap records fire-and-forget. A test that only checks the response would otherwise end
+// with the write still running: afterEach then deletes its directory, the write fails and
+// logs after the file is done, and vitest fails the run on the pending console call.
+const inFlight: Promise<unknown>[] = [];
 
 beforeEach(() => {
   root = fs.mkdtempSync(path.join(os.tmpdir(), 'wfm-tap-'));
   reproRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'wfm-reporoot-'));
   configureIncidents({ rootDir: root, repoRoot: reproRoot, logger: { error: () => {} } });
+  const record = incidentModule.recordIncident;
+  vi.spyOn(incidentModule, 'recordIncident').mockImplementation((input) => {
+    const recording = record(input);
+    inFlight.push(recording);
+    return recording;
+  });
 });
 
-afterEach(() => {
+afterEach(async () => {
+  await Promise.allSettled(inFlight.splice(0));
   fs.rmSync(root, { recursive: true, force: true });
   fs.rmSync(reproRoot, { recursive: true, force: true });
   vi.restoreAllMocks();
