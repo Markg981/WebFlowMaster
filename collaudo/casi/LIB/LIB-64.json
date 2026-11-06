@@ -1,0 +1,14 @@
+{
+  "id": "LIB-64",
+  "area": "LIB",
+  "title": "Wave QA: viewer in sola lettura, job concorrente e wave rimossa dall'hub",
+  "priority": "P2",
+  "actor": "viewer.a, poi editor.a",
+  "preconditions": "LIB-62 eseguito.",
+  "steps": [
+    "Come viewer: scheda «Wave QA», aprire una wave; con la sessione chiamare POST /api/testcase-hub/waves/sync, /waves/import e /waves/:id/session.",
+    "Come editor: avviare «Leggi le wave» e, mentre gira, chiamare di nuovo POST /api/testcase-hub/waves/sync.",
+    "Nel clone spostare fuori da Waves/ la cartella di una wave non importata e rileggere le wave."
+  ],
+  "expected": "1: il viewer vede KPI, elenco e dettaglio senza caselle, pulsanti di lettura, import o nuova sessione; le tre chiamate rispondono 403. 2: la seconda chiamata risponde 409 job_running e il job in corso prosegue. 3: la wave resta in elenco come «Non più nell'hub» con la casella disabilitata; i risultati già letti restano consultabili."
+}

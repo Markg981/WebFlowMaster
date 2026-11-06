@@ -929,6 +929,13 @@ erDiagram
   test_case_sources ||--o{ hub_test_cases : "source_id"
   tests |o--o{ hub_test_cases : "test_id"
   users |o--o{ hub_test_cases : "imported_by"
+  test_case_sources ||--o{ hub_waves : "source_id"
+  test_plans |o--o{ hub_waves : "test_plan_id"
+  test_plan_executions |o--o{ hub_waves : "execution_id"
+  users |o--o{ hub_waves : "materialized_by"
+  hub_waves ||--o{ hub_wave_results : "wave_row_id"
+  test_case_sources ||--o{ hub_jobs : "source_id"
+  users |o--o{ hub_jobs : "requested_by"
   users |o--o{ test_management_connections : "created_by"
   test_management_connections ||--o{ test_case_links : "connection_id"
   tests |o--o{ test_case_links : "test_id"
@@ -1036,6 +1043,73 @@ erDiagram
     text imported_hash
     timestamp imported_at
     int imported_by FK
+  }
+  hub_waves {
+    int id PK
+    int organization_id FK
+    text source_id FK
+    text wave_id
+    text name
+    text description
+    text release
+    text major_release
+    text wave_type
+    text status
+    text start_date
+    text target_date
+    jsonb modules
+    jsonb workbook_links
+    text created_by_name
+    timestamp source_created_at
+    timestamp source_updated_at
+    int entry_count
+    text content_hash
+    jsonb file_hashes
+    timestamp synced_at
+    timestamp missing_since
+    text test_plan_id FK
+    text execution_id FK
+    text materialized_hash
+    timestamp materialized_at
+    int materialized_by FK
+  }
+  hub_wave_results {
+    int id PK
+    int organization_id FK
+    int wave_row_id FK
+    text case_id
+    text raw_case_id
+    text module
+    text definition_module
+    text assigned_tester
+    text stage
+    jsonb stage_metrics
+    text status
+    text executed_by
+    text execution_date
+    text build_number
+    text bug_reference
+    text bug_priority
+    text notes
+    jsonb attempts
+    int attempt_count
+  }
+  hub_jobs {
+    text id PK
+    int organization_id FK
+    text source_id FK
+    text kind
+    text status
+    jsonb params
+    jsonb progress
+    jsonb summary
+    text error
+    int requested_by FK
+    timestamp created_at
+    timestamp started_at
+    timestamp finished_at
+    timestamp heartbeat_at
+    timestamp cancel_requested_at
   }
   source_hosts {
     text id PK

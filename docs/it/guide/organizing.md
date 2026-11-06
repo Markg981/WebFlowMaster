@@ -256,6 +256,39 @@ test manuali: eseguiteli nei piani, oppure apritene uno nel builder e automatizz
 vedono il catalogo ma non importano. Rimuovere l'hub elimina il catalogo; i test importati
 restano in libreria, non più legati all'hub.
 
+### Wave QA {#qa-waves}
+
+L'hub contiene anche le **wave** del team QA: una sessione di test per una release (Smoke, Beta
+Regression…), i casi coperti per modulo e i loro risultati, in `Waves/<wave_id>/`. La scheda
+**Wave QA** di **Test Manager** (anche `/test-manager?source=waves`) le legge dall'hub collegato
+sopra. **Leggi le wave** gira in background (un banner mostra l'avanzamento e permette di
+fermarlo) e termina dicendo quante wave sono nuove, modificate o non più nell'hub; vengono rilette
+solo le wave i cui file sono cambiati.
+
+La scheda si apre sui totali (wave, importate, casi testati, eseguiti, percentuale di superati), i
+risultati di ogni wave in un grafico a barre impilate, i moduli su tutte le wave e l'elenco delle
+wave con release, tipo, data di inizio, casi, falliti, avanzamento e stato in WebFlowMaster (non
+importata, importata, modificata dopo l'import, non più nell'hub). Aprendo una wave si vedono i
+risultati per modulo e per caso, con ricerca, filtri per modulo e stato e, per ogni risultato,
+tester, stage, build, bug e note.
+
+Selezionare le wave (fino a 25 alla volta) e **Importa**: scegliere il progetto e gli step dei
+nuovi test. I casi citati dalle wave che non sono ancora test vengono prima importati dal
+catalogo, una suite per modulo; poi ogni wave diventa un **test plan con una esecuzione conclusa**
+che contiene i risultati del team QA, così dashboard, report, storico dei test e analisi dei
+fallimenti mostrano le wave come qualunque altra esecuzione. Gli stati diventano: passed →
+Passed, failed → Failed, not tested → Skipped, **on hold → Skipped con il verdetto _blocked_**
+(non fa fallire l'esecuzione e resta distinto da un caso escluso), pending → Pending, lasciato
+aperto per un verdetto in WebFlowMaster. Importare di nuovo una wave aggiorna la sua esecuzione e
+mantiene i verdetti dati in WebFlowMaster.
+
+Dal dettaglio di una wave gli editor possono **eseguire di nuovo i casi**: un nuovo plan con i
+casi della wave che sono test, del modulo scelto e con i risultati spuntati (di default falliti e
+in attesa). I risultati di ogni modulo si scaricano nel formato `results_<Module>.json` dell'hub,
+con i verdetti dati in WebFlowMaster, oppure tutti in CSV, perché il team QA li carichi nella sua
+applicazione desktop; WebFlowMaster non scrive mai nell'hub. I viewer vedono le wave e i loro
+risultati ma non possono leggerle, importarle o eseguirle di nuovo.
+
 ## Dati di test condivisi {#test-data}
 
 Il gestore elenca nomi, descrizioni e conteggi di righe/colonne in pagine di 25, con totale
