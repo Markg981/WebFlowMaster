@@ -164,7 +164,7 @@ router.put('/api/testcase-hub', sensitiveLimit, requireRole('editor'), async (re
     if (input.kind === 'folder') {
       // Refused here, before anything is saved, so that the catalog never holds a path the
       // operator did not allow.
-      await resolveHubFolder(input.path);
+      await resolveHubFolder(input.path, undefined, organizationId);
     }
     let token: { encryptedValue: string; iv: string; authTag: string } | null = null;
     let discardToken = false;
@@ -308,8 +308,17 @@ router.post('/api/testcase-hub/test', heavyLimit, requireRole('owner'), async (r
 });
 
 // POST /api/testcase-hub/refresh — read the hub and rewrite the catalog.
+/** Organizations with a refresh in flight in this process. */
+const refreshing = new Set<number>();
+
 router.post('/api/testcase-hub/refresh', heavyLimit, requireRole('editor'), async (req, res) => {
   if (!req.isAuthenticated() || !req.user) return res.status(401).json({ error: 'Unauthorized' });
+  const refreshOrg = req.user.organizationId;
+  if (refreshing.has(refreshOrg))
+    return res
+      .status(409)
+      .json({ error: 'A refresh of the hub is already running.', code: 'refresh_running' });
+  refreshing.add(refreshOrg);
   try {
     const source = await currentSource();
     if (!source) return res.status(404).json({ error: 'No test case hub is configured.' });
@@ -372,6 +381,8 @@ router.post('/api/testcase-hub/refresh', heavyLimit, requireRole('editor'), asyn
     });
   } catch (error) {
     sendHubError(res, error, 'Failed to refresh the test case hub.');
+  } finally {
+    refreshing.delete(refreshOrg);
   }
 });
 
