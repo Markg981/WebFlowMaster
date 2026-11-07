@@ -1,5 +1,5 @@
 {
-  "id": "OPS-75",
+  "id": "OPS-76",
   "area": "OPS",
   "title": "Storage S3: evidenze locali rimosse e timeout su endpoint irraggiungibile",
   "priority": "P2",
