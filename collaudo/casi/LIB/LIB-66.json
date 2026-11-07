@@ -1,5 +1,5 @@
 {
-  "id": "LIB-65",
+  "id": "LIB-66",
   "area": "LIB",
   "title": "Modifica concorrente dello stesso test: il secondo salvataggio mostra il conflitto",
   "priority": "P2",
