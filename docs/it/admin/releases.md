@@ -39,7 +39,10 @@ Le PR che modificano packaging o input applicativi e le esecuzioni manuali costr
 senza permesso di scrittura sul registry. Il push di `vX.Y.Z`, anche prerelease SemVer valida,
 abilita la pubblicazione soltanto quando:
 
-- Il tag coincide con la versione di `package.json` e `package-lock.json`.
+- Il tag coincide con la versione di `package.json` e `package-lock.json`. `package.json` è l'unica
+  fonte di verità; `appVersion` di `Chart.yaml` Helm (tag immagine predefinito) e `AGENT_VERSION` in
+  `scripts/wfm-agent.ts` sono copie, aggiornate con `node scripts/release/sync-version.mjs` e
+  verificate dagli input di rilascio e da un test in CI.
 - Il commit appartiene a `origin/main`.
 - Gli ultimi controlli GitHub Actions `static-checks`, `server-tests`, `client-tests`, `collaudo`,
   `build`, `network-on-guarded-installation`, `ui-on-real-installation` e `rls-on-real-postgres`
