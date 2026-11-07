@@ -736,6 +736,13 @@
       "when": 1792400000028,
       "tag": "0104_hub_waves",
       "breakpoints": true
+    },
+    {
+      "idx": 106,
+      "version": "7",
+      "when": 1792400000029,
+      "tag": "0106_fk_indexes",
+      "breakpoints": true
     }
   ]
 }
