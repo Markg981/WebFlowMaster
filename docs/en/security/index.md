@@ -56,10 +56,14 @@ sign-up, where each new account gets an organization of its own.
   database in an API answer. Passwords must be 8 to 128 characters.
 - Sign-in, registration and second-factor endpoints are limited to 20 attempts per client
   address every 15 minutes. Failed sign-ins for existing accounts are recorded in the audit log.
-- A second limit counts per account, whatever the address: 10 wrong passwords or 5 wrong second-factor
-  codes in 15 minutes lock that account until the window ends (`429` with `Retry-After`, the same for a
-  name that does not exist). The second-factor count is not cleared by signing in again, only by a
-  correct code. The first refusal writes `auth.account_locked` to the audit log.
+- A second limit counts per account and address: 10 wrong passwords or 5 wrong second-factor codes in
+  15 minutes lock that account for that address, or the second factor, until the window ends (`429`
+  with `Retry-After`, the same for a name that does not exist). The second-factor count is not cleared
+  by signing in again, only by a correct code. The first refusal writes `auth.account_locked` to the
+  audit log. Guesses spread over many addresses meet an account-wide backoff, not a lock: after 5
+  attempts each next one is delayed by a time that doubles (2 s, 4 s, ...) up to 5 minutes, answered
+  `429` with `Retry-After`, identical for an unknown name; a successful sign-in clears it. The delay
+  is held per web process, the attempt count is shared through Redis.
 - **Two-factor authentication**: TOTP codes from an authenticator app (RFC 6238), each accepted
   once, plus one-time recovery codes stored as hashes. After the password, the session is not
   signed in until the code is given: five wrong codes or five minutes end the attempt. Owners can

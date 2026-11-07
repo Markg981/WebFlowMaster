@@ -22,6 +22,7 @@ import { AUDIT_ACTIONS, User as SelectUser, type AuditAction } from '@shared/sch
 import { recordAudit } from '../tenancy/audit';
 import {
   registerAttempt,
+  registerAccountAttempt,
   clearAttempts,
   usernameKey,
   passwordKey,
@@ -566,7 +567,7 @@ export function setupAuth(app: Express) {
     const throttleKey = passwordKey(req.body?.username, req.ip);
     try {
       const verdict = await registerAttempt('password', throttleKey);
-      const accountVerdict = await registerAttempt('account', accountKey);
+      const accountVerdict = await registerAccountAttempt(accountKey);
       if (verdict.locked || accountVerdict.locked) {
         const locked = verdict.locked ? verdict : accountVerdict;
         await reportLock(locked, 'password', req.body?.username, req.ip);
