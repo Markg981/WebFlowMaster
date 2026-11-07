@@ -1,0 +1,14 @@
+{
+  "id": "OPS-75",
+  "area": "OPS",
+  "title": "Storage S3: evidenze locali rimosse e timeout su endpoint irraggiungibile",
+  "priority": "P2",
+  "actor": "owner.a",
+  "preconditions": "Installazione con ARTIFACT_STORE=s3 e bucket raggiungibile (es. MinIO); ARTIFACT_S3_TIMEOUT_MS=5000.",
+  "steps": [
+    "Eseguire un test con screenshot e video, attendere la fine del run e controllare la cartella results/<piano>/<run> sul worker.",
+    "Fermare MinIO (o impostare S3_ENDPOINT su un indirizzo che non risponde), eseguire di nuovo un test e misurare il tempo fino alla fine del run.",
+    "Riavviare MinIO, lasciare il file rimasto in results/ e impostare ARTIFACT_LOCAL_ORPHAN_DAYS=1; dopo aver reso il file più vecchio di un giorno attendere lo sweep di retention."
+  ],
+  "expected": "Dopo il primo run la cartella locale del run non esiste e le immagini si aprono dal report. Con S3 irraggiungibile l'upload fallisce entro circa il timeout (artifactStorageStatus in errore) senza bloccare il worker. Lo sweep rimuove il file locale orfano e le cartelle vuote."
+}
