@@ -226,6 +226,22 @@ I backup di database e artifact store conservano le proprie copie per quanto sta
 politica di backup dell'operatore. **La finestra di conservazione dei backup è responsabilità
 dell'operatore**: una cancellazione o uno sweep di retention li raggiunge solo alla loro scadenza.
 
+## Immutabilità del registro di audit e suo limite {#audit-immutability}
+
+Il registro di audit è append-only per l'applicazione: un trigger del database (migrazione 0102)
+rifiuta `UPDATE` e `DELETE` e il ruolo applicativo `app_user` non ha il permesso `DELETE`. Il
+trigger lascia passare i job di manutenzione (retention opzionale, cancellazione di
+un'organizzazione, fixture dei test) quando la transazione imposta `app.audit_maintenance = 'on'`.
+Una sessione che può impostarlo e cancellare righe (superuser, proprietario della tabella o ruolo
+di migrazione) può quindi alterare il registro: la garanzia vale contro l'applicazione, non contro
+l'amministratore del database.
+
+Rafforzamenti consigliati: eseguire l'applicazione solo come `app_user`; tenere le credenziali di
+proprietario e di migrazione fuori dall'ambiente di runtime; limitare chi può connettersi con un
+ruolo privilegiato; inviare le voci di audit a un archivio esterno non modificabile se serve una
+prova contro gli amministratori. Chiudere l'interruttore in SQL richiede una nuova migrazione ed è
+un punto aperto.
+
 ## Raccomandazioni per le organizzazioni
 
 - Testate con **dati sintetici o mascherati** dove possibile, non con dati personali di
