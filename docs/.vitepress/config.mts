@@ -201,6 +201,10 @@ function sidebar(lang: 'en' | 'it', t: Labels): DefaultTheme.SidebarItem[] {
               : 'Audit del prodotto e della documentazione',
           link: p('internals/product-audit'),
         },
+        {
+          text: lang === 'en' ? 'CI governance' : 'Governance della CI',
+          link: p('internals/ci-governance'),
+        },
         { text: t.decisions, link: p('internals/decisions') },
         { text: t.glossary, link: p('internals/glossary') },
       ],
