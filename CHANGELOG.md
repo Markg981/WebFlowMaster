@@ -10,6 +10,13 @@ pull requests (`npm run changelog:draft`) and are edited by hand before a releas
 
 ## [Unreleased]
 
+### Security
+
+- **Breaking:** the agent relay refuses browser tickets without a `jti` (single-use id). Local agents and runners must be updated to a build that signs tickets with it.
+- SCIM tokens now expire: a new token lives `SCIM_TOKEN_TTL_DAYS` days (default 365) and an expired one is refused with 401. Tokens issued before this release do not expire until they are replaced.
+- The organization export lists the organization's columns explicitly and never includes hashes or tokens.
+- Accepting an invitation locks the invitation row, so a double accept cannot add the membership twice.
+
 ## [1.0.0-rc.1] - 2026-10-30
 
 ### Added

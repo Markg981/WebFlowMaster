@@ -126,6 +126,16 @@ describe('the token', () => {
     expect(JSON.stringify(entries)).not.toContain(token);
   });
 
+  it('is refused once expired', async () => {
+    const { token, call, organizationId } = await provisioned();
+    await call('get', '/Users').expect(200);
+    await privilegedDb.execute(
+      sql`UPDATE organization_sso SET scim_token_expires_at = now() - interval '1 minute' WHERE organization_id = ${organizationId}`,
+    );
+    expect(token).toBeTruthy();
+    await call('get', '/Users').expect(401);
+  });
+
   it("needs single sign-on, and is refused without a token or with someone else's scheme", async () => {
     const owner = request.agent(app);
     await owner

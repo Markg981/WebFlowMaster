@@ -4301,7 +4301,7 @@
       "description": "Ihr Identitätsanbieter legt Konten hier an, deaktiviert und entfernt sie und überträgt seine Gruppen, sobald sie sich dort ändern – nicht erst bei der nächsten Anmeldung. Geben Sie ihm die Basis-URL und ein Token.",
       "baseUrl": "SCIM-Basis-URL (Tenant-URL)",
       "tokenShown": "Token – jetzt kopieren, es wird nicht noch einmal angezeigt",
-      "status": "Token {{prefix}}… ausgestellt {{created}}, zuletzt verwendet {{used}}.",
+      "status": "Token {{prefix}}… ausgestellt {{created}}, zuletzt verwendet {{used}}, läuft ab {{expires}}.",
       "none": "Kein Token: Die Bereitstellung ist aus.",
       "replace": "Token ersetzen",
       "issue": "Token ausstellen",

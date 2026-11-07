@@ -46,11 +46,10 @@ export interface BrowserTicket {
   /** Milliseconds since the epoch. */
   expiresAt: number;
   /**
-   * Unique per ticket, so the relay accepts each one once within its lifetime. Absent only on a
-   * ticket signed by a runner from before this field existed, which stays accepted (replayable for
-   * its minute) until the runners are updated.
+   * Unique per ticket, so the relay accepts each one once within its lifetime. Mandatory: a
+   * ticket without it is refused (audit B-02; runners from before the field must be updated).
    */
-  jti?: string;
+  jti: string;
 }
 
 export const TICKET_LIFETIME_MS = 60_000;
@@ -86,7 +85,7 @@ function sign(payload: string, secret: string): string {
 }
 
 export function signTicket(
-  ticket: Omit<BrowserTicket, 'expiresAt'>,
+  ticket: Omit<BrowserTicket, 'expiresAt' | 'jti'>,
   secret: string,
   now = Date.now(),
 ): string {
@@ -121,7 +120,7 @@ export function verifyTicket(
   }
   if (typeof ticket.expiresAt !== 'number' || ticket.expiresAt < now)
     return { error: 'expired ticket' };
-  if (ticket.jti !== undefined && (typeof ticket.jti !== 'string' || ticket.jti.length > 100))
+  if (typeof ticket.jti !== 'string' || ticket.jti.length === 0 || ticket.jti.length > 100)
     return { error: 'malformed ticket' };
   if (!Number.isInteger(ticket.organizationId) || !AGENT_POOL_PATTERN.test(ticket.pool))
     return { error: 'malformed ticket' };

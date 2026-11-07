@@ -118,6 +118,20 @@ describe('exportOrganization', () => {
 });
 
 describe('eraseOrganization', () => {
+  it('never exports a hash, secret or token column of the organization row', async () => {
+    await privilegedDb.execute(
+      sql`UPDATE organizations SET sms_inbound_token_hash = ${'f'.repeat(64)}, sms_inbound_token_prefix = 'ffff' WHERE id = ${orgA}`,
+    );
+    const exported = (await exportOrganization(orgA)) as {
+      organization: Record<string, unknown>;
+    };
+    expect(exported.organization).toBeTruthy();
+    for (const key of Object.keys(exported.organization))
+      expect(key).not.toMatch(/(hash|secret|(^|_)token$)/);
+    expect(JSON.stringify(exported)).not.toContain('f'.repeat(64));
+    expect(exported.organization.sms_inbound_token_prefix).toBe('ffff');
+  });
+
   it('covers every table with a foreign key to organizations, in deletion and export', async () => {
     const rows = await privilegedDb.execute(sql`
       SELECT DISTINCT child.relname::text AS child

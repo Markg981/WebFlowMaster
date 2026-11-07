@@ -15,6 +15,7 @@ import { formatDateTime } from '@/lib/dates';
 export interface ScimTokenStatus {
   prefix: string;
   createdAt: string | null;
+  expiresAt?: string | null;
   lastUsedAt: string | null;
 }
 
@@ -122,11 +123,16 @@ export function ScimProvisioning({
 
       {token ? (
         <p className="text-xs text-muted-foreground" data-testid="sso-scim-status">
-          {t('sso.scim.status', 'Token {{prefix}}… issued {{created}}, last used {{used}}.', {
-            prefix: token.prefix,
-            created: date(token.createdAt),
-            used: date(token.lastUsedAt),
-          })}
+          {t(
+            'sso.scim.status',
+            'Token {{prefix}}… issued {{created}}, last used {{used}}, expires {{expires}}.',
+            {
+              prefix: token.prefix,
+              created: date(token.createdAt),
+              used: date(token.lastUsedAt),
+              expires: date(token.expiresAt ?? null),
+            },
+          )}
         </p>
       ) : (
         <p className="text-xs text-muted-foreground">

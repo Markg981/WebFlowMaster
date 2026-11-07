@@ -562,7 +562,6 @@ export class AgentRelay {
 
   /** True the first time a ticket is presented, false for a replay within its lifetime. */
   private async claimTicket(ticket: BrowserTicket): Promise<boolean> {
-    if (!ticket.jti) return true;
     const ttl = Math.max(ticket.expiresAt - Date.now(), 1_000) + 1_000;
     if (this.options.claimTicket) return this.options.claimTicket(ticket.jti, ttl);
     const now = Date.now();

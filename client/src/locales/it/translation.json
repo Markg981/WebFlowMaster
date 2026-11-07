@@ -4301,7 +4301,7 @@
       "description": "Il vostro identity provider crea, disattiva e rimuove gli account qui, e invia i suoi gruppi, appena cambiano presso di lui, non al prossimo accesso. Dategli l'URL di base e un token.",
       "baseUrl": "URL di base SCIM (tenant URL)",
       "tokenShown": "Token: copiatelo ora, non verrà più mostrato",
-      "status": "Token {{prefix}}… emesso {{created}}, ultimo uso {{used}}.",
+      "status": "Token {{prefix}}… emesso {{created}}, ultimo uso {{used}}, scade {{expires}}.",
       "none": "Nessun token: il provisioning è spento.",
       "replace": "Sostituisci il token",
       "issue": "Emetti un token",

@@ -1,0 +1,16 @@
+{
+  "id": "ADM-41",
+  "area": "ADM",
+  "title": "Token SCIM con scadenza, ed export dell'organizzazione senza hash",
+  "priority": "P2",
+  "actor": "owner.a",
+  "preconditions": "SSO configurato nell'organizzazione A; SCIM_TOKEN_TTL_DAYS impostato (o predefinito 365).",
+  "steps": [
+    "In Impostazioni, Provisioning (SCIM), emettere un token e leggere la riga di stato.",
+    "Con il token, chiamare GET /api/scim/v2/Users.",
+    "Impostare scim_token_expires_at nel passato sul DB e richiamare GET /api/scim/v2/Users.",
+    "Scaricare l'export dell'organizzazione e cercare chiavi che contengano hash o token."
+  ],
+  "expected": "1: la riga mostra prefisso, emissione, ultimo uso e scadenza. 2: 200. 3: 401. 4: l'oggetto organization contiene solo sms_inbound_token_prefix e nessuna chiave *_hash.",
+  "detailHtml": "<p>Verifica B-02 e B-17: scadenza dei token SCIM e proiezione esplicita dell'export.</p>"
+}

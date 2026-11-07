@@ -347,6 +347,30 @@ describe('joining by invitation as an existing account', () => {
     await alice.agent.post('/api/invitations/accept').send({ token }).expect(400);
   });
 
+  it('lets only one of two concurrent accepts create the membership', async () => {
+    const alice = await signedIn('alice');
+    const orgB = await organization('B');
+    const token = 'e'.repeat(64);
+    await privilegedDb.insert(invitations).values({
+      organizationId: orgB,
+      username: 'alice',
+      role: 'editor',
+      token: hashInvitationToken(token),
+      invitedByUserId: null,
+      expiresAt: new Date(Date.now() + 60_000),
+    });
+    const statuses = (
+      await Promise.all(
+        [1, 2].map(() => alice.agent.post('/api/invitations/accept').send({ token })),
+      )
+    )
+      .map((r) => r.status)
+      .sort();
+    expect(statuses).toEqual([200, 400]);
+    const rows = (await membershipRows(alice.id)).filter((m) => m.organizationId === orgB);
+    expect(rows).toHaveLength(1);
+  });
+
   it("refuses an invitation for somebody else's username", async () => {
     const alice = await signedIn('alice');
     const orgB = await organization('B');
