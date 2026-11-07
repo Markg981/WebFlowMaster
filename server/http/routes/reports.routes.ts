@@ -1,6 +1,7 @@
 import { asyncRouter } from '../../platform/middleware/async-router';
 import { junitReportFor } from '../../reporting/junit-report';
 import logger from '../../platform/logger';
+import { deliveriesOf } from '../../integrations/deliveries';
 import { requireRole } from '../middleware/require-role';
 import {
   exportRun,
@@ -115,6 +116,23 @@ router.get(
         error: e.message,
       });
       res.status(500).json({ error: 'Failed to export the report.' });
+    }
+  },
+);
+
+// GET /api/test-plan-executions/:executionId/deliveries — what the run owed outside and how it went.
+router.get(
+  '/api/test-plan-executions/:executionId/deliveries',
+  requireRole('viewer'),
+  async (req, res) => {
+    try {
+      res.json(await deliveriesOf(req.params.executionId));
+    } catch (error) {
+      logger.error({
+        message: 'Failed to list deliveries',
+        error: error instanceof Error ? error.message : String(error),
+      });
+      res.status(500).json({ error: 'Could not load the deliveries.' });
     }
   },
 );

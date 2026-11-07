@@ -56,6 +56,7 @@ import PerformanceResultsCard from '@/components/reports/PerformanceResultsCard'
 import PagePerformanceCard from '@/components/reports/PagePerformanceCard';
 import MatrixEvidenceCard from '@/components/reports/MatrixEvidenceCard';
 import PublicationsCard from '@/components/reports/PublicationsCard';
+import DeliveriesCard from '@/components/reports/DeliveriesCard';
 import { BreakdownChart, OutcomeChart } from '@/components/reports/ReportCharts';
 import FailureAnalysisDialog, {
   type AnalysedResult,
@@ -968,6 +969,7 @@ const TestReportPage: React.FC = () => {
           )}
         />
         <PublicationsCard executionId={header.executionId} runStatus={header.status} />
+        <DeliveriesCard executionId={header.executionId} />
         {failedTestDetails.length > 0 && (
           <Card className="border-destructive">
             <CardHeader>

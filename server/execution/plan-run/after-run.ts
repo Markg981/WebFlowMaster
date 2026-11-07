@@ -15,9 +15,11 @@ import { organizationMailConfigured } from '../../messaging/mailer';
 import {
   describeUnsupported,
   mergeNotificationSettings,
-  sendRunNotification,
+  buildPayload,
+  shouldNotify,
   type RunSummary,
 } from '../../integrations/notifications';
+import { attemptDelivery, recordDelivery } from '../../integrations/deliveries';
 
 /** How long a failed scheduled attempt waits before the next: long enough for a blip to pass. */
 export const RETRY_DELAY_MS = process.env.NODE_ENV === 'test' ? 0 : 30_000;
@@ -270,7 +272,55 @@ export async function notifyRunFinished(input: {
       });
     }
 
-    const result = await sendRunNotification(settings, input.summary);
+    const url = settings.webhookUrl?.trim();
+    if (!shouldNotify(settings, input.summary.status)) {
+      logger.debug({
+        message: `Notifications are off for a run that ${input.summary.status}.`,
+        executionId: input.summary.executionId,
+      });
+      return;
+    }
+    if (!url) {
+      logger.debug({
+        message: 'No notification webhook URL is configured for this plan.',
+        executionId: input.summary.executionId,
+      });
+      return;
+    }
+    if (!/^https?:\/\//i.test(url)) {
+      const message = 'Notification webhook URL must start with http:// or https://.';
+      logger.warn({ message, executionId: input.summary.executionId });
+      wsEmitter.emitExecutionLog(input.summary.executionId, {
+        level: 'warn',
+        source: 'system',
+        message,
+        timestamp: new Date().toISOString(),
+      });
+      return;
+    }
+
+    // Written down first, so a stop or an endpoint that stays down is retried by the sweep and
+    // shown on the run (server/integrations/deliveries.ts).
+    const organizationId = getTenantOrgId();
+    if (organizationId === undefined) return;
+    const deliveryId = await recordDelivery({
+      organizationId,
+      executionId: input.summary.executionId,
+      kind: 'webhook',
+      endpoint: url,
+      payload: buildPayload(input.summary, url),
+    });
+    const outcome = await attemptDelivery(deliveryId);
+    const result: { delivered: boolean; error?: string; reason?: string } =
+      outcome === 'sent'
+        ? { delivered: true }
+        : {
+            delivered: false,
+            error:
+              outcome === 'failed'
+                ? 'Run notification could not be delivered.'
+                : 'Run notification not delivered yet: it will be retried and its state is on the run.',
+          };
     if (result.delivered) {
       wsEmitter.emitExecutionLog(input.summary.executionId, {
         level: 'info',

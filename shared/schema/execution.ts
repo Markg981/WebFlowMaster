@@ -294,6 +294,42 @@ export const executionOutbox = pgTable(
 
 export type ExecutionOutboxEntry = typeof executionOutbox.$inferSelect;
 
+/**
+ * A message a finished run owes somebody outside (migration 0107): the webhook notification today.
+ * Written before the first attempt and updated after each, so a restart or an endpoint that is
+ * down for an hour does not lose it, and the run's page can say what happened to it.
+ * `endpoint` holds the URL to call and is never returned by the API; `target` is its redacted form.
+ */
+export const outboundDeliveries = pgTable(
+  'outbound_deliveries',
+  {
+    id: text('id').primaryKey(),
+    organizationId: integer('organization_id')
+      .notNull()
+      .references(() => organizations.id),
+    executionId: text('execution_id')
+      .notNull()
+      .references(() => testPlanExecutions.id, { onDelete: 'cascade' }),
+    kind: text('kind').notNull(),
+    target: text('target').notNull(),
+    endpoint: text('endpoint').notNull(),
+    payload: jsonb('payload').$type<Record<string, unknown>>().notNull(),
+    /** queued (waiting for an attempt), sent, failed (given up). */
+    status: text('status').notNull().default('queued'),
+    attempts: integer('attempts').notNull().default(0),
+    lastError: text('last_error'),
+    nextAttemptAt: timestamp('next_attempt_at').notNull().defaultNow(),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+    updatedAt: timestamp('updated_at').notNull().defaultNow(),
+  },
+  (table) => [
+    index('outbound_deliveries_execution_idx').on(table.executionId),
+    index('outbound_deliveries_due_idx').on(table.status, table.nextAttemptAt),
+  ],
+);
+
+export type OutboundDelivery = typeof outboundDeliveries.$inferSelect;
+
 export const reportTestCaseResults = pgTable(
   'report_test_case_results',
   {

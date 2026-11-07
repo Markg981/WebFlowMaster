@@ -4666,6 +4666,15 @@
     "cancel": "Annuler",
     "mobile": "Mobile"
   },
+  "deliveries": {
+    "title": "Livraisons",
+    "description": "Les notifications dues par cette exécution, avec leur état. Celles qui échouent sont réessayées jusqu'à 5 fois en environ une heure.",
+    "attempts": "{{count}} tentative(s)",
+    "queued": "Nouvelle tentative prévue",
+    "sent": "Envoyée",
+    "failed": "Échec",
+    "webhook": "Webhook"
+  },
   "publications": {
     "failed": "L'exécution n'a pas été publiée.",
     "status": {
