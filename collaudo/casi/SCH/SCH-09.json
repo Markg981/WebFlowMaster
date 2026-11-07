@@ -1,0 +1,16 @@
+{
+  "id": "SCH-09",
+  "area": "SCH",
+  "title": "Occorrenza rifiutata: run in errore visibile",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "Utente editor; ambiente \"Staging\" esistente.",
+  "steps": [
+    "Creare una pianificazione su un piano con ambiente \"Staging\".",
+    "Rinominare o eliminare l'ambiente \"Staging\" (con una pianificazione attiva l'eliminazione è bloccata: rinominarlo).",
+    "Attendere l'occorrenza della pianificazione (o impostarla a pochi minuti).",
+    "Aprire la pagina Scheduling e lo storico dei run del piano."
+  ],
+  "expected": "Compare un run in stato error con il motivo (environment_missing) e il tipo scheduled; l'elenco delle pianificazioni mostra \"L'ultima esecuzione non è partita\" con il link al run. Dopo aver ripristinato l'ambiente, la prossima occorrenza riuscita fa sparire l'avviso.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>Utente editor; ambiente \"Staging\" esistente.</p>\n        <h4>Passi</h4>\n        <ol><li>Creare una pianificazione su un piano con ambiente \"Staging\".</li><li>Rinominare o eliminare l'ambiente \"Staging\" (con una pianificazione attiva l'eliminazione è bloccata: rinominarlo).</li><li>Attendere l'occorrenza della pianificazione (o impostarla a pochi minuti).</li><li>Aprire la pagina Scheduling e lo storico dei run del piano.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Compare un run in stato error con il motivo (environment_missing) e il tipo scheduled; l'elenco delle pianificazioni mostra \"L'ultima esecuzione non è partita\" con il link al run. Dopo aver ripristinato l'ambiente, la prossima occorrenza riuscita fa sparire l'avviso.</p>\n      "
+}

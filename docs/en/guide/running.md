@@ -228,6 +228,8 @@ only on a later attempt is marked **flaky** in the report, and still counts as p
 - **Retry on Failure**: run the whole plan again if it fails, once or twice.
 - **Schedule Active**: switch it off without deleting it.
 
+When an occurrence cannot start (the named environment no longer exists, the schedule has no owner, a one-off schedule came due while the server was down), it is not skipped silently: a run in `error` is recorded for it, with the reason, in the run history and the reports, and the schedule list shows "Last run did not start" with a link to that run. It notifies like any other failed run, and clears when a later run starts.
+
 The dashboard lists the next scheduled runs.
 
 ## From a pipeline

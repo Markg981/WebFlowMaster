@@ -2836,6 +2836,8 @@
       },
       "active": "Aktiv",
       "inactive": "Inaktiv",
+      "lastRefusal": "Letzter Lauf wurde nicht gestartet ({{code}}), {{when}}",
+      "lastRefusalRun": "Lauf ansehen",
       "deleteSchedule": "Zeitplan löschen"
     },
     "toast": {
