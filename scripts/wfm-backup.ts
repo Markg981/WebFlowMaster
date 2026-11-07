@@ -356,12 +356,18 @@ export async function decryptFile(
   env: Record<string, string | undefined>,
 ): Promise<void> {
   if (info.cipher !== 'aes-256-gcm') throw new Error(`Unknown cipher "${info.cipher}".`);
-  const size = fs.statSync(input).size;
-  if (size < GCM_TAG_BYTES) throw new Error('The encrypted dump is truncated.');
+  // One descriptor for size, tag and body so the file cannot change between the checks.
   const fd = fs.openSync(input, 'r');
   const tag = Buffer.alloc(GCM_TAG_BYTES);
-  fs.readSync(fd, tag, 0, GCM_TAG_BYTES, size - GCM_TAG_BYTES);
-  fs.closeSync(fd);
+  let size: number;
+  try {
+    size = fs.fstatSync(fd).size;
+    if (size < GCM_TAG_BYTES) throw new Error('The encrypted dump is truncated.');
+    fs.readSync(fd, tag, 0, GCM_TAG_BYTES, size - GCM_TAG_BYTES);
+  } catch (error) {
+    fs.closeSync(fd);
+    throw error;
+  }
   const { key } = resolveBackupKey(env, info.salt ? Buffer.from(info.salt, 'hex') : undefined);
   const decipher = createDecipheriv('aes-256-gcm', key, Buffer.from(info.iv, 'hex'));
   decipher.setAuthTag(tag);
@@ -369,12 +375,20 @@ export async function decryptFile(
   const out = fs.createWriteStream(output, { mode: 0o600 });
   try {
     if (size > GCM_TAG_BYTES) {
-      const body = fs.createReadStream(input, { start: 0, end: size - GCM_TAG_BYTES - 1 });
+      // The stream owns the descriptor and closes it when it ends or is destroyed.
+      const body = fs.createReadStream('', {
+        fd,
+        start: 0,
+        end: size - GCM_TAG_BYTES - 1,
+        autoClose: true,
+      });
       for await (const chunk of body as AsyncIterable<Buffer>) {
         const p = decipher.update(chunk);
         plain.update(p);
         if (!out.write(p)) await new Promise((r) => out.once('drain', r));
       }
+    } else {
+      fs.closeSync(fd);
     }
     const last = decipher.final();
     plain.update(last);
