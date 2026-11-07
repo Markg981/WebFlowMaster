@@ -55,7 +55,9 @@ counts then are those of the tests shown, and **Clear filters** brings the whole
 
 A run's [manual tests](./organizing#manual-tests) show in the **Manual tests** card, one row per
 test, **Waiting** until somebody records its result; a run with tests waiting still ends as
-completed. Once the run has ended, an editor opens the row, marks each step **OK**, **KO** or **Not
+completed. A run in which every test was skipped (for example by the published-only policy) ends in
+**error** with the reason "No test produced a verdict (all skipped)", shown in the report header:
+before, it ended completed and green. This is a behaviour change. Once the run has ended, an editor opens the row, marks each step **OK**, **KO** or **Not
 done** with a note, and records the verdict:
 
 - **Passed** counts with the passed tests.
