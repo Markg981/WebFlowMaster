@@ -13,7 +13,9 @@ Usate **Precedente** e **Successiva** per sfogliare. La ricerca per nome ignora 
 minuscole e cerca testo letterale (anche `%` e `_`); più tag selezionati richiedono tutti i
 tag. I filtri per progetto e stato si applicano prima della paginazione; cambiare filtro
 riporta alla prima pagina. Anche test API, test mobile e dati di test condivisi usano elenchi
-paginati. Le definizioni complete vengono caricate quando servono: modificare un test manuale
+paginati. Nel catalogo del tester API e nel catalogo dell'hub, pagina, dimensione pagina, ricerca e filtri
+sono nell'indirizzo: ricarica, **Indietro** e un link copiato ripristinano la stessa vista (i valori
+predefiniti non compaiono nell'indirizzo). Le definizioni complete vengono caricate quando servono: modificare un test manuale
 o BDD carica i passi, modificare un set carica la tabella, caricare o eseguire un test API/mobile
 carica la configurazione eseguibile. Gli elenchi contengono metadati e conteggi, senza tutti
 i passi o i valori dei dataset.
