@@ -1,0 +1,15 @@
+{
+  "id": "REP-50",
+  "area": "REP",
+  "title": "Progetto ristretto: report di piano, esecuzione live e JUnit senza dettagli per chi non e nel progetto",
+  "priority": "P1",
+  "actor": "viewer.a",
+  "preconditions": "Un progetto ristretto con un test UI incluso in un piano; il piano e stato eseguito. viewer.a non e nel progetto, owner.a si.",
+  "steps": [
+    "Da viewer.a aprire il report della run e controllare il test del progetto ristretto in tutte le sezioni (elenco dei test, raggruppamento per modulo, fallimenti): passi, log, rete, analisi AI.",
+    "Da viewer.a scaricare il JUnit della run (UI e chiave API con runs:read di viewer.a) e cercare il test ristretto.",
+    "Da viewer.a provare a seguire in tempo reale una run che contiene il test ristretto.",
+    "Ripetere i punti 1-3 da owner.a."
+  ],
+  "expected": "Per viewer.a il test ristretto mostra solo nome ed esito: nessun passo, log, risposta di rete o analisi AI, ne nel report ne nel JUnit (nessuna evidenza matrix); la run live risulta 'Not found'. I test degli altri progetti restano completi. owner.a vede tutto."
+}
