@@ -13,6 +13,12 @@ describe('network defaults at startup (A-04)', () => {
 
   it('rejects a malformed TRUST_PROXY', () => {
     expect(startupConfigErrors({ ...valid, TRUST_PROXY: 'maybe' }).join()).toMatch(/TRUST_PROXY/);
+    expect(startupConfigErrors({ ...valid, AUDIT_LOG_IP_RETENTION_DAYS: 'abc' }).join()).toMatch(
+      /AUDIT_LOG_IP_RETENTION_DAYS/,
+    );
+    expect(startupConfigErrors({ ...valid, AUDIT_LOG_RETENTION_DAYS: '-1' }).join()).toMatch(
+      /AUDIT_LOG_RETENTION_DAYS/,
+    );
   });
 
   it('warns in production when EGRESS_PRIVATE_TARGETS and TRUST_PROXY are unset', () => {

@@ -17,6 +17,7 @@ export const ADVISORY_KEYS = {
   artifactRetention: 1,
   runRecovery: 2,
   migrator: 3,
+  dataRetention: 4,
 } as const;
 
 const localHeld = new Set<number>();

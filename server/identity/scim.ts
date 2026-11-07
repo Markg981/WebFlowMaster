@@ -16,7 +16,7 @@ import { privilegedDb } from '../platform/db';
 import { hashesMatch } from './api-keys';
 import { sqlState } from '../platform/db-errors';
 import { runWithTenant, withTenantTransaction } from '../platform/middleware/tenancy';
-import { transferMemberContent } from '../tenancy/member-removal';
+import { pseudonymizeMemberAudit, transferMemberContent } from '../tenancy/member-removal';
 import {
   hasOtherMembership,
   moveToAnotherMembership,
@@ -802,6 +802,7 @@ export async function deleteUser(context: ScimContext, id: string) {
         byScim: true,
         accountDeleted: !belongsElsewhere,
       });
+      await pseudonymizeMemberAudit(tx, target);
       if (belongsElsewhere) {
         await removeMembership(tx, organizationId, target);
         return;
