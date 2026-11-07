@@ -56,7 +56,9 @@ filtri** riporta l'intero run.
 
 I [test manuali](./organizing#test-manuali) di un run compaiono nella scheda **Test manuali**, una
 riga per test, **In attesa** finché nessuno ne registra l'esito; un run con test in attesa finisce
-comunque come completato. A run concluso, un editor apre la riga, segna ogni step come **OK**,
+comunque come completato. Un run in cui tutti i test sono saltati (per esempio per la policy solo
+versioni pubblicate) finisce in **errore** con il motivo "No test produced a verdict (all skipped)",
+mostrato nell'intestazione del report: prima finiva completato e verde. È un cambio di comportamento. A run concluso, un editor apre la riga, segna ogni step come **OK**,
 **KO** o **Non eseguito** con una nota, e registra l'esito:
 
 - **Superato** conta tra i superati.
