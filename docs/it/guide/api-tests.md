@@ -67,6 +67,8 @@ disattivare senza cancellarla. Il test passa quando passano tutte quelle attive.
 Una regex è limitata a 200 caratteri e non può ripetere un gruppo già ripetuto come `(a+)+` (bloccherebbe
 il server): l'asserzione fallisce subito con il messaggio "Invalid regex".
 
+Il valore atteso, la proprietà e il nome dell'header di un'asserzione accettano le variabili (`{{token}}`), sostituite come l'URL. Un `null` JSON non è `0` né testo vuoto: `equals` lo riconosce solo con valore atteso `null`; i confronti numerici (maggiore, minore…) su `null`, campo mancante o valore vuoto falliscono con "value is null" / "value is missing" / "value is empty"; `exists` è falso sia per `null` sia per il campo mancante (`not exists` è vero).
+
 Il **response time** va dall'invio della richiesta all'ultimo byte del corpo, non agli header: un
 corpo che arriva lentamente conta per intero. Anche il timeout di 30 secondi copre tutto il
 trasferimento, e un corpo interrotto fa fallire il test con il motivo. Un corpo oltre i 50 MiB fa

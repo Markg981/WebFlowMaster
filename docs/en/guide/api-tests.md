@@ -65,6 +65,8 @@ An XPath is evaluated on documents up to 2 MB and 20,000 nodes, with an expressi
 Comparisons: equals, not equals, contains, not contains, exists, not exists, is empty, is not
 empty, greater than, less than (or equal), matches regex, not matches regex. An assertion can be
 switched off without being deleted. The test passes when every enabled assertion does. A test with no enabled assertion passes only if the status is below 400 (an implicit check). A plan run whose plan holds no tests ends in error (`run_empty`), not completed.
+
+The expected value, the property and the header name of an assertion accept variables (`{{token}}`), substituted like the URL. A JSON `null` is not `0` and not empty text: `equals` matches it only with the expected value `null`, numeric comparisons (`greater than`, `less than`…) on `null`, a missing field or an empty value fail with "value is null" / "value is missing" / "value is empty", and `exists` is false for both `null` and a missing field (`not exists` is true).
 A regex is limited to 200 characters and cannot repeat a repeated group such as `(a+)+` (it could
 freeze the server); such an assertion fails at once with an "Invalid regex" message.
 
