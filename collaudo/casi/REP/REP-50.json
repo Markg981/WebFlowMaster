@@ -1,0 +1,15 @@
+{
+  "id": "REP-50",
+  "area": "REP",
+  "title": "Report: approvare come nuova baseline un'immagine visuale",
+  "priority": "P2",
+  "actor": "editor.a",
+  "preconditions": "Piano con Visual testing attivo, baseline gia registrata e una run fallita per differenza visiva.",
+  "steps": [
+    "Aprire il report della run fallita e i passi del test, quindi il passo con la differenza visiva.",
+    "Premere Approva come nuova baseline e confermare nel dialogo.",
+    "Rieseguire il piano senza modificare l'applicazione.",
+    "Con un utente viewer aprire lo stesso report."
+  ],
+  "expected": "Dopo la conferma il passo mostra chi ha approvato e quando e il pulsante scompare. La nuova run confronta con l'immagine approvata e il passo passa. Il viewer non vede il pulsante; la voce compare nel registro di audit."
+}

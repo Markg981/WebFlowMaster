@@ -729,6 +729,8 @@ export const AUDIT_ACTIONS = {
   // Deciding a run's healing proposal (server/authoring/healing-proposals.ts).
   HEALING_PROPOSAL_APPROVED: 'healing_proposal.approved',
   HEALING_PROPOSAL_REJECTED: 'healing_proposal.rejected',
+  // A failed visual comparison's image accepted as the step's new baseline (R-1).
+  VISUAL_BASELINE_APPROVED: 'visual_baseline.approved',
   // Tests read back from a file made by the export (server/integrations/test-bundle.ts), in one entry.
   TESTS_IMPORTED: 'test.imported',
   API_TEST_CREATED: 'api_test.created',

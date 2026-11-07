@@ -232,6 +232,16 @@ JSON report keeps the cause on the step, Allure shows the test and the step as _
 on its own: start a run with `updateBaselines: true` (see the [API](../reference/api)) to accept
 that run's screenshots as the new baselines.
 
+#### Approve a new baseline {#approve-baseline}
+
+When a visual difference is intended — a redesign, a new banner — an **editor** or **owner** can
+accept it from the report: open the test's steps, and on the step with the difference press
+**Approve as new baseline** and confirm. The image of that run replaces the stored baseline for
+that test, step, browser and dataset row, and the step shows who approved it and when. The next run
+is compared with the new image. The approval is written to the audit log
+(`visual_baseline.approved`). In a restricted project it needs edit access to the project; viewers
+do not see the button. The run's own verdict does not change: it stays failed.
+
 ### Network
 
 When the plan keeps the network, the report summarizes each test's traffic: how many requests,
