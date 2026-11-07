@@ -1,7 +1,9 @@
 import { resolvePort } from './platform/config';
 import { registrationMode } from './identity/registration';
 import { trustProxySetting } from './platform/trust-proxy';
+import { masterKeyForm } from './platform/master-keys';
 import { cspMode } from './platform/security-headers';
+import { installationAdminsErrors } from './tenancy/installation-admins-config';
 
 /**
  * Every environment setting that can be wrong without touching the network, checked before
@@ -18,6 +20,7 @@ export function startupConfigErrors(env: NodeJS.ProcessEnv = process.env): strin
   if (!env.SESSION_SECRET) errors.push('SESSION_SECRET must be set for session security.');
   if (env.NODE_ENV === 'production') errors.push(...publishedSecretErrors(env));
   if (env.NODE_ENV === 'production') errors.push(...publicUrlErrors(env));
+  if (env.NODE_ENV === 'production') errors.push(...encryptionKeyErrors(env));
   for (const check of [
     () => registrationMode(env),
     () => cspMode(env),
@@ -35,6 +38,7 @@ export function startupConfigErrors(env: NodeJS.ProcessEnv = process.env): strin
       'EGRESS_PRIVATE_TARGETS must be "deny" while REGISTRATION=open (anyone can create an organization): "allow" lets their tests reach this server\'s private network. Set it to "deny" and list intranet hosts in EGRESS_ALLOW_HOSTS.',
     );
   }
+  errors.push(...installationAdminsErrors(env.INSTALLATION_ADMINS));
   return errors;
 }
 
@@ -54,7 +58,14 @@ function egressExplicitlyDeny(env: NodeJS.ProcessEnv): boolean {
 /** Non-fatal findings, logged at startup. */
 export function startupConfigWarnings(env: NodeJS.ProcessEnv = process.env): string[] {
   const warnings: string[] = [];
-  if (env.NODE_ENV !== 'production') return warnings;
+  if (env.NODE_ENV !== 'production') {
+    if (env.ENCRYPTION_KEY && masterKeyForm(env.ENCRYPTION_KEY) === 'legacy') {
+      warnings.push(
+        'ENCRYPTION_KEY is a passphrase hashed with plain SHA-256: fine for development, refused in production. Use `openssl rand -hex 32`.',
+      );
+    }
+    return warnings;
+  }
   if (!env.EGRESS_PRIVATE_TARGETS?.trim()) {
     warnings.push(
       'EGRESS_PRIVATE_TARGETS is not set: it defaults to "allow", so tests can reach loopback and private addresses of this server\'s network. Set it explicitly ("deny" unless tests must reach an intranet).',
@@ -65,10 +76,9 @@ export function startupConfigWarnings(env: NodeJS.ProcessEnv = process.env): str
       'TRUST_PROXY is not set: assuming exactly 1 reverse proxy in front. Set it to the real proxy chain (hop count, false when none, or proxy IPs/CIDRs), or client IPs and per-IP rate limits can be forged via X-Forwarded-For.',
     );
   }
-  const key = env.ENCRYPTION_KEY ?? '';
-  if (key && !/^[0-9a-fA-F]{64}$/.test(key) && key.length < 32) {
+  if (!env.REDIS_URL?.trim()) {
     warnings.push(
-      'ENCRYPTION_KEY is not a 64-character hex string and is shorter than 32 characters: it is hashed with plain SHA-256 and is easy to guess. Use `openssl rand -hex 32`; changing it needs ENCRYPTION_KEY_PREVIOUS for the old value.',
+      'REDIS_URL is not set: rate limits are kept in memory, per process, so with several replicas each one counts on its own. Set REDIS_URL to share them.',
     );
   }
   return warnings;
@@ -141,4 +151,12 @@ function publicUrlErrors(env: NodeJS.ProcessEnv): string[] {
     // fall through
   }
   return [`${hint} Got "${value}".`];
+}
+
+function encryptionKeyErrors(env: NodeJS.ProcessEnv): string[] {
+  const key = env.ENCRYPTION_KEY ?? '';
+  if (!key || masterKeyForm(key) !== 'legacy') return [];
+  return [
+    'ENCRYPTION_KEY is too weak for production: use 64 hex characters (`openssl rand -hex 32`), `base64:` plus 32 random bytes in base64, or `hkdf:` plus a secret of at least 32 characters. To change it keep the old value in ENCRYPTION_KEY_PREVIOUS.',
+  ];
 }

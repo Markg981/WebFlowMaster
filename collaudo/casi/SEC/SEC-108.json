@@ -1,0 +1,16 @@
+{
+  "id": "SEC-108",
+  "area": "SEC",
+  "title": "Avvio in produzione: ENCRYPTION_KEY debole rifiutata, INSTALLATION_ADMINS validata, avviso senza Redis",
+  "priority": "P1",
+  "actor": "operatore",
+  "preconditions": "Accesso alle variabili d'ambiente del web in un ambiente con NODE_ENV=production.",
+  "steps": [
+    "Avviare con ENCRYPTION_KEY impostata a una passphrase corta o a una frase lunga non esadecimale.",
+    "Avviare con ENCRYPTION_KEY di 64 caratteri esadecimali (oppure base64: + 32 byte).",
+    "Impostare INSTALLATION_ADMINS=\"Ops,ops\" e avviare; poi \"ops,,olivia\".",
+    "Rimuovere REDIS_URL in un ambiente di prova e leggere il log di avvio.",
+    "Da una pagina di un altro dominio inviare una POST con cookie di sessione verso /api."
+  ],
+  "expected": "La chiave debole blocca l'avvio con 'ENCRYPTION_KEY is too weak'; la chiave esadecimale parte e i segreti già salvati restano leggibili; i duplicati (senza distinzione di maiuscole) e le voci vuote bloccano l'avvio indicando INSTALLATION_ADMINS; senza REDIS_URL compare un solo avviso sui limiti per processo; la POST cross-origin riceve 403."
+}

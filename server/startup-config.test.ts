@@ -23,7 +23,12 @@ describe('network defaults at startup (A-04)', () => {
 
   it('does not warn when both are explicit, nor outside production', () => {
     expect(
-      startupConfigWarnings({ ...prod, EGRESS_PRIVATE_TARGETS: 'allow', TRUST_PROXY: '1' }),
+      startupConfigWarnings({
+        ...prod,
+        EGRESS_PRIVATE_TARGETS: 'allow',
+        TRUST_PROXY: '1',
+        REDIS_URL: 'redis://r:6379',
+      }),
     ).toEqual([]);
     expect(startupConfigWarnings(valid)).toEqual([]);
   });

@@ -1,4 +1,4 @@
-import { createCipheriv, createDecipheriv, createHash, randomBytes } from 'node:crypto';
+import { createCipheriv, createDecipheriv, createHash, hkdfSync, randomBytes } from 'node:crypto';
 
 /**
  * The master keys and the AES-256-GCM primitives under every stored secret.
@@ -28,12 +28,53 @@ export interface MasterKeys {
   previous: MasterKey[];
 }
 
+const HKDF_PREFIX = 'hkdf:';
+const BASE64_PREFIX = 'base64:';
+const HKDF_INFO = 'wfm/master-key/v1';
+
+/**
+ * How a configured value becomes 32 bytes. Three forms are strong and versioned by prefix, one is legacy:
+ * - 64 hex characters: the key itself (unchanged since the first release);
+ * - `base64:<32 bytes in base64>`: the key itself;
+ * - `hkdf:<secret of at least 32 characters>`: HKDF-SHA256 with a fixed info label;
+ * - anything else: plain SHA-256 of the string, kept so existing ciphertexts still decrypt.
+ */
+export type MasterKeyForm = 'hex' | 'base64' | 'hkdf' | 'legacy';
+
+export function masterKeyForm(keyString: string): MasterKeyForm {
+  if (keyString.length === 64 && /^[0-9a-fA-F]+$/.test(keyString)) return 'hex';
+  if (keyString.startsWith(BASE64_PREFIX)) {
+    const raw = keyString.slice(BASE64_PREFIX.length);
+    if (/^[A-Za-z0-9+/]+={0,2}$/.test(raw) && Buffer.from(raw, 'base64').length === 32) {
+      return 'base64';
+    }
+  }
+  if (keyString.startsWith(HKDF_PREFIX) && keyString.length - HKDF_PREFIX.length >= 32) {
+    return 'hkdf';
+  }
+  return 'legacy';
+}
+
 /** The 32 bytes a configured value stands for. */
 export function deriveMasterKey(keyString: string): Buffer {
-  if (keyString.length === 64 && /^[0-9a-fA-F]+$/.test(keyString)) {
-    return Buffer.from(keyString, 'hex');
+  switch (masterKeyForm(keyString)) {
+    case 'hex':
+      return Buffer.from(keyString, 'hex');
+    case 'base64':
+      return Buffer.from(keyString.slice(BASE64_PREFIX.length), 'base64');
+    case 'hkdf':
+      return Buffer.from(
+        hkdfSync(
+          'sha256',
+          Buffer.from(keyString.slice(HKDF_PREFIX.length), 'utf8'),
+          Buffer.alloc(0),
+          Buffer.from(HKDF_INFO, 'utf8'),
+          32,
+        ),
+      );
+    default:
+      return createHash('sha256').update(keyString).digest();
   }
-  return createHash('sha256').update(keyString).digest();
 }
 
 export function masterKeyId(key: Buffer): string {
