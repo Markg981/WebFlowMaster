@@ -271,6 +271,27 @@ describe('route modules cannot query outside the tenant context', () => {
    * outside every rule here, and would bring back the second convention for writing an
    * endpoint that the move removed.
    */
+  it('every module that imports the AI service also imports the consent gate', () => {
+    const serverDir = path.join(repoRoot, 'server');
+    const files: string[] = [];
+    const walk = (dir: string) => {
+      for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+        const full = path.join(dir, entry.name);
+        if (entry.isDirectory()) walk(full);
+        else if (/\.ts$/.test(entry.name) && !/\.test\.ts$/.test(entry.name)) files.push(full);
+      }
+    };
+    walk(serverDir);
+    const offenders = files.filter((file) => {
+      if (file.endsWith(`${path.sep}ai-automation-service.ts`)) return false;
+      const source = fs.readFileSync(file, 'utf8');
+      const usesClient =
+        /from ['"][^'"]*ai-automation-service['"]|from ['"]@google\/generative-ai['"]/.test(source);
+      return usesClient && !/from ['"][^'"]*ai-consent['"]/.test(source);
+    });
+    expect(offenders.map((f) => path.relative(repoRoot, f))).toEqual([]);
+  });
+
   it('server/routes.ts only mounts routers and defines no handler of its own', () => {
     const source = fs.readFileSync(path.join(serverDir, 'routes.ts'), 'utf8');
     // Guards the guard: the parser must still recognise a route, or the rule passes vacuously.
