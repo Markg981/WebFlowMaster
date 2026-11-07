@@ -7,7 +7,7 @@
   "preconditions": "Un test API con una risposta di testo qualsiasi (ad esempio GET su un endpoint che restituisce 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaab').",
   "steps": [
     "Aggiungere un'asserzione 'matches regex' sul corpo con valore ^(a|aa)+$ ed eseguire il test.",
-    "Aggiungere un'asserzione 'matches regex' con valore ^(\w|\d)+$ ed eseguire il test.",
+    "Aggiungere un'asserzione 'matches regex' con valore ^(\\w|\\d)+$ ed eseguire il test.",
     "Subito dopo aprire un'altra pagina dell'applicazione."
   ],
   "expected": "1-2: l'asserzione fallisce subito con 'Invalid regex' (alternativa ripetuta con rami sovrapposti) oppure, se il pattern supera i controlli statici, con 'regex timed out after 100 ms'; nessun blocco. 3: l'applicazione risponde normalmente.",
