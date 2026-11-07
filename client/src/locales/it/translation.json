@@ -5521,5 +5521,11 @@
       "reject": "Rifiuta",
       "failed": "La decisione non è stata salvata."
     }
+  },
+  "testConflict": {
+    "title": "Questo test è stato modificato da qualcun altro",
+    "description": "Qualcuno ha salvato questo test dopo che lo hai aperto. Continua a modificare per rivedere la tua bozza (chiudi l'editor e riaprilo per caricare la versione di altri), oppure sovrascrivi le sue modifiche con le tue.",
+    "overwrite": "Sovrascrivi",
+    "keepEditing": "Continua a modificare"
   }
 }

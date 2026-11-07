@@ -5521,5 +5521,11 @@
       "reject": "Rejeter",
       "failed": "La décision n’a pas été enregistrée."
     }
+  },
+  "testConflict": {
+    "title": "Ce test a été modifié par quelqu'un d'autre",
+    "description": "Quelqu'un a enregistré ce test après votre ouverture. Continuez à modifier pour relire votre brouillon (fermez l'éditeur et rouvrez-le pour charger sa version), ou écrasez ses modifications par les vôtres.",
+    "overwrite": "Écraser",
+    "keepEditing": "Continuer à modifier"
   }
 }
