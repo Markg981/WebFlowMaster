@@ -466,6 +466,23 @@
       "cancel": "Annuler",
       "new": "Nouvelle action personnalisée",
       "loading": "Chargement des actions personnalisées…"
+    },
+    "sessions": {
+      "title": "Sessions ouvertes",
+      "description": "Navigateurs et appareils connectés à votre compte. Terminez ceux que vous ne reconnaissez pas.",
+      "current": "Cette session",
+      "created": "Début",
+      "lastSeen": "Dernière activité",
+      "device": "Appareil",
+      "ip": "Réseau (raccourci)",
+      "revoke": "Terminer la session",
+      "revokeOthers": "Terminer toutes les autres sessions",
+      "none": "Aucune autre session.",
+      "loadFailed": "Impossible de charger les sessions.",
+      "revokeTitle": "Terminer cette session ?",
+      "revokeDescription": "Le navigateur ou l’appareil est déconnecté immédiatement.",
+      "revokeOthersTitle": "Terminer toutes les autres sessions ?",
+      "revokeOthersDescription": "Tous les autres navigateurs et appareils sont déconnectés immédiatement. Celui-ci reste connecté."
     }
   },
   "dashboard": {
@@ -3198,6 +3215,8 @@
       "auth_login_failed": "Connexion refusée",
       "auth_account_locked": "Compte temporairement verrouillé",
       "auth_logout": "Déconnexion",
+      "auth_session_revoked": "Session terminée",
+      "auth_sessions_revoked_others": "Autres sessions terminées",
       "test_created": "Test créé",
       "test_updated": "Test modifié",
       "test_deleted": "Test supprimé",

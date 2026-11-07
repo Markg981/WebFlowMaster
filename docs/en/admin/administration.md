@@ -133,6 +133,14 @@ already open. API keys are not affected.
 A member who lost both their device and their recovery codes needs an owner to reset their
 second factor in **Settings → Members**.
 
+### Signed-in sessions
+
+**Settings → Security** also lists the browsers and devices signed in to your account: when each
+started, when it was last active, its browser and a shortened network address. **End session**
+signs one out at once; **End all other sessions** keeps only the one you are using. Changing your
+password or your second factor ends the other sessions as well. Each ending is recorded in the
+audit trail.
+
 ## Single sign-on _(owners)_ {#single-sign-on}
 
 Members can sign in with the organization's identity provider through **OpenID Connect** or
