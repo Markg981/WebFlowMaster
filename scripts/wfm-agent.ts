@@ -32,7 +32,7 @@ import { loadBddProfiles, publicBddProfiles, type OperatorBddProfile } from './b
 import { serveBddSession } from './agent-bdd-session';
 import type { AgentApiProtocol } from '../shared/agent-protocol';
 
-export const AGENT_VERSION = '1.3.0';
+export const AGENT_VERSION = '1.0.0-rc.1';
 /** Kept in step with shared/agents.ts, written out because this script is shipped on its own. */
 const PROTOCOL = 1;
 const PATHS = { connect: '/api/agent/v1/connect', session: '/api/agent/v1/session/' };
