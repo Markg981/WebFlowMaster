@@ -309,7 +309,7 @@ rifiuta di partire:
 image:
   repository: ghcr.io/OWNER/REPOSITORY-api
   workerRepository: ghcr.io/OWNER/REPOSITORY-worker
-  tag: 1.3.0
+  tag: 1.0.0-rc.1
 config:
   publicUrl: https://webflowmaster.example.com
 secrets:

@@ -358,8 +358,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         with:
           node-version-file: .nvmrc
           cache: npm
@@ -589,3 +589,46 @@ jobs:
       # racing for one unit). A new file joins the job only through a selector in package.json.
       - name: Isolation, tenancy and audit suites against real Postgres
         run: npm run test:rls
+
+  # The one check to require on the ruleset (docs/en/internals/ci-governance.md). It always runs,
+  # so it is never "skipped"; it fails when any job failed or was cancelled, and when a job was
+  # skipped although it should have run (only the jobs gated by `changes` may be skipped, and
+  # only when the pull request touches nothing but docs and marketing files).
+  ci-gate:
+    if: always()
+    needs:
+      - secret-scan
+      - changes
+      - large-files
+      - resilience-tool
+      - helm-prometheus
+      - application-restore-drill
+      - static-checks
+      - server-tests
+      - client-tests
+      - collaudo
+      - dependency-audit
+      - build
+      - network-on-guarded-installation
+      - ui-on-real-installation
+      - rls-on-real-postgres
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Every job passed, or was skipped only because the change is docs-only
+        env:
+          NEEDS: ${{ toJson(needs) }}
+          CODE: ${{ needs.changes.outputs.code }}
+        run: |
+          node -e '
+            const needs = JSON.parse(process.env.NEEDS);
+            const docsOnly = process.env.CODE === "false";
+            const gated = ["resilience-tool", "helm-prometheus", "application-restore-drill",
+              "network-on-guarded-installation", "ui-on-real-installation", "rls-on-real-postgres"];
+            const bad = Object.entries(needs).filter(([name, n]) => {
+              if (n.result === "success") return false;
+              return !(n.result === "skipped" && docsOnly && gated.includes(name));
+            });
+            for (const [name, n] of bad) console.log("not green: " + name + " = " + n.result);
+            process.exit(bad.length ? 1 : 0);
+          '
