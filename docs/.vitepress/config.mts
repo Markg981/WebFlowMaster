@@ -195,6 +195,10 @@ function sidebar(lang: 'en' | 'it', t: Labels): DefaultTheme.SidebarItem[] {
           link: p('internals/contributing-guide'),
         },
         {
+          text: lang === 'en' ? 'Acceptance testing outcomes' : 'Esiti del collaudo',
+          link: p('internals/acceptance-testing'),
+        },
+        {
           text:
             lang === 'en'
               ? 'Product and documentation audit'
