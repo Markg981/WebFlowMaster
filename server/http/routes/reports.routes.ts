@@ -3,6 +3,7 @@ import { junitReportFor } from '../../reporting/junit-report';
 import logger from '../../platform/logger';
 import { deliveriesOf } from '../../integrations/deliveries';
 import { requireRole } from '../middleware/require-role';
+import { sessionRateLimit } from '../middleware/rate-limits';
 import {
   exportRun,
   isReportExportFormat,
@@ -18,6 +19,7 @@ import {
 import { QuotaError, quotaErrorBody, quotaErrorStatus } from '../../tenancy/tenant-quotas';
 
 const router = asyncRouter();
+const readLimit = sessionRateLimit();
 
 router.post(
   '/api/test-plan-executions/:executionId/replay',
@@ -123,6 +125,7 @@ router.get(
 // GET /api/test-plan-executions/:executionId/deliveries — what the run owed outside and how it went.
 router.get(
   '/api/test-plan-executions/:executionId/deliveries',
+  readLimit,
   requireRole('viewer'),
   async (req, res) => {
     try {

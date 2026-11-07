@@ -295,7 +295,7 @@ export const executionOutbox = pgTable(
 export type ExecutionOutboxEntry = typeof executionOutbox.$inferSelect;
 
 /**
- * A message a finished run owes somebody outside (migration 0107): the webhook notification today.
+ * A message a finished run owes somebody outside (migration 0105): the webhook notification today.
  * Written before the first attempt and updated after each, so a restart or an endpoint that is
  * down for an hour does not lose it, and the run's page can say what happened to it.
  * `endpoint` holds the URL to call and is never returned by the API; `target` is its redacted form.
