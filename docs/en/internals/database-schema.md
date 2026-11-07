@@ -1494,6 +1494,6 @@ erDiagram
   }
 ```
 
-## Foreign-key index audit — migration 0106
+## Foreign-key index audit — migration 0105
 
-`node scripts/db/fk-index-audit.mjs` (`npm run audit:fk-indexes`, `--json` for machine output) reads `migrations/*.sql` without a database and lists every foreign key whose first column is not the leading column of an index, primary key or unique constraint. It is a static heuristic: it does not see indexes created outside the migrations and it knows nothing about table sizes. Migration `0106_fk_indexes` adds indexes only for the columns on `ON DELETE CASCADE` / `SET NULL` paths of tests, API tests, projects, tags, grids and executions, or filtered by project. Check any further candidate with `EXPLAIN` on real data before adding it.
+`node scripts/db/fk-index-audit.mjs` (`npm run audit:fk-indexes`, `--json` for machine output) reads `migrations/*.sql` without a database and lists every foreign key whose first column is not the leading column of an index, primary key or unique constraint. It is a static heuristic: it does not see indexes created outside the migrations and it knows nothing about table sizes. Migration `0105_fk_indexes` adds indexes only for the columns on `ON DELETE CASCADE` / `SET NULL` paths of tests, API tests, projects, tags, grids and executions, or filtered by project. Check any further candidate with `EXPLAIN` on real data before adding it.
