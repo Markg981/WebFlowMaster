@@ -28,7 +28,9 @@ Ruleset "Protect Main" (id 24315754):
   are not: `build`, `secret-scan`, `large-files`, `dependency-audit`);
 - `strict_required_status_checks_policy`: `true`, so a branch must be up to date with `main`
   before it merges (or use a merge queue);
-- at least one approving review, or a CODEOWNERS rule.
+- approvals are optional: while there is a single maintainer who merges their own pull requests,
+  keep the required review count at 0. Once a second reviewer exists, require a CODEOWNERS review
+  or 1 approval.
 
 ## Applying it
 
@@ -39,8 +41,8 @@ rules as they are:
 gh api repos/<owner>/<repo>/rulesets/24315754 > ruleset.json
 ```
 
-Then replace the `required_status_checks` rule with the following (edit `ruleset.json`, keep the
-other rules) and send it back:
+Then replace the `required_status_checks` rule, and set the review count on the `pull_request` rule,
+as follows (edit `ruleset.json`, keep the other rules) and send it back:
 
 ```json
 {
@@ -51,6 +53,9 @@ other rules) and send it back:
   }
 }
 ```
+
+In the `pull_request` rule, keep `"required_approving_review_count": 0`; to raise it later, set it to
+`1` and send the file back with the same command.
 
 ```bash
 gh api -X PUT repos/<owner>/<repo>/rulesets/24315754 --input ruleset.json
