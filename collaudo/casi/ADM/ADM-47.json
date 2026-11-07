@@ -1,0 +1,14 @@
+{
+  "id": "ADM-47",
+  "area": "ADM",
+  "title": "Eliminazioni irreversibili: serve digitare il nome per confermare",
+  "priority": "P2",
+  "actor": "owner.a",
+  "preconditions": "Un progetto 'Prova', un ambiente 'Staging' e una chiave API 'CI' creati in A.",
+  "steps": [
+    "Impostazioni > Progetti: cliccare l'icona di eliminazione di 'Prova'. Osservare il pulsante Elimina.",
+    "Digitare 'prova' (minuscolo), poi 'Prova'.",
+    "Ripetere per l'eliminazione dell'ambiente 'Staging' e per la revoca della chiave 'CI'."
+  ],
+  "expected": "Il pulsante resta disabilitato finché il testo non coincide esattamente (maiuscole comprese); con 'Prova' si abilita e l'elemento viene eliminato. Stesso comportamento per ambiente e chiave API. Annulla chiude senza effetti."
+}
