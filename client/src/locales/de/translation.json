@@ -557,6 +557,7 @@
     "executionStatus": {
       "passed": "Bestanden",
       "failed": "Fehlgeschlagen",
+      "timedOut": "Zeitüberschreitung",
       "pending": "Laufend oder in Warteschlange"
     },
     "emptyExecutions": {

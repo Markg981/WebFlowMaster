@@ -18,7 +18,8 @@ changes can change the outcome. Replay does not update the original CI build sta
 
 ## Dashboard
 
-The **Dashboard** shows how the latest runs went, the pass and fail counts of the last 30 days,
+The **Dashboard** shows how the latest runs went, the pass and fail counts of the last 30 days
+(runs that hit their time limit are counted apart, as **Timed out**, in the status chart and its legend),
 the most recent reports and the next scheduled runs.
 
 ## Reports
