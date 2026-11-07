@@ -423,7 +423,7 @@ export const organizationSso = pgTable(
     scimTokenHash: text('scim_token_hash'),
     scimTokenPrefix: text('scim_token_prefix'),
     scimTokenCreatedAt: timestamp('scim_token_created_at'),
-    /** After this instant the token is refused (401). Null: a token issued before migration 0110, treated as non-expiring until reissued. */
+    /** After this instant the token is refused (401). Null: a token issued before migration 0105, treated as non-expiring until reissued. */
     scimTokenExpiresAt: timestamp('scim_token_expires_at'),
     scimTokenLastUsedAt: timestamp('scim_token_last_used_at'),
     updatedAt: timestamp('updated_at').defaultNow().notNull(),
