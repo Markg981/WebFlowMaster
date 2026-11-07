@@ -64,7 +64,8 @@ const parseServerScheduleResponse = (schedule: TestPlanSchedule): TestPlanSchedu
   return {
     ...schedule,
     testPlanName: (schedule as any).testPlanName, // testPlanName is joined by server
-    lastRefusal: (schedule as any).lastRefusal ?? null,
+    lastRefusal:
+      (schedule as Partial<Pick<TestPlanScheduleEnhanced, 'lastRefusal'>>).lastRefusal ?? null,
     nextRunAt: new Date(schedule.nextRunAt), // nextRunAt is returned as ISO string
     browsers: schedule.browsers as string[] | null,
     notificationConfigOverride: schedule.notificationConfigOverride as Record<string, any> | null,
