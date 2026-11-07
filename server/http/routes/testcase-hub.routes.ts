@@ -5,7 +5,7 @@ import type { Response } from 'express';
 import { v4 as uuidv4 } from 'uuid';
 import { and, asc, desc, eq, ilike, inArray, isNull, or, sql, type SQL } from 'drizzle-orm';
 import { withTenantTransaction } from '../../platform/middleware/tenancy';
-import { requireRole } from '../middleware/require-role';
+import { requireRole, roleAllows } from '../middleware/require-role';
 import { decryptSecret, encryptSecret } from '../../platform/crypto';
 import {
   AUDIT_ACTIONS,
@@ -19,6 +19,8 @@ import {
   HubSourceError,
   checkSource,
   importCases,
+  isAllowedAzureHost,
+  originOf,
   logWarnings,
   readSource,
   resolveHubFolder,
@@ -165,9 +167,31 @@ router.put('/api/testcase-hub', sensitiveLimit, requireRole('editor'), async (re
       await resolveHubFolder(input.path);
     }
     let token: { encryptedValue: string; iv: string; authTag: string } | null = null;
+    let discardToken = false;
     if (input.kind === 'azure-devops') {
-      if (input.token) token = await encryptSecret(input.token, organizationId);
-      else if (!existing || existing.kind !== 'azure-devops' || !existing.encryptedToken)
+      if (!isAllowedAzureHost(input.baseUrl)) {
+        return res.status(422).json({
+          error:
+            'The Azure DevOps host is not allowed: use https on dev.azure.com or *.visualstudio.com, or ask the operator to list the host in TESTCASE_HUB_AZURE_HOSTS.',
+          code: 'host_not_allowed',
+        });
+      }
+      if (input.token) {
+        // A token is a credential the server will send out: only an owner may set one.
+        if (!roleAllows(req.user.role, 'owner')) {
+          return res.status(403).json({
+            error: 'Only an owner can set the Azure DevOps token.',
+            code: 'owner_required',
+          });
+        }
+        token = await encryptSecret(input.token, organizationId);
+      } else if (
+        existing?.kind === 'azure-devops' &&
+        originOf(existing.baseUrl) !== originOf(input.baseUrl)
+      ) {
+        // The saved token was given for another host: it must not follow the URL elsewhere.
+        discardToken = true;
+      } else if (!existing || existing.kind !== 'azure-devops' || !existing.encryptedToken)
         return res.status(400).json({ error: 'The Azure DevOps source needs a token.' });
     }
     const values = {
@@ -182,7 +206,9 @@ router.put('/api/testcase-hub', sensitiveLimit, requireRole('editor'), async (re
         ? { encryptedToken: null, tokenIv: null, tokenAuthTag: null }
         : token
           ? { encryptedToken: token.encryptedValue, tokenIv: token.iv, tokenAuthTag: token.authTag }
-          : {}),
+          : discardToken
+            ? { encryptedToken: null, tokenIv: null, tokenAuthTag: null }
+            : {}),
       updatedAt: new Date(),
     };
     const saved = await withTenantTransaction(async (tx) => {
@@ -269,7 +295,7 @@ router.delete('/api/testcase-hub', sensitiveLimit, requireRole('editor'), async 
 });
 
 // POST /api/testcase-hub/test — can the saved source be read?
-router.post('/api/testcase-hub/test', heavyLimit, requireRole('editor'), async (req, res) => {
+router.post('/api/testcase-hub/test', heavyLimit, requireRole('owner'), async (req, res) => {
   if (!req.isAuthenticated() || !req.user) return res.status(401).json({ error: 'Unauthorized' });
   try {
     const source = await currentSource();

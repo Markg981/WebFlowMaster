@@ -225,6 +225,12 @@ with _Code: read_, stored encrypted and never shown again). **Test connection** 
 source; **Refresh catalog** reads every case into a catalog kept in WebFlowMaster and says how
 many are new, changed or no longer in the hub. Nothing becomes a test yet.
 
+The token is only ever sent to Azure DevOps: the URL must be https on `dev.azure.com` or
+`*.visualstudio.com`, or on a host the operator listed in `TESTCASE_HUB_AZURE_HOSTS` (Azure DevOps
+Server on premises); any other host is refused. If you change the host of the URL, the saved token is
+discarded and you must enter it again; changing only the organization or path keeps it. Setting the
+token and **Test connection** are for organization owners; editors can still refresh the catalog.
+
 The **QA test case hub** tab of **Test Manager** (also `/test-manager?source=hub`) lists the
 catalog: id, module, priority, readiness level, objective, and where each case stands against
 the library (not imported, imported, changed since import, missing from the hub). Filter by
