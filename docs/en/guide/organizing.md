@@ -259,6 +259,8 @@ imported, changed since import, no longer in the hub). Open a wave for its resul
 by case, with search, module and status filters and the tester, stage, build, bug and notes of
 each result.
 
+If the waves cannot be loaded (server error, hub not reachable, no permission), the tab shows **The waves could not be loaded** with a **Try again** button instead of the empty list. If the background job can no longer be read, a notice says so and **Read the waves** and **Import** are enabled again; a job that fails shows a generic message, the details are in the server log.
+
 Select waves (up to 25 at a time) and **Import**: choose the project and the steps of the new
 tests. The cases the waves name that are not tests yet are imported from the catalog first, one
 suite per module; then each wave becomes a **test plan with one ended run** holding the QA team's

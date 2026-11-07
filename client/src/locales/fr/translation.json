@@ -4029,7 +4029,10 @@
       "syncSummary": "{{waves}} vagues : {{added}} nouvelles, {{updated}} modifiées, {{missing}} plus dans le hub.",
       "imported": "Vagues importées",
       "importSummary": "{{waves}} vagues, {{results}} résultats, {{imported}} cas importés comme tests.",
-      "syncFailed": "Les vagues n’ont pas pu être lues"
+      "syncFailed": "Les vagues n’ont pas pu être lues",
+      "failedDetail": "Le job n’a pas pu être terminé. Réessayez ou vérifiez la connexion au hub dans les Paramètres.",
+      "pollFailed": "Impossible de lire l’état du job",
+      "pollFailedDetail": "La connexion au serveur a été perdue ou le job n’existe plus. Vous pouvez le relancer."
     },
     "import": {
       "title_one": "Importer {{count}} vague",
@@ -4065,6 +4068,11 @@
       "summary": "Le plan « {{name}} » contient {{tests}} tests. {{notImported}} cas choisis ne sont pas encore des tests.",
       "failed": "La session n’a pas pu être créée",
       "open": "Lancer « {{name}} »"
+    },
+    "error": {
+      "title": "Impossible de charger les vagues",
+      "description": "Un problème est survenu lors de la lecture des vagues. Réessayez ; si l’échec persiste, contactez un administrateur.",
+      "retry": "Réessayer"
     }
   },
   "testLibrary": {
