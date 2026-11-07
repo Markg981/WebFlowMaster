@@ -15,6 +15,7 @@ import { installProcessErrorHandlers } from './platform/process-errors';
 import { resolveWorkerShutdownGraceMs } from './platform/config';
 import { correlationStore } from './platform/middleware/correlation';
 import { closeDb, privilegedDb, assertTenancyPreconditions } from './platform/db';
+import { assertStartupConfig } from './startup-config';
 import { assertSchemaMigrated } from './platform/schema-state';
 import { assertOrganizationKeysReadable } from './platform/organization-keys';
 import {
@@ -64,6 +65,7 @@ configureEgressProxy();
   const loadConcurrency = loadLimits().runsPerWorker;
   // The same database checks as the web process (server/index.ts): a worker deployed alone must
   // not run against a database that does not isolate tenants or whose migrations are behind.
+  assertStartupConfig();
   await assertTenancyPreconditions();
   await assertSchemaMigrated();
   // Every secret a run needs is under an organization key: refuse to start if one of them cannot
@@ -129,6 +131,12 @@ configureEgressProxy();
     loadQueue,
     ...(browserMetricsQueue ? [browserMetricsQueue] : []),
   ]);
+  // Also swept from here, under the same advisory lock as the web process's sweep: an
+  // installation whose web process is down or not running the sweep still ends abandoned runs.
+  const stopRunRecovery =
+    process.env.NODE_ENV === 'test'
+      ? () => {}
+      : (await import('./execution/run-recovery')).startRunRecovery();
   applicationMetrics.active.set({ queue: TEST_EXECUTION_QUEUE_NAME }, 0);
   applicationMetrics.active.set({ queue: BROWSER_TASK_QUEUE_NAME }, 0);
   applicationMetrics.active.set({ queue: LOAD_QUEUE_NAME }, 0);
@@ -357,6 +365,7 @@ configureEgressProxy();
       await closeConsumers([worker, browserTaskWorker, ...(loadWorker ? [loadWorker] : [])]);
       // Offline at once, rather than after three missed heartbeats.
       await runner.stop();
+      stopRunRecovery();
       await metricsListener?.close();
       await browserMetricsQueue?.close();
       await stopTracing();
