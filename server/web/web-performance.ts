@@ -152,6 +152,36 @@ function lighthouseBin(): string {
   return process.env.LIGHTHOUSE_BIN || 'lighthouse';
 }
 
+/** `--no-sandbox` only when LIGHTHOUSE_NO_SANDBOX=1 (Chrome cannot sandbox when run as root). */
+export function buildLighthouseArgs(input: {
+  url: string;
+  base: string;
+  formFactor: 'mobile' | 'desktop';
+  proxyServer?: string;
+  headersFile?: string;
+  env?: NodeJS.ProcessEnv;
+}): string[] {
+  const env = input.env ?? process.env;
+  return [
+    input.url,
+    '--output=json',
+    '--output=html',
+    `--output-path=${input.base}`,
+    `--only-categories=${LIGHTHOUSE_CATEGORIES.join(',')}`,
+    `--chrome-flags=${[
+      '--headless=new',
+      ...(env.LIGHTHOUSE_NO_SANDBOX === '1' ? ['--no-sandbox'] : []),
+      '--disable-dev-shm-usage',
+      ...(input.proxyServer
+        ? [`--proxy-server=${input.proxyServer}`, '--proxy-bypass-list=<-loopback>']
+        : []),
+    ].join(' ')}`,
+    '--quiet',
+    ...(input.formFactor === 'desktop' ? ['--preset=desktop'] : []),
+    ...(input.headersFile ? [`--extra-headers=${input.headersFile}`] : []),
+  ];
+}
+
 /**
  * Runs Lighthouse against `url` and keeps its HTML report in `outputDir` when there is one.
  * Throws LighthouseUnavailableError when the program is not installed on this runner.
@@ -171,54 +201,54 @@ export async function runLighthouse(input: {
     (await fs.mkdtemp(path.join(process.env.TMPDIR || '/tmp', 'wfm-lighthouse-')));
   await fs.ensureDir(dir);
   const base = path.join(dir, `lighthouse_${Date.now()}`);
-  const args = [
-    input.url,
-    '--output=json',
-    '--output=html',
-    `--output-path=${base}`,
-    `--only-categories=${LIGHTHOUSE_CATEGORIES.join(',')}`,
-    `--chrome-flags=${[
-      '--headless=new',
-      '--no-sandbox',
-      '--disable-dev-shm-usage',
-      ...(proxy ? [`--proxy-server=${proxy.server}`, '--proxy-bypass-list=<-loopback>'] : []),
-    ].join(' ')}`,
-    '--quiet',
-    ...(input.formFactor === 'desktop' ? ['--preset=desktop'] : []),
-    ...(input.cookieHeader
-      ? [`--extra-headers=${JSON.stringify({ Cookie: input.cookieHeader })}`]
-      : []),
-  ];
-  await new Promise<void>((resolve, reject) => {
-    execFile(
-      lighthouseBin(),
-      args,
-      {
-        timeout: LIGHTHOUSE_TIMEOUT_MS,
-        maxBuffer: 32 * 1024 * 1024,
-        // Lighthouse finds its browser through CHROME_PATH: Playwright's Chromium unless one is set.
-        env: lighthouseEnv(),
-      },
-      (error, _stdout, stderr) => {
-        if (!error) return resolve();
-        if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
-          return reject(
-            new LighthouseUnavailableError(
-              'Lighthouse is not installed on this runner. The worker image includes it; elsewhere install it with npm install -g lighthouse, or set LIGHTHOUSE_BIN.',
-            ),
-          );
-        }
-        if (error.killed)
-          return reject(
-            new Error(
-              `Lighthouse did not finish within ${Math.round(LIGHTHOUSE_TIMEOUT_MS / 1000)} s.`,
-            ),
-          );
-        const last = String(stderr).trim().split('\n').filter(Boolean).slice(-2).join(' ');
-        reject(new Error(`Lighthouse could not audit the page: ${last || error.message}`));
-      },
-    );
+  // The Cookie never goes in argv (ps, crash logs): Lighthouse reads --extra-headers from a file.
+  const headersFile = input.cookieHeader ? `${base}.headers.json` : undefined;
+  if (headersFile) {
+    await fs.writeFile(headersFile, JSON.stringify({ Cookie: input.cookieHeader }), {
+      mode: 0o600,
+    });
+  }
+  const args = buildLighthouseArgs({
+    url: input.url,
+    base,
+    formFactor: input.formFactor,
+    proxyServer: proxy?.server,
+    headersFile,
   });
+  try {
+    await new Promise<void>((resolve, reject) => {
+      execFile(
+        lighthouseBin(),
+        args,
+        {
+          timeout: LIGHTHOUSE_TIMEOUT_MS,
+          maxBuffer: 32 * 1024 * 1024,
+          // Lighthouse finds its browser through CHROME_PATH: Playwright's Chromium unless one is set.
+          env: lighthouseEnv(),
+        },
+        (error, _stdout, stderr) => {
+          if (!error) return resolve();
+          if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+            return reject(
+              new LighthouseUnavailableError(
+                'Lighthouse is not installed on this runner. The worker image includes it; elsewhere install it with npm install -g lighthouse, or set LIGHTHOUSE_BIN.',
+              ),
+            );
+          }
+          if (error.killed)
+            return reject(
+              new Error(
+                `Lighthouse did not finish within ${Math.round(LIGHTHOUSE_TIMEOUT_MS / 1000)} s.`,
+              ),
+            );
+          const last = String(stderr).trim().split('\n').filter(Boolean).slice(-2).join(' ');
+          reject(new Error(`Lighthouse could not audit the page: ${last || error.message}`));
+        },
+      );
+    });
+  } finally {
+    if (headersFile) await fs.remove(headersFile);
+  }
   const report = await fs.readJson(`${base}.report.json`);
   if (report.runtimeError?.message)
     throw new Error(`Lighthouse could not audit the page: ${report.runtimeError.message}`);

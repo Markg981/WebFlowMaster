@@ -6,6 +6,9 @@ import { domForModel, knownFallbacks, recordHealingProposal } from '../authoring
 import { storableSelector } from '../authoring/selector-healing';
 import type { StepProvenance } from '../authoring/step-provenance';
 import { gotoWithinPolicy } from '../platform/egress-policy';
+import { getTenantOrgId } from '../platform/middleware/tenancy';
+import logger from '../platform/logger';
+import { aiSkipMessage, reserveAiCall } from '../authoring/ai-consent';
 
 /**
  * Drives a page on behalf of a step, with healing of the selector when the step fails.
@@ -51,6 +54,8 @@ export class PlaywrightReporter {
   public lastActionHealed: boolean = false;
   /** The locator this step ran with instead of its own, and the proposal it left. */
   public lastHealing: StepHealing | null = null;
+  /** Why the AI was not asked for this step's repair (no consent, daily cap), if it was not. */
+  public lastAiSkipped: 'consent' | 'quota' | null = null;
 
   constructor(private page: Page) {}
 
@@ -66,6 +71,7 @@ export class PlaywrightReporter {
   resetStepState() {
     this.lastActionHealed = false;
     this.lastHealing = null;
+    this.lastAiSkipped = null;
   }
 
   /** The `name` arguments are the step names callers still pass; nothing reads them here now. */
@@ -161,6 +167,16 @@ export class PlaywrightReporter {
   private async askModel(originalSelector: string, error: string): Promise<string | null> {
     if (!aiService.isAvailable()) return null;
     try {
+      // The DOM leaves for the provider only with the organization's consent and under its cap.
+      const organizationId = getTenantOrgId();
+      const decision = organizationId
+        ? await reserveAiCall(organizationId)
+        : ({ ok: false, reason: 'consent' } as const);
+      if (!decision.ok) {
+        this.lastAiSkipped = decision.reason;
+        logger.info(`AI self-healing ${aiSkipMessage(decision.reason)}`, { organizationId });
+        return null;
+      }
       const pageContent = domForModel(await this.page.content());
       return await aiService.healSelector(originalSelector, pageContent, error);
     } catch (e) {

@@ -4,9 +4,9 @@ import fs from 'fs-extra';
 import { v4 as uuidv4 } from 'uuid';
 import { eq } from 'drizzle-orm';
 
-// Short enough to run in a test: a heartbeat every 20 ms, and a run allowed 500 ms.
+// Short enough to run in a test: a heartbeat every 20 ms, and a run allowed 5 s.
 process.env.RUN_HEARTBEAT_INTERVAL_MS = '20';
-process.env.RUN_MAX_DURATION_MS = '500';
+process.env.RUN_MAX_DURATION_MS = '5000';
 
 /**
  * Stopping a run from outside it: somebody cancels it, or it runs out of time.
@@ -163,7 +163,7 @@ describe('a run past its time limit', () => {
   it('starts no further test and ends timed out, saying why', async () => {
     await seed();
     executeTestSequence.mockImplementationOnce(async () => {
-      await wait(700);
+      await wait(5200);
       return passed;
     });
 

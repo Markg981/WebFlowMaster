@@ -1,0 +1,13 @@
+{
+  "id": "REP-50",
+  "area": "REP",
+  "title": "Run con tutti i test Skipped termina in errore con il motivo",
+  "priority": "P2",
+  "actor": "owner.a",
+  "preconditions": "Organizzazione con policy solo versioni pubblicate; piano con test non pubblicati.",
+  "steps": [
+    "Eseguire il piano.",
+    "Aprire il report della run."
+  ],
+  "expected": "Tutti i test risultano Skipped, la run termina in errore (non completata/verde) e l'intestazione mostra 'No test produced a verdict (all skipped)'. Un piano con almeno un test passato e il resto Skipped resta completato."
+}

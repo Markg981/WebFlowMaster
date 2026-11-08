@@ -1497,6 +1497,6 @@ erDiagram
   }
 ```
 
-## Audit degli indici sulle chiavi esterne — migrazione 0105
+## Audit degli indici sulle chiavi esterne — migrazione 0106
 
-`node scripts/db/fk-index-audit.mjs` (`npm run audit:fk-indexes`, `--json` per l'output macchina) legge `migrations/*.sql` senza database ed elenca ogni chiave esterna la cui prima colonna non è la colonna di testa di un indice, di una chiave primaria o di un vincolo unique. È un'euristica statica: non vede gli indici creati fuori dalle migrazioni e non conosce le dimensioni delle tabelle. La migrazione `0105_fk_indexes` aggiunge indici solo per le colonne sui percorsi `ON DELETE CASCADE` / `SET NULL` di test, test API, progetti, tag, grid ed esecuzioni, o filtrate per progetto. Verifica ogni altro candidato con `EXPLAIN` su dati reali prima di aggiungerlo.
+`node scripts/db/fk-index-audit.mjs` (`npm run audit:fk-indexes`, `--json` per l'output macchina) legge `migrations/*.sql` senza database ed elenca ogni chiave esterna la cui prima colonna non è la colonna di testa di un indice, di una chiave primaria o di un vincolo unique. È un'euristica statica: non vede gli indici creati fuori dalle migrazioni e non conosce le dimensioni delle tabelle. La migrazione `0106_fk_indexes` aggiunge indici solo per le colonne sui percorsi `ON DELETE CASCADE` / `SET NULL` di test, test API, progetti, tag, grid ed esecuzioni, o filtrate per progetto. Verifica ogni altro candidato con `EXPLAIN` su dati reali prima di aggiungerlo.

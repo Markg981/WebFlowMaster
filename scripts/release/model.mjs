@@ -124,6 +124,35 @@ export function assertSourceScanPassed(report) {
   }
 }
 
+/**
+ * Files that carry the product version. package.json is the source of truth; the others are
+ * copies that `node scripts/release/sync-version.mjs` rewrites and `readReleaseInputs` checks.
+ */
+export const VERSION_CARRIERS = [
+  { file: 'package.json', pattern: /^(\s*"version": ")([^"]+)(")/m },
+  { file: 'package-lock.json', pattern: /^(\s*"version": ")([^"]+)(")/m },
+  { file: 'deployment/helm/webflowmaster/Chart.yaml', pattern: /^(appVersion: ')([^']+)(')/m },
+  { file: 'scripts/wfm-agent.ts', pattern: /^(export const AGENT_VERSION = ')([^']+)(')/m },
+];
+
+export function readVersionCarriers(root) {
+  return Object.fromEntries(
+    VERSION_CARRIERS.map(({ file, pattern }) => [
+      file,
+      readFileSync(join(root, file), 'utf8').match(pattern)?.[2],
+    ]),
+  );
+}
+
+export function assertVersionsAligned(carriers) {
+  const expected = carriers['package.json'];
+  const drift = Object.entries(carriers).filter(([, version]) => version !== expected);
+  if (!expected || drift.length)
+    throw new Error(
+      `Version carriers differ from package.json (${expected}): ${drift.map(([f, v]) => `${f}=${v}`).join(', ')}`,
+    );
+}
+
 export function readReleaseInputs(root) {
   const files = [
     'package.json',
@@ -146,6 +175,7 @@ export function readReleaseInputs(root) {
   const pkg = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'));
   const lock = JSON.parse(readFileSync(join(root, 'package-lock.json'), 'utf8'));
   if (pkg.version !== lock.version) throw new Error('Package and lockfile versions differ');
+  assertVersionsAligned(readVersionCarriers(root));
   const playwright = lock.packages['node_modules/playwright'].version;
   const bases = {};
   for (const [role, file] of [
