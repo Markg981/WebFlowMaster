@@ -3,7 +3,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { buildViewInventory, type ViewInventory } from './parse-views';
 
-const DEFAULT_VIEWS_DIR = String.raw`C:\Users\marco.oliva\source\repos\DMO_3\DMO.NetContent\Templates\Views`;
+const DEFAULT_VIEWS_DIR = '';
 
 function walkHtml(dir: string): string[] {
   const out: string[] = [];

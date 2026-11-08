@@ -557,6 +557,7 @@
     "executionStatus": {
       "passed": "Réussis",
       "failed": "En échec",
+      "timedOut": "Délai dépassé",
       "pending": "En cours ou en file"
     },
     "emptyExecutions": {
@@ -2885,6 +2886,8 @@
     "clearSearch": "Effacer la recherche",
     "requestFailed": "Une erreur est survenue",
     "confirm": "Confirmer",
+    "typeToConfirm": "Saisissez « {{text}} » pour confirmer",
+    "typeToConfirmLabel": "Texte de confirmation",
     "delete": "Supprimer",
     "revoke": "Révoquer",
     "disable": "Désactiver",
@@ -4031,7 +4034,10 @@
       "syncSummary": "{{waves}} vagues : {{added}} nouvelles, {{updated}} modifiées, {{missing}} plus dans le hub.",
       "imported": "Vagues importées",
       "importSummary": "{{waves}} vagues, {{results}} résultats, {{imported}} cas importés comme tests.",
-      "syncFailed": "Les vagues n’ont pas pu être lues"
+      "syncFailed": "Les vagues n’ont pas pu être lues",
+      "failedDetail": "Le job n’a pas pu être terminé. Réessayez ou vérifiez la connexion au hub dans les Paramètres.",
+      "pollFailed": "Impossible de lire l’état du job",
+      "pollFailedDetail": "La connexion au serveur a été perdue ou le job n’existe plus. Vous pouvez le relancer."
     },
     "import": {
       "title_one": "Importer {{count}} vague",
@@ -4067,6 +4073,11 @@
       "summary": "Le plan « {{name}} » contient {{tests}} tests. {{notImported}} cas choisis ne sont pas encore des tests.",
       "failed": "La session n’a pas pu être créée",
       "open": "Lancer « {{name}} »"
+    },
+    "error": {
+      "title": "Impossible de charger les vagues",
+      "description": "Un problème est survenu lors de la lecture des vagues. Réessayez ; si l’échec persiste, contactez un administrateur.",
+      "retry": "Réessayer"
     }
   },
   "testLibrary": {
@@ -5523,5 +5534,11 @@
       "reject": "Rejeter",
       "failed": "La décision n’a pas été enregistrée."
     }
+  },
+  "testConflict": {
+    "title": "Ce test a été modifié par quelqu'un d'autre",
+    "description": "Quelqu'un a enregistré ce test après votre ouverture. Continuez à modifier pour relire votre brouillon (fermez l'éditeur et rouvrez-le pour charger sa version), ou écrasez ses modifications par les vôtres.",
+    "overwrite": "Écraser",
+    "keepEditing": "Continuer à modifier"
   }
 }

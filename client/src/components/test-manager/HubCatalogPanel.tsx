@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'wouter';
 import { Button } from '@/components/ui/button';
@@ -25,6 +25,7 @@ import {
 } from '@/components/ui/select';
 import CatalogPagination from '@/components/catalog/CatalogPagination';
 import { useCatalogControls } from '@/hooks/use-catalog-controls';
+import { useUrlParams } from '@/hooks/use-url-params';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
 import { formatDateTime } from '@/lib/dates';
@@ -64,18 +65,24 @@ const HubCatalogPanel: React.FC = () => {
   const hasCatalog = !!source && source.caseCount > 0;
 
   const { search, setSearch, debouncedSearch, page, setPage, pageSize, setPageSize } =
-    useCatalogControls();
-  const [module, setModule] = useState(ALL);
-  const [status, setStatus] = useState<'active' | 'deprecated' | 'all'>('active');
-  const [priority, setPriority] = useState(ALL);
-  const [readiness, setReadiness] = useState(ALL);
-  const [imported, setImported] = useState<'all' | 'no' | 'yes' | 'changed'>('all');
-  const [missing, setMissing] = useState<'exclude' | 'include' | 'only'>('exclude');
-
-  // Any change of filter starts again from the first page.
-  useEffect(() => {
-    setPage(1);
-  }, [module, status, priority, readiness, imported, missing, setPage]);
+    useCatalogControls('', true);
+  // Filters live in the query string; a default value is removed from it. Any change of
+  // filter starts again from the first page.
+  const { params, update } = useUrlParams();
+  const module = params.get('module') ?? ALL;
+  const status = (params.get('status') ?? 'active') as 'active' | 'deprecated' | 'all';
+  const priority = params.get('priority') ?? ALL;
+  const readiness = params.get('readiness') ?? ALL;
+  const imported = (params.get('imported') ?? 'all') as 'all' | 'no' | 'yes' | 'changed';
+  const missing = (params.get('missing') ?? 'exclude') as 'exclude' | 'include' | 'only';
+  const setFilter = (key: string, value: string, fallback: string) =>
+    update({ [key]: value === fallback ? null : value, page: null });
+  const setModule = (value: string) => setFilter('module', value, ALL);
+  const setStatus = (value: typeof status) => setFilter('status', value, 'active');
+  const setPriority = (value: string) => setFilter('priority', value, ALL);
+  const setReadiness = (value: string) => setFilter('readiness', value, ALL);
+  const setImported = (value: typeof imported) => setFilter('imported', value, 'all');
+  const setMissing = (value: typeof missing) => setFilter('missing', value, 'exclude');
 
   const filters = useMemo<HubCaseFilters>(
     () => ({

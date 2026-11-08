@@ -4,10 +4,19 @@ import type { AddressInfo } from 'node:net';
 import express, { type Express } from 'express';
 import request from 'supertest';
 import { WebSocket } from 'ws';
-import { inArray, sql } from 'drizzle-orm';
+import { eq, inArray, sql } from 'drizzle-orm';
 import { privilegedDb } from '../platform/db';
-import { auditLogMaintenance } from '../tests/factories';
-import { organizations, testPlans, testPlanExecutions, executionLogs, users } from '@shared/schema';
+import { auditLogMaintenance, createTestUser } from '../tests/factories';
+import {
+  organizations,
+  testPlans,
+  testPlanExecutions,
+  executionLogs,
+  projects,
+  reportTestCaseResults,
+  tests,
+  users,
+} from '@shared/schema';
 
 vi.mock('../platform/logger', () => ({
   default: {
@@ -73,6 +82,7 @@ const openSockets: WebSocket[] = [];
 let orgAId: number;
 let orgBId: number;
 let extraOrgId: number | undefined;
+let restrictedOrgId: number | undefined;
 let cookieA: string;
 let cookieB: string;
 const execAId = 'ws-auth-test-exec-a';
@@ -207,14 +217,28 @@ afterAll(async () => {
   await privilegedDb.delete(testPlans).where(inArray(testPlans.id, [planAId, planBId]));
   // audit_log references organizations with no cascade: the logout writes an entry.
   await auditLogMaintenance(
-    sql`DELETE FROM audit_log WHERE organization_id IN ${[orgAId, orgBId, ...(extraOrgId ? [extraOrgId] : [])]}`,
+    sql`DELETE FROM audit_log WHERE organization_id IN ${[orgAId, orgBId, ...(extraOrgId ? [extraOrgId] : []), ...(restrictedOrgId ? [restrictedOrgId] : [])]}`,
   );
   await privilegedDb
     .delete(users)
-    .where(inArray(users.organizationId, [orgAId, orgBId, ...(extraOrgId ? [extraOrgId] : [])]));
+    .where(
+      inArray(users.organizationId, [
+        orgAId,
+        orgBId,
+        ...(extraOrgId ? [extraOrgId] : []),
+        ...(restrictedOrgId ? [restrictedOrgId] : []),
+      ]),
+    );
   await privilegedDb
     .delete(organizations)
-    .where(inArray(organizations.id, [orgAId, orgBId, ...(extraOrgId ? [extraOrgId] : [])]));
+    .where(
+      inArray(organizations.id, [
+        orgAId,
+        orgBId,
+        ...(extraOrgId ? [extraOrgId] : []),
+        ...(restrictedOrgId ? [restrictedOrgId] : []),
+      ]),
+    );
 });
 
 describe('WebSocket upgrade authentication', () => {
@@ -256,6 +280,83 @@ describe('subscribe-execution authorization', () => {
     const reply = await waitForMessage(ws, (m) => m.executionId === execAId);
 
     expect(reply.type).toBe('subscribed');
+  });
+});
+
+describe('subscribe-execution and restricted projects (audit M-01)', () => {
+  it('refuses a run holding a test of a restricted project the caller is not on, and serves the owner', async () => {
+    // A new organization whose registered member (the owner) is then demoted to a viewer who is
+    // not on the project; a second user created the restricted project.
+    const reg = await request(app)
+      .post('/api/register')
+      .send({ username: 'ws-restricted-user', password: 'password123' })
+      .expect(201);
+    restrictedOrgId = reg.body.organizationId as number;
+    const cookie = toCookieHeader(reg.headers['set-cookie']);
+    const creator = await createTestUser(restrictedOrgId, 'ws-restricted-creator');
+    const [secret] = await privilegedDb
+      .insert(projects)
+      .values({
+        name: 'Secret',
+        userId: creator,
+        organizationId: restrictedOrgId,
+        restricted: true,
+      })
+      .returning();
+    const [hidden] = await privilegedDb
+      .insert(tests)
+      .values({
+        name: 'Payroll login',
+        url: 'https://x.test',
+        sequence: [],
+        elements: [],
+        userId: creator,
+        organizationId: restrictedOrgId,
+        projectId: secret.id,
+      } as any)
+      .returning();
+    const planId = 'ws-restricted-plan';
+    const execId = 'ws-restricted-exec';
+    await privilegedDb.insert(testPlans).values({
+      id: planId,
+      name: 'WS restricted',
+      userId: creator,
+      organizationId: restrictedOrgId,
+    });
+    await privilegedDb
+      .insert(testPlanExecutions)
+      .values({ id: execId, testPlanId: planId, organizationId: restrictedOrgId });
+    await privilegedDb.insert(reportTestCaseResults).values({
+      id: 'ws-restricted-result',
+      organizationId: restrictedOrgId,
+      testPlanExecutionId: execId,
+      uiTestId: hidden.id,
+      testName: 'Payroll login',
+      testType: 'ui',
+      status: 'Failed',
+      startedAt: new Date(),
+    } as any);
+
+    const subscribe = async () => {
+      const ws = connectWs(cookie);
+      await waitForOpen(ws);
+      ws.send(JSON.stringify({ type: 'subscribe-execution', executionId: execId }));
+      return waitForMessage(ws, (m) => m.executionId === execId);
+    };
+    // The owner sees every project.
+    expect((await subscribe()).type).toBe('subscribed');
+    // Demoted to a viewer outside the project: the run is "Not found", as if it did not exist.
+    await privilegedDb.update(users).set({ role: 'viewer' }).where(eq(users.id, reg.body.id));
+    const refused = await subscribe();
+    expect(refused).toMatchObject({ type: 'subscribe-error', error: 'Not found' });
+
+    await privilegedDb
+      .delete(reportTestCaseResults)
+      .where(eq(reportTestCaseResults.id, 'ws-restricted-result'));
+    await privilegedDb.delete(testPlanExecutions).where(eq(testPlanExecutions.id, execId));
+    await privilegedDb.delete(testPlans).where(eq(testPlans.id, planId));
+    await privilegedDb.delete(tests).where(eq(tests.id, hidden.id));
+    await privilegedDb.delete(projects).where(eq(projects.id, secret.id));
   });
 });
 

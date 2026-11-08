@@ -1,0 +1,15 @@
+{
+  "id": "LIB-65",
+  "area": "LIB",
+  "title": "Hub dei test case QA: cambio host scarta il token, host non ammesso rifiutato",
+  "priority": "P1",
+  "actor": "owner.a, poi editor.a",
+  "preconditions": "LIB-56 eseguito: hub Azure DevOps collegato con token su dev.azure.com.",
+  "steps": [
+    "Come owner: in «Impostazioni → Hub dei test case QA» cambiare solo l'organizzazione nell'URL (stesso host dev.azure.com) senza token e salvare.",
+    "Cambiare l'host dell'URL in <nome>.visualstudio.com senza inserire il token e salvare.",
+    "Impostare l'URL https://example.com/org con un token e salvare; poi provare http://dev.azure.com/org.",
+    "Come editor: aprire la stessa scheda e premere «Verifica connessione» (POST /api/testcase-hub/test) o salvare con un token."
+  ],
+  "expected": "1: salvataggio riuscito, il token resta («Salvato»). 2: salvataggio riuscito ma il token è scartato: il campo token torna vuoto e va reinserito per verificare. 3: entrambi rifiutati con 422 e messaggio che indica gli host ammessi (dev.azure.com, *.visualstudio.com, TESTCASE_HUB_AZURE_HOSTS); nulla viene salvato. 4: il pulsante di verifica e il campo token sono disabilitati per l'editor e le chiamate rispondono 403."
+}

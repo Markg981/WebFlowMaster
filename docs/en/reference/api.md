@@ -475,6 +475,12 @@ works as above. The answer is `202` with `{ "success": true, "testPlanRunId": "â
 "queued" }`; `401` for a missing or revoked token. Webhooks are limited to
 `WEBHOOK_RATE_LIMIT` calls a minute per address (120 by default).
 
+**Migration note.** Older integrations call `POST /api/webhooks/execute/<token>`, with the token in the
+URL path. That form still works but is deprecated: URLs end up in proxy and access logs. The server
+masks the token in its own request log and logs one deprecation warning per webhook the first time
+the path form is used. To migrate, drop the token from the URL and send it in the `X-Webhook-Token`
+header (or `Authorization: Bearer`); the token itself does not change.
+
 Reading the run's result needs an API key: prefer the API, or the CLI, whenever the caller can
 keep one.
 

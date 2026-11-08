@@ -501,6 +501,13 @@ anche come `Authorization: Bearer`. Avvia quel solo piano e nient'altro; un head
 "testPlanRunId": "…", "status": "queued" }`; `401` per un token mancante o revocato. I webhook
 sono limitati a `WEBHOOK_RATE_LIMIT` chiamate al minuto per indirizzo (120 di default).
 
+**Nota di migrazione.** Le integrazioni più vecchie chiamano `POST /api/webhooks/execute/<token>`, con il
+token nel percorso dell'URL. Questa forma funziona ancora ma è deprecata: gli URL finiscono nei log
+di proxy e di accesso. Il server maschera il token nel proprio log delle richieste e scrive un solo
+avviso di deprecazione per webhook, la prima volta che si usa il percorso. Per migrare, togliete il
+token dall'URL e inviatelo nell'header `X-Webhook-Token` (o `Authorization: Bearer`); il token non
+cambia.
+
 Leggere l'esito del run richiede una chiave API: preferite l'API, o la CLI, ogni volta che chi
 chiama può conservarne una.
 

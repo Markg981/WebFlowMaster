@@ -8,7 +8,7 @@ import { auditActor } from '../../tenancy/audit';
 import { requireRole } from '../middleware/require-role';
 import { sessionOnly } from '../middleware/session-only';
 import { sharedHeavyRateLimit, sharedSensitiveRateLimit } from '../middleware/rate-limits';
-import { aiEnabled, setAiEnabled } from '../../authoring/ai-consent';
+import { aiEnabled, reserveAiCall, setAiEnabled } from '../../authoring/ai-consent';
 import { aiService } from '../../authoring/ai-automation-service';
 import { authorSteps } from '../../authoring/nl-authoring';
 import logger from '../../platform/logger';
@@ -74,9 +74,7 @@ router.post(
 
       // The model sees the page's elements and the author's text only when the owner allowed AI;
       // otherwise the deterministic parser alone answers.
-      const modelAllowed =
-        aiService.isAvailable() &&
-        (await withTenantTransaction((tx) => aiEnabled(tx, getTenantOrgId()!)));
+      const modelAllowed = aiService.isAvailable() && (await reserveAiCall(getTenantOrgId()!)).ok;
 
       const result = await authorSteps(
         {
