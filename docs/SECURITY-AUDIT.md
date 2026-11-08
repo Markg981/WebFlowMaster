@@ -5,7 +5,9 @@ or a finding's exposure changes.
 
 How to report a vulnerability is in [SECURITY.md](../SECURITY.md).
 
-**Last reviewed:** 2026-10-28 (`npm audit --omit=dev`).
+**Last reviewed:** 2026-11-07 at commit `695e1e48`. Produced by hand from `npm audit --omit=dev --json` and `npm audit --json` run in the repository root (the `client` workspace: 0 findings with `--omit=dev`).
+
+**Result of 2026-11-07:** production dependencies, **4 moderate, 0 high, 0 critical**: `@cucumber/cucumber` (direct, via `glob`), `glob` (GHSA-3g3m-2fjr-6pw4, AbortSignal cancellation bypass), `minimatch` (GHSA-g3hv-75wg-m249, DoS by globparts amplification) and `qs` (GHSA-6pq8-jhm2-2vcw, see below). Including dev dependencies: 24 (2 low, 22 moderate, 0 high, 0 critical), mostly vite/vitest/esbuild, `@typescript-eslint`, `mermaid`/`katex` and `drizzle-kit`. All have a fix available through `npm audit fix`; none is high or critical, so the CI gate does not fail on them.
 
 ## 27 October 2026, audit gate (A-02)
 
@@ -14,7 +16,7 @@ quadratic time, GHSA-rxp7-6hxx-x8q5), reached only through the `mssql`/`@azure/i
 connection stack with addresses from operator configuration, never from request input. `npm audit
 fix` moved it to a patched release; `undici` is pinned at 6.29.1 and `nodemailer` at 10.2.1, both
 past the fixed versions. Production dependencies: **0 findings** at the time, root and client. Re-checked on 2026-10-28 with
-`npm audit --omit=dev`: **1 moderate**, transitive `qs` (`qs.stringify` with `arrayFormat: 'comma'`
+`npm audit --omit=dev`: transitive `qs` (`qs.stringify` with `arrayFormat: 'comma'`
 throws on array elements with a non-callable own `toString`, GHSA-6pq8-jhm2-2vcw); the server never
 passes request input to `qs.stringify`, so it is accepted until the lockfile picks up the patched
 release (`npm audit fix`). The CI gate fails only on high and critical findings.

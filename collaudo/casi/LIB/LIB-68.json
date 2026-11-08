@@ -1,0 +1,15 @@
+{
+  "id": "LIB-68",
+  "area": "LIB",
+  "title": "Cataloghi: pagina, ricerca e filtri restano nell'indirizzo (ricarica, indietro, link)",
+  "priority": "P2",
+  "actor": "editor.a",
+  "preconditions": "Hub TestCase configurato con più di 25 casi; almeno 26 test API salvati.",
+  "steps": [
+    "Scheda «Catalogo hub»: impostare dimensione pagina 50 o andare a pagina 2, scrivere una ricerca e scegliere un filtro (ad esempio stato «Tutti»); osservare l'indirizzo.",
+    "Ricaricare la pagina, poi copiare l'indirizzo e aprirlo in un'altra scheda.",
+    "Cambiare un filtro, poi premere Indietro del browser.",
+    "Ripetere i passi 1-3 nel catalogo dei test salvati del tester API (pagina, dimensione, ricerca)."
+  ],
+  "expected": "1: l'indirizzo contiene solo i valori diversi dal predefinito (page, pageSize, search, status...); tornando ai valori predefiniti spariscono. 2: dopo ricarica e nella nuova scheda pagina, ricerca e filtri sono gli stessi. 3: cambiare un filtro riporta a pagina 1; Indietro ripristina filtro, pagina e testo della ricerca precedenti. 4: stesso comportamento nel tester API."
+}

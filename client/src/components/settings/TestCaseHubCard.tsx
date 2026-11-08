@@ -82,6 +82,8 @@ const TestCaseHubCard: React.FC = () => {
   const { t, i18n } = useTranslation();
   const { user } = useAuth();
   const canEdit = user?.role !== 'viewer';
+  // Setting the token and testing the connection send the credential out: owners only.
+  const isOwner = user?.role === 'owner';
 
   const { data: source, isLoading, error } = useHubSource();
   const save = useSaveHubSource();
@@ -370,7 +372,7 @@ const TestCaseHubCard: React.FC = () => {
                           ? t('testCaseHub.form.tokenKept', 'Stored — leave empty to keep it')
                           : ''
                       }
-                      disabled={disabled}
+                      disabled={disabled || !isOwner}
                     />
                     <p className="mt-1 text-xs text-muted-foreground">
                       {t(
@@ -395,7 +397,7 @@ const TestCaseHubCard: React.FC = () => {
                 </Button>
                 {source && (
                   <>
-                    <Button variant="outline" onClick={runCheck} disabled={busy}>
+                    <Button variant="outline" onClick={runCheck} disabled={busy || !isOwner}>
                       {check.isPending ? (
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                       ) : (

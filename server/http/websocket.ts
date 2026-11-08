@@ -12,6 +12,7 @@ import { eq } from 'drizzle-orm';
 import { getCorrelationId } from '../platform/middleware/correlation';
 import { getSessionMiddleware } from '../identity/auth';
 import { runWithTenant, withTenantTransaction } from '../platform/middleware/tenancy';
+import { runHasHiddenTests } from '../tenancy/artifact-access';
 import { isSamlSessionActive } from '../identity/sso-saml';
 import { isTrustedOrigin } from './middleware/csrf';
 import {
@@ -41,6 +42,7 @@ type UpgradeRequest = IncomingMessage & {
 type AuthenticatedWebSocket = WebSocket & {
   organizationId: number;
   userId: number;
+  role: string;
   samlSessionId?: string;
   /** The upgrade request, kept to ask the session store again whether the login still stands. */
   upgradeRequest?: UpgradeRequest;
@@ -158,16 +160,24 @@ async function socketSamlSessionActive(client: AuthenticatedWebSocket): Promise<
 async function isExecutionInOrganization(
   executionId: string,
   organizationId: number,
+  principal: { userId: number; role: string },
 ): Promise<boolean> {
-  return runWithTenant(organizationId, () =>
-    withTenantTransaction(async (tx) => {
-      const [row] = await tx
-        .select({ id: testPlanExecutions.id })
-        .from(testPlanExecutions)
-        .where(eq(testPlanExecutions.id, executionId))
-        .limit(1);
-      return !!row;
-    }),
+  return runWithTenant(
+    organizationId,
+    () =>
+      withTenantTransaction(async (tx) => {
+        const [row] = await tx
+          .select({ id: testPlanExecutions.id })
+          .from(testPlanExecutions)
+          .where(eq(testPlanExecutions.id, executionId))
+          .limit(1);
+        if (!row) return false;
+        // A live log line is not tied to one test, so it cannot be filtered per test: a run that
+        // includes a test of a project the caller cannot see is not offered to them at all
+        // (audit M-01). The same "Not found" as a missing run keeps it from being an oracle.
+        return !(await runHasHiddenTests(tx, executionId));
+      }),
+    principal,
   );
 }
 
@@ -345,6 +355,7 @@ export async function setupWebSockets(server: Server): Promise<WsEmitter> {
     const authedWs = ws as AuthenticatedWebSocket;
     authedWs.organizationId = user.organizationId;
     authedWs.userId = user.id;
+    authedWs.role = user.role;
     authedWs.upgradeRequest = req;
     if (req.session?.samlIdentity) authedWs.samlSessionId = req.sessionID;
 
@@ -366,7 +377,10 @@ export async function setupWebSockets(server: Server): Promise<WsEmitter> {
           // unless the execution belongs to this socket's organization.
           if (msg.type === 'subscribe-execution') {
             const execId = msg.executionId;
-            const authorized = await isExecutionInOrganization(execId, authedWs.organizationId);
+            const authorized = await isExecutionInOrganization(execId, authedWs.organizationId, {
+              userId: authedWs.userId,
+              role: authedWs.role,
+            });
             if (!authorized) {
               // Same response for "no such execution" and "exists, but not yours" — see
               // isExecutionInOrganization's doc comment.

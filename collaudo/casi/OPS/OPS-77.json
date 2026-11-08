@@ -1,0 +1,14 @@
+{
+  "id": "OPS-77",
+  "area": "OPS",
+  "title": "Avviso di avvio in produzione sulla policy di egress",
+  "priority": "P3",
+  "actor": "owner.a",
+  "preconditions": "Installazione avviabile con NODE_ENV=production, senza EGRESS_PRIVATE_TARGETS.",
+  "steps": [
+    "Avviare il server con NODE_ENV=production e senza EGRESS_PRIVATE_TARGETS; leggere il log di avvio.",
+    "Impostare EGRESS_PRIVATE_TARGETS=deny (e EGRESS_ALLOW_HOSTS) e riavviare.",
+    "Avviare con NODE_ENV=development senza la variabile."
+  ],
+  "expected": "Al primo avvio compare un solo avviso che cita EGRESS_PRIVATE_TARGETS, EGRESS_ALLOW_HOSTS e la pagina production-checklist; dopo l'impostazione e in sviluppo l'avviso non compare."
+}
