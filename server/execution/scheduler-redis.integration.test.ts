@@ -99,6 +99,7 @@ const runsFor = (scheduleId: string) =>
 describe.skipIf(!enabled)('BullMQ scheduler against a real Redis', () => {
   const workers: Worker[] = [];
   const extraQueues: Queue[] = [];
+  const processedJobs: string[] = [];
 
   // The same steps as the TRIGGER_SCHEDULE_JOB branch of server/worker.ts.
   const startWorker = () => {
@@ -106,6 +107,7 @@ describe.skipIf(!enabled)('BullMQ scheduler against a real Redis', () => {
       TEST_EXECUTION_QUEUE_NAME,
       async (job: Job) => {
         if (job.name !== TRIGGER_SCHEDULE_JOB) return;
+        processedJobs.push(String(job.id));
         const [schedule] = await privilegedDb
           .select()
           .from(testPlanSchedules)
@@ -130,6 +132,7 @@ describe.skipIf(!enabled)('BullMQ scheduler against a real Redis', () => {
     await testExecutionQueue.waitUntilReady();
   });
   beforeEach(async () => {
+    processedJobs.length = 0;
     enqueueSpy.mockReset();
     runsByKey.clear();
     // Like the orchestrator: one run per idempotency key.
@@ -255,8 +258,9 @@ describe.skipIf(!enabled)('BullMQ scheduler against a real Redis', () => {
     await bullmqRemoveScheduleJob(schedule.id);
     await sleep(1_500);
 
-    // One call per occurrence: no key was enqueued twice.
-    const keys = runsFor(schedule.id).map(([a]) => a.idempotencyKey as string);
-    expect(keys.length).toBe(new Set(keys).size);
+    // One job per occurrence: no occurrence was handed to both workers. (The run idempotency key is
+    // bucketed per minute by design, so the every-second occurrences legitimately share one key.)
+    expect(processedJobs.length).toBeGreaterThanOrEqual(3);
+    expect(processedJobs.length).toBe(new Set(processedJobs).size);
   });
 });
