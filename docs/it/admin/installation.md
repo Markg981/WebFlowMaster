@@ -47,6 +47,7 @@ server PostgreSQL (vedi [Tenancy](../internals/tenancy)).
 - **Redis 6.2 o successivo, oppure Valkey**, raggiungibile dal processo web e da ogni worker.
 - Accesso di rete in uscita dai worker verso le applicazioni da testare, oppure un
   [agente locale](../integrations/local-agents) dentro la rete in cui si trovano.
+- **Un display, solo per il recorder.** La registrazione apre un browser con interfaccia sulla macchina che esegue il processo web. Un server senza schermo richiede un display virtuale (per esempio `xvfb-run -a node dist/index.js`) oppure un nodo con sessione desktop. Esecuzioni, pianificazioni e worker sono headless e non ne hanno bisogno.
 - Memoria, come ordine di grandezza: circa 1 GB per il processo web, e 1–2 GB su un worker per
   ogni browser che esegue contemporaneamente (`WORKER_CONCURRENCY` × il parallelismo del piano).
   Misuratelo con le vostre suite.

@@ -221,6 +221,20 @@ Backups of the database and of the artifact store keep their own copies for as l
 operator's backup policy says. **The backup retention window is the operator's responsibility**;
 an erasure or a retention sweep reaches them only when the backup expires.
 
+## Audit trail immutability and its limit {#audit-immutability}
+
+The audit log is append-only for the application: a database trigger (migration 0102) refuses
+`UPDATE` and `DELETE`, and the application role `app_user` has no `DELETE` grant. The trigger lets
+maintenance jobs (opt-in retention, organization erasure, test fixtures) through when the
+transaction sets `app.audit_maintenance = 'on'`. Any session that can set that setting and can
+delete rows (a superuser, the table owner or the migration role) can therefore alter the log:
+the guarantee holds against the application, not against the database administrator.
+
+Recommended hardening: run the application only as `app_user`; keep the owner and migration
+credentials out of the runtime environment; restrict who can connect as a privileged role; and
+ship the audit entries to an external, write-once store if you need evidence against
+administrators. Closing the switch in SQL needs a new migration and is tracked as an open point.
+
 ## Recommendations for organizations
 
 - Test with **synthetic or masked data** where possible, not production personal data.
