@@ -209,8 +209,22 @@ describe('a scheduled occurrence', () => {
     // A run against no environment would pass or fail for the wrong reasons (C-33): it does not
     // start, so the other organization's environment is never borrowed.
     expect(execution).toBeNull();
-    expect(await runsOf(schedule.id)).toHaveLength(0);
     expect(queued).toHaveLength(0);
+    // ...and the refusal is a run in `error` with its reason, not just a log line (M-04).
+    const runs = await runsOf(schedule.id);
+    expect(runs).toHaveLength(1);
+    expect(runs[0]).toMatchObject({
+      status: 'error',
+      triggeredBy: 'scheduled',
+      testPlanId: plan.id,
+      failureCode: 'schedule_refused:environment_missing',
+    });
+    expect(runs[0].failureMessage).toContain('environment_missing');
+    expect(runs[0].completedAt).not.toBeNull();
+
+    // The same occurrence refused again (a second process) adds no second record.
+    await executeScheduledPlanForTest(schedule, plan, occurrence);
+    expect(await runsOf(schedule.id)).toHaveLength(1);
   });
 
   it('does not run a schedule switched off after the cron job captured it, nor move it on', async () => {

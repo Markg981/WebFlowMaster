@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { FileEdit, Trash2 } from 'lucide-react';
+import { Link } from 'wouter';
 import { formatInZone } from '@/lib/dates';
 
 interface SchedulesListProps {
@@ -106,6 +107,26 @@ const SchedulesList: React.FC<SchedulesListProps> = ({
                     ? t('schedulingPage.list.active', 'Active')
                     : t('schedulingPage.list.inactive', 'Inactive')}
                 </Badge>
+                {schedule.lastRefusal && (
+                  <div className="mt-1 text-xs text-destructive" role="alert">
+                    <div>
+                      {t(
+                        'schedulingPage.list.lastRefusal',
+                        'Last run did not start ({{code}}), {{when}}',
+                        {
+                          code: schedule.lastRefusal.code,
+                          when: formatInZone(schedule.lastRefusal.at, schedule.timezone),
+                        },
+                      )}
+                    </div>
+                    <Link
+                      className="underline"
+                      href={`/test-plans/${schedule.lastRefusal.testPlanId}/executions/${schedule.lastRefusal.executionId}/report`}
+                    >
+                      {t('schedulingPage.list.lastRefusalRun', 'See the run')}
+                    </Link>
+                  </div>
+                )}
               </TableCell>
               {onEdit && onDelete && (
                 <TableCell className="space-x-2">

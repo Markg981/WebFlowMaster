@@ -2837,6 +2837,8 @@
       },
       "active": "Active",
       "inactive": "Inactive",
+      "lastRefusal": "Last run did not start ({{code}}), {{when}}",
+      "lastRefusalRun": "See the run",
       "deleteSchedule": "Delete Schedule"
     },
     "toast": {
