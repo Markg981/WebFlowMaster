@@ -3194,7 +3194,8 @@
       "load_test": "Test di carico",
       "step_group": "Gruppi di step",
       "project_element": "Repository degli elementi",
-      "healing_proposal": "Proposte di riparazione"
+      "healing_proposal": "Proposte di riparazione",
+      "visual_baseline": "Baseline visive"
     },
     "actions": {
       "bdd_profile_created": "Profilo BDD creato",
@@ -3343,7 +3344,8 @@
       "testcase_hub_wave_session_created": "Sessione creata da una wave dell'hub QA",
       "browser_grid_created": "Browser grid aggiunto",
       "browser_grid_updated": "Browser grid modificato",
-      "browser_grid_deleted": "Browser grid rimosso"
+      "browser_grid_deleted": "Browser grid rimosso",
+      "visual_baseline_approved": "Baseline visiva approvata"
     }
   },
   "security": {
@@ -5550,6 +5552,13 @@
       "approve": "Approva",
       "reject": "Rifiuta",
       "failed": "La decisione non è stata salvata."
+    },
+    "visual": {
+      "approve": "Approva come nuova baseline",
+      "confirmTitle": "Approvare questa immagine come nuova baseline?",
+      "confirmDescription": "La prossima esecuzione di questo passo sarà confrontata con l'immagine di questa esecuzione. La baseline precedente viene sostituita.",
+      "approvedBy": "Approvata come nuova baseline da {{user}} il {{date}}",
+      "approveFailed": "La baseline non è stata sostituita."
     }
   },
   "testConflict": {

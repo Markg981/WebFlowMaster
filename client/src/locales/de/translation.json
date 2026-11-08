@@ -3194,7 +3194,8 @@
       "load_test": "Lasttests",
       "step_group": "Schrittgruppen",
       "project_element": "Element-Repository",
-      "healing_proposal": "Reparaturvorschläge"
+      "healing_proposal": "Reparaturvorschläge",
+      "visual_baseline": "Visuelle Baselines"
     },
     "actions": {
       "bdd_profile_created": "BDD-Profil erstellt",
@@ -3343,7 +3344,8 @@
       "testcase_hub_wave_session_created": "Sitzung aus einer QA-Hub-Wave erstellt",
       "browser_grid_created": "Browser-Grid hinzugefügt",
       "browser_grid_updated": "Browser-Grid geändert",
-      "browser_grid_deleted": "Browser-Grid entfernt"
+      "browser_grid_deleted": "Browser-Grid entfernt",
+      "visual_baseline_approved": "Visuelle Baseline freigegeben"
     }
   },
   "security": {
@@ -5550,6 +5552,13 @@
       "approve": "Genehmigen",
       "reject": "Ablehnen",
       "failed": "Die Entscheidung wurde nicht gespeichert."
+    },
+    "visual": {
+      "approve": "Als neue Baseline freigeben",
+      "confirmTitle": "Dieses Bild als neue Baseline freigeben?",
+      "confirmDescription": "Der nächste Lauf dieses Schritts wird mit dem Bild dieses Laufs verglichen. Die bisherige Baseline wird ersetzt.",
+      "approvedBy": "Als neue Baseline freigegeben von {{user}} am {{date}}",
+      "approveFailed": "Die Baseline wurde nicht ersetzt."
     }
   },
   "testConflict": {
