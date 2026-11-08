@@ -466,6 +466,23 @@
       "cancel": "Annulla",
       "new": "Nuova azione personalizzata",
       "loading": "Caricamento delle azioni personalizzate…"
+    },
+    "sessions": {
+      "title": "Sessioni attive",
+      "description": "Browser e dispositivi con accesso al tuo account. Termina quelli che non riconosci.",
+      "current": "Questa sessione",
+      "created": "Iniziata",
+      "lastSeen": "Ultima attività",
+      "device": "Dispositivo",
+      "ip": "Rete (abbreviata)",
+      "revoke": "Termina sessione",
+      "revokeOthers": "Termina tutte le altre sessioni",
+      "none": "Nessun’altra sessione.",
+      "loadFailed": "Impossibile caricare le sessioni.",
+      "revokeTitle": "Terminare questa sessione?",
+      "revokeDescription": "Il browser o il dispositivo viene disconnesso subito.",
+      "revokeOthersTitle": "Terminare tutte le altre sessioni?",
+      "revokeOthersDescription": "Ogni altro browser e dispositivo viene disconnesso subito. Questa sessione resta attiva."
     }
   },
   "dashboard": {
@@ -3204,6 +3221,8 @@
       "auth_login_failed": "Accesso rifiutato",
       "auth_account_locked": "Account bloccato temporaneamente",
       "auth_logout": "Uscita",
+      "auth_session_revoked": "Sessione terminata",
+      "auth_sessions_revoked_others": "Altre sessioni terminate",
       "test_created": "Test creato",
       "test_updated": "Test modificato",
       "test_deleted": "Test eliminato",

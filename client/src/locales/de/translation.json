@@ -466,6 +466,23 @@
       "cancel": "Abbrechen",
       "new": "Neue eigene Aktion",
       "loading": "Eigene Aktionen werden geladen…"
+    },
+    "sessions": {
+      "title": "Angemeldete Sitzungen",
+      "description": "Browser und Geräte, die bei Ihrem Konto angemeldet sind. Beenden Sie unbekannte Sitzungen.",
+      "current": "Diese Sitzung",
+      "created": "Gestartet",
+      "lastSeen": "Zuletzt aktiv",
+      "device": "Gerät",
+      "ip": "Netzwerk (gekürzt)",
+      "revoke": "Sitzung beenden",
+      "revokeOthers": "Alle anderen Sitzungen beenden",
+      "none": "Keine weiteren Sitzungen.",
+      "loadFailed": "Die Sitzungen konnten nicht geladen werden.",
+      "revokeTitle": "Diese Sitzung beenden?",
+      "revokeDescription": "Der Browser oder das Gerät wird sofort abgemeldet.",
+      "revokeOthersTitle": "Alle anderen Sitzungen beenden?",
+      "revokeOthersDescription": "Alle anderen Browser und Geräte werden sofort abgemeldet. Diese Sitzung bleibt angemeldet."
     }
   },
   "dashboard": {
@@ -3204,6 +3221,8 @@
       "auth_login_failed": "Anmeldung abgelehnt",
       "auth_account_locked": "Konto vorübergehend gesperrt",
       "auth_logout": "Abgemeldet",
+      "auth_session_revoked": "Sitzung beendet",
+      "auth_sessions_revoked_others": "Andere Sitzungen beendet",
       "test_created": "Test erstellt",
       "test_updated": "Test geändert",
       "test_deleted": "Test gelöscht",

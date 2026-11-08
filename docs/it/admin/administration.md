@@ -145,6 +145,14 @@ sessioni già aperte. Le chiavi API non sono coinvolte.
 Un membro che ha perso sia il dispositivo sia i codici di recupero ha bisogno che un owner
 azzeri il suo secondo fattore in **Impostazioni → Membri**.
 
+### Sessioni attive
+
+Sempre in **Impostazioni → Sicurezza** trovi i browser e i dispositivi con accesso al tuo account:
+inizio, ultima attività, browser e indirizzo di rete abbreviato. **Termina sessione** disconnette
+subito quella scelta; **Termina tutte le altre sessioni** lascia solo quella che stai usando.
+Cambiare la password o il secondo fattore termina anch'esso le altre sessioni. Ogni chiusura è
+registrata nel registro di audit.
+
 ## Single sign-on _(owner)_ {#single-sign-on}
 
 I membri possono accedere con l'identity provider dell'organizzazione tramite **OpenID Connect**
