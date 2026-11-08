@@ -59,10 +59,15 @@ registrazione pubblica, in cui ogni nuovo account ottiene una propria organizzaz
 - Gli endpoint di accesso, registrazione e secondo fattore sono limitati a 20 tentativi per
   indirizzo client ogni 15 minuti. Gli accessi falliti per account esistenti finiscono nel
   registro di audit.
-- Un secondo limite conta per account, qualunque sia l'indirizzo: 10 password errate o 5 codici del
-  secondo fattore errati in 15 minuti bloccano l'account fino a fine finestra (`429` con `Retry-After`,
-  uguale per un nome inesistente). Il conteggio del secondo fattore non si azzera rifacendo l'accesso,
-  solo con un codice corretto. Il primo rifiuto scrive `auth.account_locked` nel registro di audit.
+- Un secondo limite conta per account e indirizzo: 10 password errate o 5 codici del secondo fattore
+  errati in 15 minuti bloccano l'account per quell'indirizzo, o il secondo fattore, fino a fine
+  finestra (`429` con `Retry-After`, uguale per un nome inesistente). Il conteggio del secondo fattore
+  non si azzera rifacendo l'accesso, solo con un codice corretto. Il primo rifiuto scrive
+  `auth.account_locked` nel registro di audit. I tentativi distribuiti su molti indirizzi trovano un
+  rallentamento sull'account intero, non un blocco: dopo 5 tentativi ogni successivo è ritardato di un
+  tempo che raddoppia (2 s, 4 s, ...) fino a 5 minuti, con `429` e `Retry-After` identici per un nome
+  inesistente; un accesso riuscito lo azzera. Il ritardo è tenuto per processo web, il conteggio dei
+  tentativi è condiviso via Redis.
 - **Autenticazione a due fattori**: codici TOTP da un'app di autenticazione (RFC 6238), ognuno
   accettato una volta sola, più codici di recupero monouso salvati come hash. Dopo la password
   la sessione non è autenticata finché non si inserisce il codice: cinque codici errati o

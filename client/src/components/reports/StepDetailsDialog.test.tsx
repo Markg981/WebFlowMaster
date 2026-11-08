@@ -647,3 +647,51 @@ describe('StepDetailsDialog: a pass after healing (P13, M02)', () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 });
+
+describe('approving a visual baseline (R-1)', () => {
+  const diffSteps: ReportStep[] = [
+    {
+      ...steps[1],
+      visual: { ...steps[1].visual!, approvable: true },
+    },
+  ];
+  const dialog = (extra: Record<string, unknown> = {}) => (
+    <StepDetailsDialog
+      open
+      onOpenChange={() => {}}
+      testName="Login works"
+      steps={diffSteps}
+      executionId="exec-1"
+      resultId="res-1"
+      canDecideHealing
+      {...extra}
+    />
+  );
+
+  afterEach(() => vi.unstubAllGlobals());
+
+  it('asks for confirmation, posts the step and shows who approved', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ approval: { userId: 1, username: 'ada', at: '2026-11-07T10:00:00Z' } }),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    render(dialog());
+
+    fireEvent.click(screen.getByRole('button', { name: 'Approve as new baseline' }));
+    expect(fetchMock).not.toHaveBeenCalled();
+    const buttons = screen.getAllByRole('button', { name: 'Approve as new baseline' });
+    fireEvent.click(buttons[buttons.length - 1]);
+
+    expect(await screen.findByTestId('visual-approved')).toHaveTextContent('ada');
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/test-plan-executions/exec-1/results/res-1/steps/0/visual/approve',
+      expect.objectContaining({ method: 'POST' }),
+    );
+  });
+
+  it('shows no button to a viewer', () => {
+    render(dialog({ canDecideHealing: false }));
+    expect(screen.queryByRole('button', { name: 'Approve as new baseline' })).toBeNull();
+  });
+});
