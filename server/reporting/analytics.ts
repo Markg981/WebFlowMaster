@@ -75,6 +75,7 @@ export async function getDashboardMetrics(_userId: number, config: DashboardWidg
         total: sql<number>`count(*) filter (where ${testPlanExecutions.status} not in ('cancelled', 'cancelling'))`,
         passed: sql<number>`count(*) filter (where ${testPlanExecutions.status} = 'completed')`,
         failed: sql<number>`count(*) filter (where ${testPlanExecutions.status} in ('failed', 'error', 'timed_out'))`,
+        timedOut: sql<number>`count(*) filter (where ${testPlanExecutions.status} = 'timed_out')`,
         avgDuration: sql<number>`coalesce(avg(${testPlanExecutions.executionDurationMs}), 0)`,
       })
       .from(testPlanExecutions)
@@ -85,6 +86,7 @@ export async function getDashboardMetrics(_userId: number, config: DashboardWidg
         date: sql<string>`to_char(${testPlanExecutions.startedAt}, 'YYYY-MM-DD')`,
         passed: sql<number>`count(*) filter (where ${testPlanExecutions.status} = 'completed')`,
         failed: sql<number>`count(*) filter (where ${testPlanExecutions.status} in ('failed', 'error', 'timed_out'))`,
+        timedOut: sql<number>`count(*) filter (where ${testPlanExecutions.status} = 'timed_out')`,
       })
       .from(testPlanExecutions)
       .innerJoin(testPlans, eq(testPlanExecutions.testPlanId, testPlans.id))
@@ -106,7 +108,8 @@ export async function getDashboardMetrics(_userId: number, config: DashboardWidg
       .limit(config.limit ?? 5);
     const totalRuns = Number(stats.total),
       passedRuns = Number(stats.passed),
-      failedRuns = Number(stats.failed);
+      failedRuns = Number(stats.failed),
+      timedOutRuns = Number(stats.timedOut);
     const trend = Array.from({ length: days }, (_, i) => {
       const date = new Date(since);
       date.setUTCDate(date.getUTCDate() + i);
@@ -114,19 +117,29 @@ export async function getDashboardMetrics(_userId: number, config: DashboardWidg
         found = trends.find((row) => row.date === day);
       const passed = Number(found?.passed ?? 0),
         failed = Number(found?.failed ?? 0);
-      return { date: day, passed, failed, total: passed + failed };
+      // `failed` keeps counting timeouts (existing clients); `timedOut` is the subset.
+      return {
+        date: day,
+        passed,
+        failed,
+        timedOut: Number(found?.timedOut ?? 0),
+        total: passed + failed,
+      };
     });
     return {
       kpis: {
         totalRuns,
         successRate: totalRuns ? Math.round((passedRuns / totalRuns) * 100) : 0,
+        timedOutRuns,
         avgDuration: Number(stats.avgDuration),
         lastRun: recent[0] ?? null,
       },
       trend,
       distribution: [
         { status: 'passed', value: passedRuns },
-        { status: 'failed', value: failedRuns },
+        // Slices must not overlap: here `failed` excludes the timeouts shown in their own slice.
+        { status: 'failed', value: failedRuns - timedOutRuns },
+        { status: 'timed_out', value: timedOutRuns },
         { status: 'pending', value: totalRuns - passedRuns - failedRuns },
       ],
       recent,

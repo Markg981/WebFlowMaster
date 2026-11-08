@@ -741,7 +741,14 @@
       "idx": 105,
       "version": "7",
       "when": 1792400000029,
-      "tag": "0105_scim_token_expiry",
+      "tag": "0105_ai_usage",
+      "breakpoints": true
+    },
+    {
+      "idx": 106,
+      "version": "7",
+      "when": 1792400000030,
+      "tag": "0106_scim_token_expiry",
       "breakpoints": true
     }
   ]

@@ -631,6 +631,22 @@ export const auditLog = pgTable(
 export type AuditLogEntry = typeof auditLog.$inferSelect;
 
 /**
+ * Calls made to the external AI provider, per organization and UTC day: the daily cap
+ * (server/authoring/ai-consent.ts, AI_DAILY_CALL_LIMIT). `day` is YYYY-MM-DD.
+ */
+export const aiUsage = pgTable(
+  'ai_usage',
+  {
+    organizationId: integer('organization_id')
+      .notNull()
+      .references(() => organizations.id),
+    day: text('day').notNull(),
+    count: integer('count').default(0).notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.organizationId, table.day] })],
+);
+
+/**
  * A credential for something that is not a person.
  *
  * Everything here was behind a passport session, so a pipeline could only reach the API by

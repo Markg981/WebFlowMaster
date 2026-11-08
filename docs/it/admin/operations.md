@@ -109,11 +109,34 @@ può girare ogni notte dopo `create`: un backup mai ripristinato è una speranza
    diversa da quella del backup (`--ignore-key` lo forza: i segreti vanno poi reinseriti) o quando il
    backup viene da una versione più recente del codice (più migrazioni);
 2. chiede `--yes`; senza, dice cosa andrebbe perso e si ferma;
-3. ferma `api` e `worker`, elimina e ricrea il database, crea il ruolo `app_user` se questo server
-   PostgreSQL non lo ha, e ripristina il dump;
-4. sostituisce le cartelle degli artefatti con gli archivi;
-5. esegue `migrate`, che applica le migrazioni aggiunte dopo il backup, e avvia `api` e `worker`;
-6. confronta di nuovo il risultato con il manifest.
+3. se il backup è cifrato, decifra il dump in un file temporaneo privato (una chiave sbagliata o un file
+   alterato si fermano qui, prima di toccare qualsiasi cosa), poi lo ripristina in un **database
+   temporaneo** `<nome>_restore_<ora>` e lo confronta con il manifest (codice di uscita di `pg_restore`,
+   conteggi, migrazioni, row-level security, grant di `app_user`). Il database in uso non viene toccato
+   finché il controllo non passa;
+4. ferma `api` e `worker`, chiude le connessioni e scambia i nomi con `ALTER DATABASE ... RENAME`: il
+   database in uso diventa `<nome>_prev_<ora>` e quello verificato diventa `<nome>`. **Il vecchio database
+   viene conservato**; lo strumento stampa il comando `DROP DATABASE` da eseguire quando si è soddisfatti;
+5. sostituisce le cartelle degli artefatti con gli archivi;
+6. esegue `migrate`, che applica le migrazioni aggiunte dopo il backup, e avvia `api` e `worker`;
+7. confronta di nuovo il risultato con il manifest.
+
+Serve spazio per una seconda copia del database finché esistono entrambi. Su un PostgreSQL gestito dove
+rinominare un database non è consentito, usare `--in-place --i-understand`: elimina prima il database in
+uso e ripristina in quello vuoto. Se il ripristino fallisce i dati sono persi: fare prima uno snapshot del
+provider.
+
+**Backup cifrati.** `npm run backup:create -- --encrypt` scrive `database.dump.enc` al posto di
+`database.dump` (AES-256-GCM, testo cifrato seguito dal tag di autenticazione). La chiave viene
+dall'ambiente, mai da un'opzione: `BACKUP_ENCRYPTION_KEY` (32 byte, 64 caratteri esadecimali o base64)
+oppure `BACKUP_PASSPHRASE` (derivata con scrypt; il sale è nel manifest). `verify` e `restore` richiedono la
+stessa variabile. Il manifest registra cifrario, derivazione, sale, IV e SHA-256 del testo in chiaro, mai la
+chiave. Conservarla con la `ENCRYPTION_KEY`, separata dal backup: senza non si può leggere. Senza
+`--encrypt`, `create` avverte che il dump è in chiaro. Gli archivi degli artefatti non sono cifrati.
+
+**Artefatti su S3.** Con `ARTIFACT_STORE` uguale a `s3`, `create` stampa un avviso: gli oggetti del bucket
+non sono nel backup e lo strumento non ha l'opzione `--include-s3`. Proteggere il bucket con versioning o
+replica.
 
 Per spostare un'installazione su un server nuovo: installarla lì con `docker compose up -d` e la
 **stessa** `ENCRYPTION_KEY`, copiare la cartella del backup, eseguire `backup:restore`. Le sessioni non

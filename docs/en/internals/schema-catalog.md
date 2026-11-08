@@ -4,7 +4,7 @@ Generated from `shared/schema/` (one file per domain) with `node scripts/generat
 
 Read the [domain schema](./database-schema) for explanations and relationships, then find the table here. Each row lists the TypeScript property, SQL name and complete builder: type, nullability, default and references declared on the column. Table callback constraints are not expanded here.
 
-**86 tables / 1040 declared columns.**
+**87 tables / 1043 declared columns.**
 
 ## Index
 
@@ -34,6 +34,7 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 | [sso_domains](#sso-domains)                                   | `ssoDomains`                 | 4       |
 | [sso_identities](#sso-identities)                             | `ssoIdentities`              | 5       |
 | [audit_log](#audit-log)                                       | `auditLog`                   | 11      |
+| [ai_usage](#ai-usage)                                         | `aiUsage`                    | 3       |
 | [api_keys](#api-keys)                                         | `apiKeys`                    | 11      |
 | [sessions](#sessions)                                         | `sessions`                   | 3       |
 | [tests](#tests)                                               | `tests`                      | 22      |
@@ -451,9 +452,19 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 | `ipAddress`      | `ip_address`      | `text('ip_address')`                                                            |
 | `createdAt`      | `created_at`      | `timestamp('created_at').defaultNow().notNull()`                                |
 
+## ai_usage {#ai-usage}
+
+`aiUsage` — `shared/schema/identity.ts:637`
+
+| TS property      | SQL column        | Declaration                                                                 |
+| ---------------- | ----------------- | --------------------------------------------------------------------------- |
+| `organizationId` | `organization_id` | `integer('organization_id') .notNull() .references(() => organizations.id)` |
+| `day`            | `day`             | `text('day').notNull()`                                                     |
+| `count`          | `count`           | `integer('count').default(0).notNull()`                                     |
+
 ## api_keys {#api-keys}
 
-`apiKeys` — `shared/schema/identity.ts:644`
+`apiKeys` — `shared/schema/identity.ts:660`
 
 | TS property      | SQL column        | Declaration                                                                          |
 | ---------------- | ----------------- | ------------------------------------------------------------------------------------ |
@@ -471,7 +482,7 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 
 ## sessions {#sessions}
 
-`sessions` — `shared/schema/identity.ts:877`
+`sessions` — `shared/schema/identity.ts:893`
 
 | TS property | SQL column | Declaration                     |
 | ----------- | ---------- | ------------------------------- |

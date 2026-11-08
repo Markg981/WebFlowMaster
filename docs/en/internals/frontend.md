@@ -93,11 +93,13 @@ here plus one line in `otherLanguages` in `i18n.ts`.
 The first bundle holds only what every visit needs. Every page, the login page included, is loaded
 when first opened (`App.tsx`), and the Monaco editor when the first editor is shown
 (`components/CodeEditor.tsx`): import Monaco only through `CodeEditor`, never from a page. Every string is written as
-`t('area.key', 'English text')`. Three tests in `locales/locales.test.ts` keep this honest:
+`t('area.key', 'English text')`. Four tests in `locales/locales.test.ts` keep this honest:
 
 - every key English has exists in the other three languages, with the same `{{placeholders}}`;
 - no value is blank or a `[TRANSLATE]` marker, and keys are nested, never dotted;
-- every literal key used in the code exists in English (or in its `_one`/`_other` plural forms).
+- every literal key used in the code exists in English (or in its `_one`/`_other` plural forms);
+- no value over 12 characters is left identical to English, except the allowlist in
+  `scripts/i18n-untranslated.mjs` (brand names, protocol terms); run that script to list the leftovers.
 
 Values that vary go into the translation as `{{name}}` placeholders, never concatenated in
 JavaScript: a sentence built in code cannot be translated. Keys used with a `count` have `_one` and
