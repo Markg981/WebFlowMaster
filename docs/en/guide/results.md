@@ -154,6 +154,11 @@ The files of a test in a **restricted project** are available only to the people
 (and to owners). For everyone else they do not exist: they get the same answer as for a file that
 was never written.
 
+The same restriction covers the plan report, the live execution view and the JUnit export (including
+the one fetched with an API key, which acts as the key's user): a test of a restricted project you
+are not on shows only its name and verdict, without steps, logs, network capture or AI analysis, and
+a run that includes such a test cannot be followed live.
+
 A test that visibly handles a credential — a `{{secret_…}}` value, or a field, selector or value
 named _password_ — **records no trace**, even when the plan asks for one; the run log says so.
 Video and screenshots are kept as asked.

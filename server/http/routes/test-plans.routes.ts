@@ -54,7 +54,11 @@ import { AUDIT_ACTIONS } from '@shared/schema';
 import { auditActor, changedFields, recordAudit } from '../../tenancy/audit';
 import { publicExecution, reproducibilitySummary } from '../../execution/execution-provenance';
 import { executionArtifactAvailability } from '../../tenancy/artifact-metering';
-import { relativeArtifactPath, runArtifactAccess } from '../../tenancy/artifact-access';
+import {
+  relativeArtifactPath,
+  resultForViewer,
+  runArtifactAccess,
+} from '../../tenancy/artifact-access';
 import { readAttempts, unitEvidenceView } from '../../execution/execution-units';
 import { evidenceLinker } from '../../reporting/unit-evidence';
 import { evidencePrincipalOf } from '../middleware/require-scope';
@@ -1184,7 +1188,7 @@ router.get(
       const {
         execution,
         plan,
-        testCaseResults,
+        testCaseResults: storedResults,
         nextAttempt,
         attemptHistory,
         warnings,
@@ -1192,6 +1196,9 @@ router.get(
         access,
         unitAttempts,
       } = reportSource;
+      // Every list below reads these rows, never the stored ones: a test of a restricted project the
+      // caller is not on keeps its verdict but loses its log, network capture and AI analysis.
+      const testCaseResults = storedResults.map((r) => resultForViewer(r, access));
       const issueFor = (r: { testName: string; browser: string | null }) => {
         const key = dedupeKeyFor({
           planId: execution.testPlanId,
