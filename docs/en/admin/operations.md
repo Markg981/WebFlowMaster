@@ -107,11 +107,32 @@ can run every night after `create`: a backup that has never been restored is a h
    `ENCRYPTION_KEY` from the backup's (`--ignore-key` overrides it: the secrets must then be entered
    again) or when the backup comes from a newer version than the code (more migrations);
 2. asks for `--yes`; without it, it says what would be lost and stops;
-3. stops `api` and `worker`, drops and recreates the database, creates the `app_user` role if this
-   PostgreSQL server does not have it, and restores the dump;
-4. replaces the artifact folders with the archives;
-5. runs `migrate`, which applies the migrations added since the backup, and starts `api` and `worker`;
-6. compares the result with the manifest again.
+3. decrypts the dump to a private temporary file if the backup is encrypted (a wrong key or an altered
+   file stops here, before anything is touched), then restores it into a **temporary database**
+   `<name>_restore_<time>` and checks it against the manifest (`pg_restore` exit code, row counts,
+   migrations, row-level security, `app_user` grants). The live database is not touched until this passes;
+4. stops `api` and `worker`, ends the connections and swaps names with `ALTER DATABASE ... RENAME`: the
+   live database becomes `<name>_prev_<time>` and the verified one becomes `<name>`. **The old database is
+   kept**; the tool prints the `DROP DATABASE` command to run once you are satisfied;
+5. replaces the artifact folders with the archives;
+6. runs `migrate`, which applies the migrations added since the backup, and starts `api` and `worker`;
+7. compares the result with the manifest again.
+
+Keep disk space for a second copy of the database while both exist. On a managed PostgreSQL service where
+renaming a database is not allowed, use `--in-place --i-understand`: it drops the live database first and
+restores into the empty one. If that restore fails the data is gone, so take a provider snapshot first.
+
+**Encrypted backups.** `npm run backup:create -- --encrypt` writes `database.dump.enc` instead of
+`database.dump` (AES-256-GCM, ciphertext followed by the authentication tag). The key comes from the
+environment, never from a flag: `BACKUP_ENCRYPTION_KEY` (32 bytes, 64 hex characters or base64) or
+`BACKUP_PASSPHRASE` (derived with scrypt; the salt is in the manifest). `verify` and `restore` need the
+same variable. The manifest records cipher, key derivation, salt, IV and the SHA-256 of the plaintext,
+never the key. Store it with the `ENCRYPTION_KEY`, apart from the backup: without it the backup cannot
+be read. Without `--encrypt`, `create` warns that the dump is in clear. The artifact archives are not
+encrypted.
+
+**S3 artifacts.** When `ARTIFACT_STORE` is `s3`, `create` prints a warning: the bucket's objects are not in
+the backup, and the tool has no `--include-s3` option. Protect the bucket with versioning or replication.
 
 To move an installation to a new server: install it there with `docker compose up -d` and the
 **same** `ENCRYPTION_KEY`, copy the backup folder, run `backup:restore`. Sessions do not move with it:
