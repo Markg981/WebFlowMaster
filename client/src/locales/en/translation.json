@@ -466,6 +466,23 @@
       "cancel": "Cancel",
       "new": "New custom action",
       "loading": "Loading custom actions…"
+    },
+    "sessions": {
+      "title": "Signed-in sessions",
+      "description": "Browsers and devices signed in to your account. End any you do not recognise.",
+      "current": "This session",
+      "created": "Started",
+      "lastSeen": "Last active",
+      "device": "Device",
+      "ip": "Network (shortened)",
+      "revoke": "End session",
+      "revokeOthers": "End all other sessions",
+      "none": "No other sessions.",
+      "loadFailed": "Could not load the sessions.",
+      "revokeTitle": "End this session?",
+      "revokeDescription": "The browser or device is signed out at once.",
+      "revokeOthersTitle": "End all other sessions?",
+      "revokeOthersDescription": "Every other browser and device is signed out at once. This one stays signed in."
     }
   },
   "dashboard": {
@@ -3204,6 +3221,8 @@
       "auth_login_failed": "Sign-in refused",
       "auth_account_locked": "Account temporarily locked",
       "auth_logout": "Signed out",
+      "auth_session_revoked": "Session ended",
+      "auth_sessions_revoked_others": "Other sessions ended",
       "test_created": "Test created",
       "test_updated": "Test changed",
       "test_deleted": "Test deleted",

@@ -482,7 +482,7 @@ Leggere prima lo [schema per dominio](./database-schema) per le spiegazioni e le
 
 ## sessions {#sessions}
 
-`sessions` — `shared/schema/identity.ts:895`
+`sessions` — `shared/schema/identity.ts:898`
 
 | Proprietà TS | Colonna SQL | Dichiarazione                   |
 | ------------ | ----------- | ------------------------------- |
