@@ -1,9 +1,15 @@
 import { asyncRouter } from '../../platform/middleware/async-router';
 import { stepListOf } from '@shared/mobile';
 
-import { eq } from 'drizzle-orm';
-import { artifactStore, assertSafeKey, RESULTS_PREFIX } from '../../tenancy/artifact-store';
-import { testPlanExecutions } from '@shared/schema';
+import { and, eq, sql } from 'drizzle-orm';
+import {
+  artifactStore,
+  assertSafeKey,
+  BASELINES_PREFIX,
+  RESULTS_PREFIX,
+} from '../../tenancy/artifact-store';
+import { AUDIT_ACTIONS, reportTestCaseResults, testPlanExecutions, tests } from '@shared/schema';
+import { auditActor, recordAudit } from '../../tenancy/audit';
 import type { AccessibilityFinding } from '@shared/accessibility';
 import type { LighthouseFinding, PerformanceFinding } from '@shared/web-performance';
 import type { DownloadFinding } from '@shared/downloads';
@@ -81,6 +87,9 @@ export interface ReportStep {
     baselineImage?: string | null;
     actualImage?: string | null;
     diffImage?: string | null;
+    /** A diff whose image this report can approve as the new baseline (R-1). */
+    approvable?: boolean;
+    approval?: { userId: number; username: string; at: string };
   };
   accessibility?: AccessibilityFinding;
   performance?: PerformanceFinding;
@@ -142,6 +151,19 @@ export function stepsWithArtifactUrls(
             baselineImage: artifactUrl(executionId, step.visual.baselineImage, available),
             actualImage: artifactUrl(executionId, step.visual.actualImage, available),
             diffImage: artifactUrl(executionId, step.visual.diffImage, available),
+            approvable:
+              step.visual.outcome === 'diff' &&
+              typeof step.visual.baselineKey === 'string' &&
+              !!artifactUrl(executionId, step.visual.actualImage, available) &&
+              !step.visual.approval,
+            approval:
+              step.visual.approval && typeof step.visual.approval.at === 'string'
+                ? {
+                    userId: Number(step.visual.approval.userId),
+                    username: String(step.visual.approval.username ?? ''),
+                    at: step.visual.approval.at,
+                  }
+                : undefined,
           }
         : undefined,
       // Selectors and rule names, no images: passed through as the runner wrote it.
@@ -272,6 +294,166 @@ router.get(
       res.destroy(error);
     });
     artifact.stream.pipe(res);
+  },
+);
+
+// POST /api/test-plan-executions/:executionId/results/:resultId/steps/:stepIndex/visual/approve
+// Accepts the failed run's image as the step's new baseline (R-1). The editor role, and the
+// project's own access when it is restricted; the next run compares against this image.
+const approveLimit = sessionRateLimit();
+
+/** A stored step, as far as an approval reads and writes it. */
+interface StoredStep {
+  visual?: {
+    outcome?: string;
+    baselineKey?: unknown;
+    actualImage?: unknown;
+    diffRatio?: unknown;
+    approval?: { userId: number; username: string; at: string };
+  };
+}
+router.post(
+  '/api/test-plan-executions/:executionId/results/:resultId/steps/:stepIndex/visual/approve',
+  approveLimit,
+  requireRole('editor'),
+  async (req, res) => {
+    if (!req.isAuthenticated() || !req.user) return res.status(401).json({ error: 'Unauthorized' });
+    const { executionId, resultId } = req.params;
+    const stepIndex = Number(req.params.stepIndex);
+    if (!Number.isInteger(stepIndex) || stepIndex < 0) {
+      return res.status(400).json({ error: 'Invalid step.', code: 'invalid_step' });
+    }
+    const organizationId = req.user.organizationId;
+
+    try {
+      const checked = await withTenantTransaction(async (tx) => {
+        // RLS answers for another organization's run: absent, not forbidden.
+        const [row] = await tx
+          .select({
+            id: reportTestCaseResults.id,
+            detailedLog: reportTestCaseResults.detailedLog,
+            testPlanId: testPlanExecutions.testPlanId,
+            testId: reportTestCaseResults.uiTestId,
+            projectId: tests.projectId,
+            editable: sql<boolean>`app_project_editable(${tests.projectId})`,
+          })
+          .from(reportTestCaseResults)
+          .innerJoin(
+            testPlanExecutions,
+            eq(testPlanExecutions.id, reportTestCaseResults.testPlanExecutionId),
+          )
+          .leftJoin(tests, eq(tests.id, reportTestCaseResults.uiTestId))
+          .where(
+            and(
+              eq(reportTestCaseResults.id, resultId),
+              eq(reportTestCaseResults.testPlanExecutionId, executionId),
+            ),
+          )
+          .limit(1);
+        if (!row) return { status: 404, code: 'result_not_found' } as const;
+        // A test without a project (or one since deleted) has no project to restrict.
+        if (row.projectId !== null && !row.editable) {
+          return { status: 403, code: 'project_read_only' } as const;
+        }
+
+        let steps: StoredStep[];
+        try {
+          const parsed = stepListOf(JSON.parse(row.detailedLog ?? '[]'));
+          steps = (Array.isArray(parsed) ? parsed : []).filter(
+            (step): step is StoredStep => !!step && typeof step === 'object',
+          );
+        } catch {
+          return { status: 404, code: 'step_not_found' } as const;
+        }
+        const visual = steps[stepIndex]?.visual;
+        if (!visual) return { status: 404, code: 'step_not_found' } as const;
+        if (visual.outcome !== 'diff' || typeof visual.baselineKey !== 'string') {
+          return { status: 409, code: 'not_a_visual_diff' } as const;
+        }
+        if (visual.approval) return { status: 409, code: 'already_approved' } as const;
+
+        // The baseline must be this organization's own: never trust a key stored in a row alone.
+        let baselineKey: string;
+        let actualKey: string;
+        try {
+          baselineKey = assertSafeKey(visual.baselineKey);
+          if (!baselineKey.startsWith(`${BASELINES_PREFIX}org_${organizationId}/`)) {
+            return { status: 409, code: 'not_a_visual_diff' } as const;
+          }
+          const relative = relativeArtifactPath(
+            executionId,
+            typeof visual.actualImage === 'string' ? visual.actualImage : null,
+          );
+          if (!relative) return { status: 409, code: 'image_unavailable' } as const;
+          actualKey = assertSafeKey(
+            `${RESULTS_PREFIX}${row.testPlanId}/${executionId}/${relative}`,
+          );
+        } catch {
+          return { status: 409, code: 'image_unavailable' } as const;
+        }
+
+        return {
+          status: 200,
+          baselineKey,
+          actualKey,
+          testId: row.testId,
+          diffRatio: typeof visual.diffRatio === 'number' ? visual.diffRatio : null,
+        } as const;
+      });
+
+      if (checked.status !== 200) {
+        return res.status(checked.status).json({ error: checked.code, code: checked.code });
+      }
+
+      // Outside the transaction: a metered store opens its own to count the bytes it keeps.
+      const store = artifactStore();
+      const image = await store.read(checked.actualKey);
+      if (!image)
+        return res.status(409).json({ error: 'image_unavailable', code: 'image_unavailable' });
+      await store.write(checked.baselineKey, image, 'image/png');
+
+      const actor = auditActor(req);
+      const approval = { userId: actor.id, username: actor.username, at: new Date().toISOString() };
+      const recorded = await withTenantTransaction(async (tx) => {
+        const [current] = await tx
+          .select({ detailedLog: reportTestCaseResults.detailedLog })
+          .from(reportTestCaseResults)
+          .where(eq(reportTestCaseResults.id, resultId))
+          .for('update');
+        const steps = stepListOf(JSON.parse(current?.detailedLog ?? '[]')) as StoredStep[];
+        const visual = steps[stepIndex]?.visual;
+        if (!visual) return false;
+        visual.approval = approval;
+        await tx
+          .update(reportTestCaseResults)
+          .set({ detailedLog: JSON.stringify(steps) })
+          .where(eq(reportTestCaseResults.id, resultId));
+        await recordAudit(tx, {
+          action: AUDIT_ACTIONS.VISUAL_BASELINE_APPROVED,
+          actor,
+          targetType: 'test_plan_execution',
+          targetId: executionId,
+          metadata: {
+            resultId,
+            testId: checked.testId,
+            stepIndex,
+            baselineKey: checked.baselineKey,
+            diffRatio: checked.diffRatio,
+          },
+        });
+        return true;
+      });
+      if (!recorded)
+        return res.status(404).json({ error: 'step_not_found', code: 'step_not_found' });
+      res.json({ approval });
+    } catch (error) {
+      logger.error({
+        message: 'Failed to approve a visual baseline',
+        executionId,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      res.status(500).json({ error: 'Failed to approve the baseline.' });
+    }
   },
 );
 

@@ -1,4 +1,5 @@
 import { resolvePort } from './platform/config';
+import { resolveEventLoopLagMs } from './platform/event-loop-lag';
 import { registrationMode } from './identity/registration';
 import { trustProxySetting } from './platform/trust-proxy';
 import { masterKeyForm } from './platform/master-keys';
@@ -43,6 +44,11 @@ export function startupConfigErrors(env: NodeJS.ProcessEnv = process.env): strin
     );
   }
   errors.push(...installationAdminsErrors(env.INSTALLATION_ADMINS));
+  try {
+    resolveEventLoopLagMs(env);
+  } catch (error) {
+    errors.push(error instanceof Error ? error.message : String(error));
+  }
   return errors;
 }
 

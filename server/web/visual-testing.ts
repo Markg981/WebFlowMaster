@@ -72,6 +72,8 @@ export type VisualOutcome =
       kind: 'diff';
       diffRatio: number;
       baselinePath: string;
+      /** The baseline's key in the artifact store, so an approval can replace it. */
+      baselineKey: string;
       /** Written into the run's directory, so the report can link all three. */
       artifacts: { baseline?: string; actual?: string; diff?: string };
       detail: string;
@@ -272,6 +274,7 @@ export async function compareStepScreenshot(
         kind: 'diff',
         diffRatio: 1,
         baselinePath,
+        baselineKey: key,
         artifacts,
         detail:
           `Visual difference: the page is a different size than the baseline ` +
@@ -310,6 +313,7 @@ export async function compareStepScreenshot(
       kind: 'diff',
       diffRatio,
       baselinePath,
+      baselineKey: key,
       artifacts,
       detail:
         `Visual difference: ${formatPercent(diffRatio)} of pixels changed ` +

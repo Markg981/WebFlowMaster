@@ -119,6 +119,10 @@ export interface StepResult {
     cause?: VisualErrorCause;
     detail: string;
     diffRatio?: number;
+    /** Where the baseline this run was compared with lives in the artifact store. */
+    baselineKey?: string;
+    /** Set when a member approved this run's image as the new baseline (R-1). */
+    approval?: { userId: number; username: string; at: string };
     baselineImage?: string;
     actualImage?: string;
     diffImage?: string;
