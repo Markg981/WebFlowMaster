@@ -237,6 +237,13 @@ salvato cifrato e mai più mostrato). **Verifica connessione** controlla la sorg
 catalogo** legge tutti i casi in un catalogo tenuto in WebFlowMaster e dice quanti sono nuovi,
 modificati o non più nell'hub. Nessun caso diventa ancora un test.
 
+Il token viene inviato solo ad Azure DevOps: l'URL deve essere https su `dev.azure.com` o
+`*.visualstudio.com`, oppure su un host indicato dall'operatore in `TESTCASE_HUB_AZURE_HOSTS` (Azure
+DevOps Server on premises); ogni altro host viene rifiutato. Se cambia l'host dell'URL, il token
+salvato viene scartato e va reinserito; se cambia solo l'organizzazione o il percorso, resta.
+Impostare il token e **Verifica connessione** sono riservati ai proprietari dell'organizzazione; gli
+editor possono comunque aggiornare il catalogo.
+
 La scheda **Hub dei test case QA** di **Test Manager** (anche `/test-manager?source=hub`) elenca
 il catalogo: id, modulo, priorità, livello di readiness, obiettivo e la posizione di ogni caso
 rispetto alla libreria (non importato, importato, modificato dopo l'import, scomparso
