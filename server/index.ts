@@ -223,6 +223,10 @@ app.use(express.urlencoded({ extended: false }));
   const { startOutboxDispatcher } = await import('./execution/execution-outbox');
   const stopOutboxDispatcher = process.env.NODE_ENV === 'test' ? () => {} : startOutboxDispatcher();
 
+  // Retries notifications a run owes and could not deliver — see server/integrations/deliveries.ts.
+  const { startDeliverySweep } = await import('./integrations/deliveries');
+  const stopDeliverySweep = process.env.NODE_ENV === 'test' ? () => {} : startDeliverySweep();
+
   // Removes the screenshots, videos and traces of runs older than ARTIFACT_RETENTION_DAYS â€”
   // see server/tenancy/artifact-retention.ts.
   const { startArtifactRetention } = await import('./tenancy/artifact-retention');
@@ -305,6 +309,7 @@ app.use(express.urlencoded({ extended: false }));
         await schedulerService.shutdownScheduler();
         stopRunRecovery();
         stopOutboxDispatcher();
+        stopDeliverySweep();
         stopArtifactRetention();
         stopDataRetention();
         stopBillingSweep();

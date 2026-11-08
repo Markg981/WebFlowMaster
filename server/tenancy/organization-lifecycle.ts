@@ -40,6 +40,7 @@ export const NOT_EXPORTED = new Set<string>([
   'password_resets',
   'organization_keys',
   'execution_outbox',
+  'outbound_deliveries',
 ]);
 
 /**

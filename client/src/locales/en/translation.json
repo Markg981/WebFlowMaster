@@ -4700,6 +4700,15 @@
     "cancel": "Cancel",
     "mobile": "Mobile"
   },
+  "deliveries": {
+    "title": "Deliveries",
+    "description": "Notifications this run owed, with their state. Failed ones are retried for up to 5 attempts over about an hour.",
+    "attempts": "{{count}} attempt(s)",
+    "queued": "Retrying",
+    "sent": "Sent",
+    "failed": "Failed",
+    "webhook": "Webhook"
+  },
   "publications": {
     "failed": "The run was not published.",
     "status": {
