@@ -366,7 +366,10 @@ describe('joining by invitation as an existing account', () => {
     )
       .map((r) => r.status)
       .sort();
-    expect(statuses).toEqual([200, 400]);
+    // The loser sees the spent link (400), or, when the winner already moved the session to the new
+    // organization before the loser was authenticated, a refused session (401): never a second 200.
+    expect(statuses[0]).toBe(200);
+    expect([400, 401]).toContain(statuses[1]);
     const rows = (await membershipRows(alice.id)).filter((m) => m.organizationId === orgB);
     expect(rows).toHaveLength(1);
   });
