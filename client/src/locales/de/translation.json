@@ -2883,6 +2883,8 @@
     "clearSearch": "Suche zurücksetzen",
     "requestFailed": "Etwas ist schiefgelaufen",
     "confirm": "Bestätigen",
+    "typeToConfirm": "Geben Sie „{{text}}“ zur Bestätigung ein",
+    "typeToConfirmLabel": "Bestätigungstext",
     "delete": "Löschen",
     "revoke": "Widerrufen",
     "disable": "Deaktivieren",

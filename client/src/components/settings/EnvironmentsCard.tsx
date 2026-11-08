@@ -261,6 +261,7 @@ export default function EnvironmentsCard() {
         description={t('environments.deleteEnvDialog.description')}
         confirmLabel={t('common.delete')}
         destructive
+        requireText={deletingEnv?.name}
         pending={deleteEnvMutation.isPending}
         onConfirm={() => deletingEnv && deleteEnvMutation.mutate(deletingEnv.id)}
       />
