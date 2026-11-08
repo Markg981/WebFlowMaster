@@ -1,0 +1,16 @@
+{
+  "id": "OPS-75",
+  "area": "OPS",
+  "title": "Backup cifrato e ripristino in database temporaneo con scambio",
+  "priority": "P1",
+  "actor": "operatore",
+  "preconditions": "Stack del collaudo con dati; BACKUP_ENCRYPTION_KEY impostata (64 caratteri esadecimali).",
+  "steps": [
+    "npm run backup:create -- --encrypt -p wfm-collaudo -f docker-compose.yml -f collaudo/docker-compose.collaudo.yml; verificare che nella cartella ci sia database.dump.enc e non database.dump.",
+    "npm run backup:verify sulla cartella creata, con la stessa variabile; poi con una chiave diversa.",
+    "npm run backup:restore sulla cartella con --yes e la chiave giusta.",
+    "Aprire l'app, accedere e controllare che progetti, test e report siano presenti; in PostgreSQL elencare i database."
+  ],
+  "expected": "Il verify con la chiave giusta passa, con quella sbagliata fallisce senza toccare nulla. Il restore crea webflowmaster_restore_<ora>, lo verifica, poi lo scambia: l'app parte con i dati del backup e resta il database webflowmaster_prev_<ora>, di cui il comando stampa il DROP DATABASE. Nessuna chiave compare nei log né nel manifest.",
+  "detailHtml": "<p>Copre M-09: dump cifrato a riposo, ripristino verificato prima dello scambio, vecchio database conservato. Con ARTIFACT_STORE=s3 <code>create</code> deve anche stampare l'avviso sugli artefatti nel bucket.</p>"
+}

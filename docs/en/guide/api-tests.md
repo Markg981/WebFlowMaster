@@ -67,8 +67,7 @@ empty, greater than, less than (or equal), matches regex, not matches regex. An 
 switched off without being deleted. The test passes when every enabled assertion does. A test with no enabled assertion passes only if the status is below 400 (an implicit check). A plan run whose plan holds no tests ends in error (`run_empty`), not completed.
 
 The expected value, the property and the header name of an assertion accept variables (`{{token}}`), substituted like the URL. A JSON `null` is not `0` and not empty text: `equals` matches it only with the expected value `null`, numeric comparisons (`greater than`, `less than`…) on `null`, a missing field or an empty value fail with "value is null" / "value is missing" / "value is empty", and `exists` is false for both `null` and a missing field (`not exists` is true).
-A regex is limited to 200 characters and cannot repeat a repeated group such as `(a+)+` (it could
-freeze the server); such an assertion fails at once with an "Invalid regex" message.
+A regex is limited to 200 characters and 100,000 characters of response text. Patterns that repeat a repeated group such as `(a+)+`, or repeat an alternation whose branches start alike such as `(a|aa)+`, are refused at once with an "Invalid regex" message. Every match also runs under a 100 ms time budget on a separate thread: a pattern that is still too slow fails the assertion with "regex timed out after 100 ms" instead of freezing the server. These checks reduce the risk but do not make every pattern fast, so keep patterns simple.
 
 The **response time** runs from sending the request to the last byte of the body, not to the
 headers: a body that trickles in counts in full. The 30-second timeout covers the whole transfer

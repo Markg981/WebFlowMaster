@@ -1,0 +1,14 @@
+{
+  "id": "WEB-88",
+  "area": "WEB",
+  "title": "Il builder dei test si usa senza trascinare (touch e tastiera)",
+  "priority": "P2",
+  "actor": "owner.a",
+  "preconditions": "Un dispositivo touch (o l'emulazione touch del browser) e la pagina Crea test.",
+  "steps": [
+    "Nella palette toccare il pulsante + di un'azione.",
+    "Aggiungere una seconda azione e toccare Sposta lo step su sul secondo step.",
+    "Ripetere da tastiera con Tab ed Invio."
+  ],
+  "expected": "1: l'azione compare come nuovo step senza trascinamento. 2: i due step si scambiano di posizione. 3: gli stessi comandi funzionano da tastiera."
+}

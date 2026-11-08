@@ -1,3 +1,4 @@
+import { aiSkipMessage } from '../../authoring/ai-consent';
 import type { AccessibilityFinding } from '@shared/accessibility';
 import type { BrowserGridProvider } from '@shared/browser-grids';
 import type { DownloadFinding } from '@shared/downloads';
@@ -811,6 +812,19 @@ export class TestRunner {
               },
             });
           }
+          // The AI repair was not asked for (no consent, daily cap): said in the log and the step.
+          const aiSkipNote = reporter.lastAiSkipped
+            ? `AI self-healing ${aiSkipMessage(reporter.lastAiSkipped)}.`
+            : null;
+          if (aiSkipNote && executionId) {
+            wsEmitter.emitExecutionLog(executionId, {
+              level: 'info',
+              source: 'playwright',
+              message: `Step ${i + 1} (${actionName}): ${aiSkipNote}`,
+              timestamp: new Date().toISOString(),
+              metadata: { stepIndex: i, aiSkipped: reporter.lastAiSkipped },
+            });
+          }
           stepResults.push({
             name: actionName,
             type: actionId || 'unknown',
@@ -831,7 +845,7 @@ export class TestRunner {
                 ? healing
                   ? [stepDetail, healing.detail].filter(Boolean).join(' ')
                   : (stepDetail ?? 'Success')
-                : stepError || 'Failed',
+                : [stepError || 'Failed', aiSkipNote].filter(Boolean).join(' '),
             healed: reporter.lastActionHealed,
             ...(healing ? { healing } : {}),
             visual: stepVisual,

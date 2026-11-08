@@ -18,6 +18,10 @@ export async function bddRequest<T>(url: string, method = 'GET', body?: unknown)
       : {}),
   });
   const data = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(data.error ?? `Request failed (${response.status})`);
+  if (!response.ok)
+    throw Object.assign(new Error(data.error ?? `Request failed (${response.status})`), {
+      status: response.status,
+      code: data.code as string | undefined,
+    });
   return data;
 }

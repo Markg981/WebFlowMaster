@@ -1,7 +1,7 @@
 # Organizations & RBAC — Design
 
 **Date:** 2026-07-29
-**Status:** Approved, ready for implementation planning
+**Status:** Approved, ready for implementation planning. **Superseded in part by migration 0086** (see Decisions): an account may belong to several organizations.
 
 ## Goal
 
@@ -29,13 +29,13 @@ instead of closing it.
 
 ## Decisions taken
 
-| Question         | Decision                                                                 |
-| ---------------- | ------------------------------------------------------------------------ |
-| Membership model | One user belongs to exactly one organization. No bridge table.           |
-| Roles            | Three: `owner`, `editor`, `viewer`. Stored on `users`.                   |
-| Enforcement      | Postgres Row-Level Security. The database filters, not the query author. |
-| Binding          | `SET LOCAL ROLE` per request; connection string unchanged.               |
-| Existing data    | One organization per existing user; that user becomes its owner.         |
+| Question         | Decision                                                                                                                                                                                                                                |
+| ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Membership model | ~~One user, one organization, no bridge table.~~ Superseded by migration 0086: `organization_memberships` lists the organizations a user may act in; `users.organization_id` and `users.role` are the organization and role active now. |
+| Roles            | Three: `owner`, `editor`, `viewer`. Stored on `users`.                                                                                                                                                                                  |
+| Enforcement      | Postgres Row-Level Security. The database filters, not the query author.                                                                                                                                                                |
+| Binding          | `SET LOCAL ROLE` per request; connection string unchanged.                                                                                                                                                                              |
+| Existing data    | One organization per existing user; that user becomes its owner.                                                                                                                                                                        |
 
 ---
 

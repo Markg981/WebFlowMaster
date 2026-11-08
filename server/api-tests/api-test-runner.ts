@@ -2,6 +2,7 @@ import { AuthParamsSchema, type ApiTest, type Assertion, type AuthParams } from 
 import { runGrpc, runWebSocket, xpathValue, type ProtocolResponse } from './api-protocols';
 import { fetchTarget, substituteInValues, substituteVariables } from '../platform/outbound-http';
 import { compileSafeRegex, safeRegexTest } from '../platform/utils/safe-regex';
+import { RegexTimeoutError } from '../platform/utils/regex-guard';
 import { findUnresolvedVariables } from '../runtime/variables';
 import {
   ProtocolConfigSchema,
@@ -236,6 +237,11 @@ export function getValueByPath(obj: any, path: string): any {
   return current;
 }
 
+function regexFailure(target: string | undefined, error: unknown): string {
+  if (error instanceof RegexTimeoutError) return `Regex ${target} ${error.message}`;
+  return `Invalid regex: ${target} (${(error as Error).message})`;
+}
+
 /**
  * Numeric reading of a value for `greater_than` and friends. `null`, absent and empty values are
  * not 0 (`Number(null)` is): they fail with a message instead of passing `less_than`.
@@ -301,13 +307,13 @@ export function compare(
       try {
         return safeRegexTest(compileSafeRegex(target ?? ''), text);
       } catch (error) {
-        return `Invalid regex: ${target} (${(error as Error).message})`;
+        return regexFailure(target, error);
       }
     case 'not_matches_regex':
       try {
         return !safeRegexTest(compileSafeRegex(target ?? ''), text);
       } catch (error) {
-        return `Invalid regex: ${target} (${(error as Error).message})`;
+        return regexFailure(target, error);
       }
     case 'greater_than':
     case 'less_than':
