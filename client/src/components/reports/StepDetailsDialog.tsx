@@ -24,6 +24,7 @@ import type { NetworkSummary } from '@shared/network';
 import type { AttemptView, EvidenceLinks, UnitEvidenceView } from '@shared/execution-identity';
 import type { HealingProposalStatus, StepHealing } from '@shared/healing';
 import { Button } from '@/components/ui/button';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 
 /**
  * What a test actually did, step by step.
@@ -43,6 +44,9 @@ export interface ReportStepVisual {
   baselineImage?: string | null;
   actualImage?: string | null;
   diffImage?: string | null;
+  /** A diff whose run image an editor may approve as the new baseline (R-1). */
+  approvable?: boolean;
+  approval?: { userId: number; username: string; at: string };
 }
 
 export interface ReportStep {
@@ -90,6 +94,9 @@ interface StepDetailsDialogProps {
    * (shared/execution-identity.ts). Absent for a result from before runs kept a manifest.
    */
   unitEvidence?: UnitEvidenceView | null;
+  /** The run and result the steps belong to: what approving a visual baseline is addressed with. */
+  executionId?: string | null;
+  resultId?: string | null;
   /** The attempt and row to open on; by default the attempt the result stands on, all rows. */
   initialAttempt?: number | null;
   initialRow?: number | null;
@@ -494,8 +501,40 @@ function ImagePanel({ label, src }: { label: string; src?: string | null }) {
   );
 }
 
-function VisualPanel({ visual }: { visual: ReportStepVisual }) {
+function VisualPanel({
+  visual,
+  approveUrl,
+  canApprove,
+}: {
+  visual: ReportStepVisual;
+  approveUrl: string | null;
+  canApprove: boolean;
+}) {
   const { t } = useTranslation();
+  const [confirming, setConfirming] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+  const [approval, setApproval] = useState(visual.approval ?? null);
+
+  const approve = async () => {
+    if (!approveUrl) return;
+    setBusy(true);
+    setMessage(null);
+    try {
+      const response = await fetch(approveUrl, { method: 'POST', credentials: 'include' });
+      const body = (await response.json().catch(() => ({}))) as {
+        approval?: { userId: number; username: string; at: string };
+      };
+      if (response.ok && body.approval) setApproval(body.approval);
+      else setMessage(t('stepDetails.visual.approveFailed', 'The baseline was not replaced.'));
+    } catch {
+      setMessage(t('stepDetails.visual.approveFailed', 'The baseline was not replaced.'));
+    } finally {
+      setBusy(false);
+      setConfirming(false);
+    }
+  };
+
   const isDiff = visual.outcome === 'diff';
   // A comparison that could not run is not a regression: no red, and the cause beside it.
   const isError = visual.outcome === 'error';
@@ -521,6 +560,44 @@ function VisualPanel({ visual }: { visual: ReportStepVisual }) {
           <ImagePanel label="Difference" src={visual.diffImage} />
         </div>
       )}
+      {approval && (
+        <p className="mt-2 text-xs text-muted-foreground" data-testid="visual-approved">
+          {t(
+            'stepDetails.visual.approvedBy',
+            'Approved as the new baseline by {{user}} on {{date}}',
+            {
+              user: approval.username,
+              date: new Date(approval.at).toLocaleString(),
+            },
+          )}
+        </p>
+      )}
+      {!approval && canApprove && visual.approvable && approveUrl && (
+        <div className="mt-2">
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            disabled={busy}
+            onClick={() => setConfirming(true)}
+          >
+            {t('stepDetails.visual.approve', 'Approve as new baseline')}
+          </Button>
+          {message && <p className="mt-1 text-xs text-destructive">{message}</p>}
+          <ConfirmDialog
+            open={confirming}
+            onOpenChange={setConfirming}
+            title={t('stepDetails.visual.confirmTitle', 'Approve this image as the new baseline?')}
+            description={t(
+              'stepDetails.visual.confirmDescription',
+              'The next run of this step is compared with the image of this run. The previous baseline is replaced.',
+            )}
+            confirmLabel={t('stepDetails.visual.approve', 'Approve as new baseline')}
+            pending={busy}
+            onConfirm={approve}
+          />
+        </div>
+      )}
     </div>
   );
 }
@@ -541,6 +618,8 @@ const StepDetailsDialog: React.FC<StepDetailsDialogProps> = ({
   initialAttempt,
   initialRow,
   canDecideHealing = false,
+  executionId,
+  resultId,
 }) => {
   const { t } = useTranslation();
   const attempts = unitEvidence?.attempts ?? [];
@@ -744,7 +823,17 @@ const StepDetailsDialog: React.FC<StepDetailsDialogProps> = ({
                       )}
                     </p>
                   )}
-                  {step.visual && <VisualPanel visual={step.visual} />}
+                  {step.visual && (
+                    <VisualPanel
+                      visual={step.visual}
+                      canApprove={canDecideHealing}
+                      approveUrl={
+                        executionId && resultId
+                          ? `/api/test-plan-executions/${encodeURIComponent(executionId)}/results/${encodeURIComponent(resultId)}/steps/${steps.indexOf(step)}/visual/approve`
+                          : null
+                      }
+                    />
+                  )}
                   {step.accessibility && <AccessibilityPanel finding={step.accessibility} />}
                   {step.performance && <SpeedPanel finding={step.performance} />}
                   {step.lighthouse && <LighthousePanel finding={step.lighthouse} />}
