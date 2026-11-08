@@ -18,6 +18,7 @@
  * WFM never writes to the hub: the way back is an export file in the hub's own format.
  */
 import fs from 'fs/promises';
+import { constants as fsConstants } from 'fs';
 import path from 'path';
 import { createHash, randomUUID } from 'crypto';
 import type { Request } from 'express';
@@ -120,8 +121,18 @@ function isWaveFile(name: string): boolean {
 }
 
 /** Reads a wave file through one handle, so the size check and the read see the same file. */
-async function readWaveFile(file: string): Promise<Buffer | null> {
-  const handle = await fs.open(file, 'r').catch(() => null);
+async function readWaveFile(base: string, file: string): Promise<Buffer | null> {
+  // The real path must stay under the hub folder, and a final symlink is not followed.
+  const [realBase, real] = await Promise.all([
+    fs.realpath(base).catch(() => null),
+    fs.realpath(file).catch(() => null),
+  ]);
+  if (!realBase || !real) return null;
+  const relative = path.relative(realBase, real);
+  if (relative.startsWith('..') || path.isAbsolute(relative)) return null;
+  const handle = await fs
+    .open(real, fsConstants.O_RDONLY | (fsConstants.O_NOFOLLOW ?? 0))
+    .catch(() => null);
   if (!handle) return null;
   try {
     const stat = await handle.stat();
@@ -132,8 +143,8 @@ async function readWaveFile(file: string): Promise<Buffer | null> {
   }
 }
 
-async function hashFile(file: string): Promise<string | null> {
-  const content = await readWaveFile(file);
+async function hashFile(base: string, file: string): Promise<string | null> {
+  const content = await readWaveFile(base, file);
   return content ? createHash('sha256').update(content).digest('hex') : null;
 }
 
@@ -152,7 +163,7 @@ export function folderWaveReader(folder: string): WaveReader {
           .filter((file) => file.isFile() && isWaveFile(file.name))
           .slice(0, WAVE_LIMITS.maxFilesPerWave);
         for (const file of names) {
-          const hash = await hashFile(path.join(root, entry.name, file.name));
+          const hash = await hashFile(folder, path.join(root, entry.name, file.name));
           if (hash) files[file.name] = hash;
         }
         if (files[HUB_WAVE_FILE]) waves.push({ folder: entry.name, files });
@@ -164,7 +175,7 @@ export function folderWaveReader(folder: string): WaveReader {
     async read(wave) {
       const out = new Map<string, Buffer>();
       for (const name of Object.keys(wave.files)) {
-        const content = await readWaveFile(path.join(root, wave.folder, name));
+        const content = await readWaveFile(folder, path.join(root, wave.folder, name));
         if (content) out.set(name, content);
       }
       return out;
@@ -230,7 +241,9 @@ export async function waveReaderOf(
   deps: HubReaderDeps & { env?: NodeJS.ProcessEnv; token?: string | null } = {},
 ): Promise<WaveReader> {
   if (source.kind === 'folder')
-    return folderWaveReader(await resolveHubFolder(source.path ?? '', deps.env));
+    return folderWaveReader(
+      await resolveHubFolder(source.path ?? '', deps.env, source.organizationId),
+    );
   if (!deps.token)
     throw new HubSourceError(400, 'token_missing', 'The Azure DevOps source has no token.');
   return azureDevOpsWaveReader(

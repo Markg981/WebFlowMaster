@@ -17,6 +17,7 @@ export const ADVISORY_KEYS = {
   artifactRetention: 1,
   runRecovery: 2,
   migrator: 3,
+  dataRetention: 4,
 } as const;
 
 const localHeld = new Set<number>();
@@ -85,6 +86,10 @@ export async function withBlockingAdvisoryLock<T>(
   if (!connectionString || !/^postgres(ql)?:\/\//.test(connectionString)) return fn();
   const { Client } = await import('pg');
   const client = new Client({ connectionString });
+  // A dropped connection while waiting would otherwise be an uncaught 'error' event.
+  client.on('error', (error: Error) => {
+    logger.warn({ message: 'Advisory lock client error', error: error.message });
+  });
   await client.connect();
   try {
     await client.query('SELECT pg_advisory_lock($1,$2)', [NAMESPACE, key]);

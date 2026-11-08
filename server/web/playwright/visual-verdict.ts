@@ -20,6 +20,7 @@ export function stepVisualOf(outcome: VisualOutcome): NonNullable<StepResult['vi
         outcome: 'diff',
         detail: outcome.detail,
         diffRatio: outcome.diffRatio,
+        baselineKey: outcome.baselineKey,
         baselineImage: outcome.artifacts.baseline,
         actualImage: outcome.artifacts.actual,
         diffImage: outcome.artifacts.diff,

@@ -2837,6 +2837,8 @@
       },
       "active": "Active",
       "inactive": "Inactive",
+      "lastRefusal": "Last run did not start ({{code}}), {{when}}",
+      "lastRefusalRun": "See the run",
       "deleteSchedule": "Delete Schedule"
     },
     "toast": {
@@ -3177,7 +3179,8 @@
       "load_test": "Load tests",
       "step_group": "Step groups",
       "project_element": "Element repository",
-      "healing_proposal": "Healing proposals"
+      "healing_proposal": "Healing proposals",
+      "visual_baseline": "Visual baselines"
     },
     "actions": {
       "bdd_profile_created": "BDD profile created",
@@ -3324,7 +3327,8 @@
       "testcase_hub_wave_session_created": "Session created from a QA hub wave",
       "browser_grid_created": "Browser grid added",
       "browser_grid_updated": "Browser grid changed",
-      "browser_grid_deleted": "Browser grid removed"
+      "browser_grid_deleted": "Browser grid removed",
+      "visual_baseline_approved": "Visual baseline approved"
     }
   },
   "security": {
@@ -5531,6 +5535,13 @@
       "approve": "Approve",
       "reject": "Reject",
       "failed": "The decision was not saved."
+    },
+    "visual": {
+      "approve": "Approve as new baseline",
+      "confirmTitle": "Approve this image as the new baseline?",
+      "confirmDescription": "The next run of this step is compared with the image of this run. The previous baseline is replaced.",
+      "approvedBy": "Approved as the new baseline by {{user}} on {{date}}",
+      "approveFailed": "The baseline was not replaced."
     }
   },
   "testConflict": {

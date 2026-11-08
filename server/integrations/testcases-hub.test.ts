@@ -19,6 +19,7 @@ import {
   HubSourceError,
   allowedHubRoots,
   readAzureDevOpsHub,
+  readBodyLimited,
   readHubFolder,
   readZipEntries,
   resolveHubFolder,
@@ -662,5 +663,66 @@ describe('readAzureDevOpsHub', () => {
     await expect(
       readAzureDevOpsHub({ ...config(), baseUrl: 'http://127.0.0.1:9/my-org' }),
     ).rejects.toMatchObject({ status: 502, code: 'upstream_unreachable' });
+  });
+});
+
+describe('hub hardening', () => {
+  it('scopes folder roots per organization when TESTCASE_HUB_ROOTS_BY_ORG is set', async () => {
+    const env = {
+      TESTCASE_HUB_ROOTS: rootDir,
+      TESTCASE_HUB_ROOTS_BY_ORG: JSON.stringify({ '1': rootDir }),
+    };
+    expect(allowedHubRoots(env, 1)).toEqual([path.resolve(rootDir)]);
+    expect(allowedHubRoots(env, 2)).toEqual([]);
+    await expect(resolveHubFolder(hubDir, env, 2)).rejects.toMatchObject({
+      code: 'folder_sources_disabled',
+    });
+    expect(await resolveHubFolder(hubDir, env, 1)).toBe(await fs.realpath(hubDir));
+  });
+
+  it('refuses a definition that is a symlink to a file outside the hub', async () => {
+    const outside = path.join(rootDir, 'outside-secret.json');
+    await fs.writeFile(outside, JSON.stringify(definition({ id: 'ARC_TC_09999' })));
+    const caseDir = path.join(hubDir, 'TestCasesDefinitions', 'ARC', 'ARC_TC_09999');
+    await fs.mkdir(caseDir, { recursive: true });
+    try {
+      await fs.symlink(outside, path.join(caseDir, 'definition.json'));
+    } catch {
+      return; // symlinks not permitted on this machine
+    }
+    try {
+      const snapshot = await readHubFolder(hubDir);
+      expect(snapshot.cases.map((c) => c.caseId)).not.toContain('ARC_TC_09999');
+    } finally {
+      await fs.rm(caseDir, { recursive: true, force: true });
+    }
+  });
+
+  it('refuses a body over the limit before buffering it', async () => {
+    let pulled = 0;
+    const body = new ReadableStream<Uint8Array>({
+      pull(controller) {
+        pulled += 1024;
+        controller.enqueue(new Uint8Array(1024));
+      },
+    });
+    await expect(readBodyLimited(new Response(body), 10_000, 'The answer')).rejects.toMatchObject({
+      code: 'too_large',
+    });
+    expect(pulled).toBeLessThan(100_000);
+    const declared = new Response('x', { headers: { 'content-length': '999999999' } });
+    await expect(readBodyLimited(declared, 1000, 'The answer')).rejects.toMatchObject({
+      code: 'too_large',
+    });
+  });
+
+  it('caps the inflated size of a whole zip', () => {
+    const zip = buildZip([
+      { name: 'a', data: Buffer.alloc(900, 1) },
+      { name: 'b', data: Buffer.alloc(900, 2) },
+    ]);
+    expect(() => readZipEntries(zip, { ...HUB_LIMITS, maxZipTotalBytes: 1000 })).toThrow(
+      /expands to too much data/,
+    );
   });
 });

@@ -247,6 +247,16 @@ come _broken_ sotto **Visual comparison errors**, JUnit scrive un `<error>`. Una
 non viene mai sostituita da sola: avviate un run con `updateBaselines: true` (vedi l'[API](../reference/api))
 per accettare gli screenshot di quel run come nuove baseline.
 
+#### Approvare una nuova baseline {#approve-baseline}
+
+Quando una differenza visiva è voluta — un restyling, un nuovo banner — un **editor** o **owner**
+può accettarla dal report: aprire i passi del test e, sul passo con la differenza, premere
+**Approva come nuova baseline** e confermare. L'immagine di quella run sostituisce la baseline
+salvata per quel test, passo, browser e riga del dataset, e il passo mostra chi l'ha approvata e
+quando. La run successiva viene confrontata con la nuova immagine. L'approvazione è scritta nel
+registro di audit (`visual_baseline.approved`). In un progetto riservato serve l'accesso in modifica
+al progetto; i viewer non vedono il pulsante. L'esito della run non cambia: resta fallita.
+
 ### Rete
 
 Quando il piano conserva la rete, il report riassume il traffico di ogni test: quante richieste,

@@ -1,5 +1,5 @@
 import { hashInvitationToken } from '../platform/invitation-token';
-import { describe, it, expect, beforeAll, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeAll, beforeEach, afterEach, vi } from 'vitest';
 import request from 'supertest';
 import express, { type Express } from 'express';
 import { privilegedDb } from '../platform/db';
@@ -306,6 +306,14 @@ describe('session user shape', () => {
 });
 
 describe('per-account login throttle', () => {
+  // The per-address tests below make dozens of fast attempts; the backoff has its own test.
+  beforeEach(() => {
+    process.env.LOGIN_BACKOFF_AFTER = '1000';
+  });
+  afterEach(() => {
+    delete process.env.LOGIN_BACKOFF_AFTER;
+  });
+
   it('locks only the address that guesses, and a success resets the count', async () => {
     await request(app).post('/api/register').send(validCreds).expect(201);
     const wrong = { username: 'alice', password: 'nope-nope-nope' };
@@ -323,25 +331,40 @@ describe('per-account login throttle', () => {
     expect(events.filter((e) => e.action === 'auth.account_locked')).toHaveLength(1);
   });
 
-  it('locks the account for everyone once guesses over many addresses pass the ceiling', async () => {
-    process.env.LOGIN_MAX_FAILURES_ACCOUNT = '12';
+  it('slows the account for everyone with a backoff, never a lock, when guesses come from many addresses', async () => {
+    process.env.LOGIN_BACKOFF_AFTER = '3';
     try {
       await request(app).post('/api/register').send(validCreds).expect(201);
       const wrong = { username: 'alice', password: 'nope-nope-nope' };
-      for (let i = 0; i < 12; i++) {
+      for (let i = 0; i < 4; i++) {
         await request(app)
           .post('/api/login')
           .set('X-Forwarded-For', `10.1.0.${i}`)
           .send(wrong)
           .expect(401);
       }
-      await request(app)
+      const owner = await request(app)
         .post('/api/login')
         .set('X-Forwarded-For', '10.1.1.1')
         .send(validCreds)
         .expect(429);
+      expect(Number(owner.headers['retry-after'])).toBeLessThanOrEqual(300);
+      // Same answer as an account that does not exist went through the same attempts.
+      for (let i = 0; i < 4; i++) {
+        await request(app)
+          .post('/api/login')
+          .set('X-Forwarded-For', `10.2.0.${i}`)
+          .send({ username: 'ghost2', password: 'x' })
+          .expect(401);
+      }
+      const ghost = await request(app)
+        .post('/api/login')
+        .set('X-Forwarded-For', '10.2.1.1')
+        .send({ username: 'ghost2', password: 'x' })
+        .expect(429);
+      expect(ghost.body).toEqual(owner.body);
     } finally {
-      delete process.env.LOGIN_MAX_FAILURES_ACCOUNT;
+      delete process.env.LOGIN_BACKOFF_AFTER;
     }
   });
 

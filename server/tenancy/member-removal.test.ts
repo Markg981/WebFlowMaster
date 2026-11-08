@@ -1,7 +1,12 @@
 import { describe, it, expect } from 'vitest';
 import { sql } from 'drizzle-orm';
 import { privilegedDb } from '../platform/db';
-import { TRANSFERRED_ON_REMOVAL } from './member-removal';
+import { TRANSFERRED_ON_REMOVAL, pseudonymizeMemberAudit } from './member-removal';
+import { runWithTenant, withTenantTransaction } from '../platform/middleware/tenancy';
+import { recordAudit } from './audit';
+import { AUDIT_ACTIONS } from '@shared/schema';
+import { createTestOrganization, createTestUser } from '../tests/factories';
+import { eraseOrganization } from './organization-lifecycle';
 
 /**
  * Every constraint that points at users decides what removing a member does to that column, so
@@ -121,5 +126,51 @@ describe('what removing a member does to each reference to users', () => {
     expect(
       constraints.filter((c) => PROVENANCE.includes(c.reference) && c.onDelete !== 'n'),
     ).toEqual([]);
+  });
+});
+
+describe('audit pseudonymization on removal (audit M-12)', () => {
+  it('replaces the name in that person’s entries of their organization only, keeping the id', async () => {
+    const orgA = await createTestOrganization('Pseudo A');
+    const orgB = await createTestOrganization('Pseudo B');
+    try {
+      const userA = await createTestUser(orgA, 'pseudo_a');
+      const other = await createTestUser(orgA, 'pseudo_other');
+      const log = (org: number, id: number, username: string) =>
+        runWithTenant(org, () =>
+          withTenantTransaction((tx) =>
+            recordAudit(tx, { action: AUDIT_ACTIONS.MEMBER_REMOVED, actor: { id, username } }),
+          ),
+        );
+      await log(orgA, userA, 'pseudo_a');
+      await log(orgA, other, 'pseudo_other');
+      await log(orgB, userA, 'pseudo_a');
+
+      const n = await runWithTenant(orgA, () =>
+        withTenantTransaction((tx) => pseudonymizeMemberAudit(tx, userA)),
+      );
+      expect(n).toBe(1);
+
+      const rows = (
+        await privilegedDb.execute(
+          sql`SELECT organization_id AS org, actor_user_id AS id, actor_username AS name
+              FROM audit_log WHERE organization_id IN (${orgA}, ${orgB})`,
+        )
+      ).rows as { org: number; id: number; name: string }[];
+      const mine = rows.find((r) => r.org === orgA && r.id === userA)!;
+      expect(mine.name).toMatch(/^removed-user-[0-9a-f]{8}$/);
+      expect(rows.find((r) => r.id === other)!.name).toBe('pseudo_other');
+      expect(rows.find((r) => r.org === orgB)!.name).toBe('pseudo_a');
+
+      // The trigger still refuses a plain DELETE or UPDATE from the application path.
+      await expect(
+        runWithTenant(orgA, () =>
+          withTenantTransaction((tx) => tx.execute(sql`DELETE FROM audit_log`)),
+        ),
+      ).rejects.toThrow();
+    } finally {
+      await eraseOrganization(orgA);
+      await eraseOrganization(orgB);
+    }
   });
 });

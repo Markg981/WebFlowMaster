@@ -1,0 +1,16 @@
+{
+  "id": "SEC-109",
+  "area": "SEC",
+  "title": "Accesso: rallentamento progressivo dell'account invece del blocco, risposta identica per un nome inesistente",
+  "priority": "P1",
+  "actor": "utente di prova",
+  "preconditions": "Account di prova esistente; web con LOGIN_BACKOFF_AFTER=3 (o predefinito 5). Un nome inesistente a confronto.",
+  "steps": [
+    "Fare 5 accessi con password errata sull'account, da indirizzi diversi se possibile, poi un sesto subito dopo.",
+    "Ripetere la stessa sequenza con un nome che non esiste e confrontare stato, corpo e intestazione Retry-After.",
+    "Attendere il tempo indicato da Retry-After (al massimo 5 minuti) e accedere con la password giusta.",
+    "Controllare che dopo l'accesso riuscito un nuovo errore non venga ritardato."
+  ],
+  "expected": "Il sesto tentativo ravvicinato riceve 429 con Retry-After, mai un blocco permanente; stato e corpo sono identici per l'account esistente e per il nome inesistente; scaduto il ritardo la password giusta entra e azzera il conteggio.",
+  "detailHtml": "<p>Il ritardo raddoppia (2 s, 4 s, ...) fino a un tetto di 300 s e non conta i tentativi rifiutati.</p>"
+}

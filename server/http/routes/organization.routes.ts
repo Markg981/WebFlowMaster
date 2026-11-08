@@ -27,7 +27,7 @@ import { sharedSensitiveRateLimit } from '../middleware/rate-limits';
 import { withTenantTransaction, getTenantOrgId } from '../../platform/middleware/tenancy';
 import { auditActor, recordAudit } from '../../tenancy/audit';
 import { exportOrganization, eraseOrganization } from '../../tenancy/organization-lifecycle';
-import { transferMemberContent } from '../../tenancy/member-removal';
+import { pseudonymizeMemberAudit, transferMemberContent } from '../../tenancy/member-removal';
 import {
   eldestOtherOwner,
   hasOtherMembership,
@@ -795,6 +795,7 @@ router.delete(
           accountDeleted: !belongsElsewhere,
         },
       });
+      await pseudonymizeMemberAudit(tx, userId);
 
       if (belongsElsewhere) {
         // The account stays: its membership here goes, with what was theirs here.

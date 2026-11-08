@@ -4,6 +4,7 @@ import { readdirSync, readFileSync } from 'node:fs';
 import { Registry, Histogram, Counter, Gauge, collectDefaultMetrics } from 'prom-client';
 import type { RequestHandler } from 'express';
 import { SpanKind, SpanStatusCode } from '@opentelemetry/api';
+import { resolveEventLoopLagMs, startEventLoopLagMonitor } from '../event-loop-lag';
 import { beginSpan, withSpan, type TraceCarrier } from '../../../shared/telemetry';
 
 const JOBS = new Set([
@@ -320,7 +321,15 @@ export async function startMetricsServer(
     }
     return pendingPoll;
   }
+  const loopMonitor = startEventLoopLagMonitor(resolveEventLoopLagMs(env));
   const server = createServer(async (req, res) => {
+    // Liveness for the container probe: no token (it reveals nothing but ok/not ok) and no
+    // Redis poll. A blocked loop never answers; a loop that answers late says so here.
+    if (req.method === 'GET' && req.url === '/livez') {
+      if (loopMonitor.healthy()) res.writeHead(200).end('ok');
+      else res.writeHead(503).end(`event loop lag ${loopMonitor.lagMs()} ms`);
+      return;
+    }
     if (req.method !== 'GET' || req.url !== '/metrics') {
       res.writeHead(404).end();
       return;
@@ -360,9 +369,11 @@ export async function startMetricsServer(
   });
   return {
     port: (server.address() as { port: number }).port,
-    close: () =>
-      new Promise<void>((resolve, reject) =>
+    close: () => {
+      loopMonitor.stop();
+      return new Promise<void>((resolve, reject) =>
         server.close((error) => (error ? reject(error) : resolve())),
-      ),
+      );
+    },
   };
 }

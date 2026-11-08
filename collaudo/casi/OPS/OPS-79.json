@@ -1,0 +1,14 @@
+{
+  "id": "OPS-79",
+  "area": "OPS",
+  "title": "Liveness del worker rileva l'event loop bloccato",
+  "priority": "P2",
+  "actor": "owner.a",
+  "preconditions": "Worker avviato con WFM_METRICS_ENABLED=true, WFM_METRICS_TOKEN e WFM_METRICS_HOST=0.0.0.0; WORKER_EVENT_LOOP_LAG_MS=1000.",
+  "steps": [
+    "Eseguire curl -i http://<worker>:9465/livez senza token.",
+    "Bloccare il loop del worker (ad esempio con un debugger in pausa) per piu di 2 secondi e ripetere la richiesta.",
+    "Con Helm, verificare che livenessProbe del worker sia httpGet su /livez."
+  ],
+  "expected": "Il primo comando risponde 200 ok; durante il blocco la richiesta non risponde o risponde 503; la sonda Helm usa /livez e riavvia il pod bloccato."
+}

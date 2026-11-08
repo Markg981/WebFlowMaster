@@ -3,11 +3,13 @@ import * as cron from 'node-cron';
 // named import works under Node ESM (tsx) as well as in the bundle.
 import { CronExpressionParser } from 'cron-parser';
 import { privilegedDb } from '../platform/db';
-import { environments, testPlanSchedules, testPlans } from '@shared/schema';
+import { v4 as uuidv4 } from 'uuid';
+import { environments, testPlanExecutions, testPlanSchedules, testPlans } from '@shared/schema';
 import type { TestPlanSchedule, TestPlanExecution, TestPlan } from '@shared/schema';
 import { eq, and, sql } from 'drizzle-orm';
 import logger from '../platform/logger';
 import { ExecutionEnqueueError, executionOrchestrator } from './execution-orchestrator';
+import { announceExecution } from './execution-state';
 import { runWithTenant, withTenantTransaction } from '../platform/middleware/tenancy';
 import { testExecutionQueue } from '../platform/queue';
 
@@ -325,6 +327,71 @@ async function resolveScheduleEnvironment(
   return { environmentId: byName[0]?.id ?? null, label };
 }
 
+/** A schedule occurrence that cannot start, for a reason worth showing to the schedule's owner. */
+class ScheduleRefusal extends Error {
+  constructor(
+    readonly code: string,
+    message: string,
+  ) {
+    super(message);
+    this.name = 'ScheduleRefusal';
+  }
+}
+
+/** Prefix of the `failureCode` of a run that records a refused occurrence. */
+export const SCHEDULE_REFUSAL_PREFIX = 'schedule_refused:';
+
+/**
+ * Writes a refused occurrence down as a run that ended in `error`, so it shows in the run history
+ * and reports and reaches the same listeners (notifications) as any failed run. Never throws: a
+ * record that cannot be written is logged and the scheduler carries on.
+ */
+async function recordRefusedOccurrence(
+  schedule: TestPlanSchedule,
+  occurrence: Date,
+  code: string,
+  detail: string,
+): Promise<TestPlanExecution | null> {
+  try {
+    const now = new Date();
+    const row = await runWithTenant(schedule.organizationId, () =>
+      withTenantTransaction(async (tx) => {
+        const [inserted] = await tx
+          .insert(testPlanExecutions)
+          .values({
+            id: uuidv4(),
+            organizationId: schedule.organizationId,
+            testPlanId: schedule.testPlanId,
+            scheduleId: schedule.id,
+            requestedByUserId: schedule.userId ?? null,
+            status: 'error',
+            triggeredBy: 'scheduled',
+            environment: schedule.environment ?? null,
+            browsers: schedule.browsers ?? null,
+            queuedAt: now,
+            completedAt: now,
+            failureCode: `${SCHEDULE_REFUSAL_PREFIX}${code}`,
+            failureMessage: `The scheduled run of ${occurrence.toISOString()} did not start (${code}): ${detail}`,
+            // Same key as the occurrence's run would have had, under its own suffix: a second
+            // process refusing the same occurrence adds nothing.
+            idempotencyKey: `${occurrenceKey(schedule.id, occurrence)}-refused`,
+          })
+          .onConflictDoNothing()
+          .returning();
+        return inserted;
+      }),
+    );
+    if (row) announceExecution(row);
+    return row ?? null;
+  } catch (e) {
+    logger.error(
+      `[SchedulerService] Could not record the refused occurrence of schedule ${schedule.id}`,
+      e,
+    );
+    return null;
+  }
+}
+
 /**
  * Asks for the run of one scheduled occurrence.
  *
@@ -381,14 +448,18 @@ export async function executeScheduledPlan(
         );
       }
       if (ownerUserId == null) {
-        throw new Error(`Cannot execute schedule ${schedule.id}: no owner user could be resolved.`);
+        throw new ScheduleRefusal(
+          'owner_missing',
+          `Cannot execute schedule ${schedule.id}: no owner user could be resolved.`,
+        );
       }
 
       const environment = await resolveScheduleEnvironment(schedule.environment);
       if (environment.label && environment.environmentId == null) {
         // A run against no environment has no variables and no saved login: it would pass or
         // fail for the wrong reasons, so it does not start. The error log is the signal.
-        throw new Error(
+        throw new ScheduleRefusal(
+          'environment_missing',
           `Schedule ${schedule.id} names environment "${environment.label}", which is not an environment of its organization; the run was not started (environment_missing).`,
         );
       }
@@ -412,11 +483,20 @@ export async function executeScheduledPlan(
   } catch (error: any) {
     // A refused enqueue leaves its own record where there is a run to put it on (the queue
     // refusing a job marks that run); one refused before a run existed has only this.
-    const code = error instanceof ExecutionEnqueueError ? error.code : 'schedule_trigger_failed';
+    const code =
+      error instanceof ExecutionEnqueueError || error instanceof ScheduleRefusal
+        ? error.code
+        : 'schedule_trigger_failed';
     logger.error(
       `[SchedulerService] Schedule ${scheduleAsLoaded.id} could not queue its run (${code}): ${error.message}`,
       { stack: error.stack, scheduleId: scheduleAsLoaded.id },
     );
+    // The log is not where the owner looks: the refusal becomes a run in `error`, in the run
+    // history and the reports like any other failure. One that already has its run (the queue
+    // refused the job) needs no second.
+    if (!(error instanceof ExecutionEnqueueError && error.executionId)) {
+      await recordRefusedOccurrence(scheduleAsLoaded, occurrence, code, error.message);
+    }
     return null;
   } finally {
     // The schedule as it is now. One that is gone or switched off has nothing to advance.
@@ -625,6 +705,12 @@ export async function initializeScheduler() {
           .update(testPlanSchedules)
           .set({ isActive: false, updatedAt: new Date() })
           .where(eq(testPlanSchedules.id, schedule.id));
+        await recordRefusedOccurrence(
+          schedule,
+          new Date(schedule.nextRunAt),
+          'missed_while_down',
+          'the one-off schedule was due while the scheduler was not running, so it was switched off without running.',
+        );
         continue;
       }
       await addScheduleJob(schedule);
@@ -752,6 +838,12 @@ export async function bullmqInitializeScheduler(): Promise<void> {
         .update(testPlanSchedules)
         .set({ isActive: false, updatedAt: new Date() })
         .where(eq(testPlanSchedules.id, schedule.id));
+      await recordRefusedOccurrence(
+        schedule,
+        new Date(schedule.nextRunAt),
+        'missed_while_down',
+        'the one-off schedule was due while the scheduler was not running, so it was switched off without running.',
+      );
       continue;
     }
     await bullmqAddScheduleJob(schedule);
