@@ -180,7 +180,10 @@ const ImpactMapCard: React.FC = () => {
             <div className="space-y-1">
               <Label>{t('impactMap.tag', 'Affect the tests tagged')}</Label>
               <Select value={tagId} onValueChange={setTagId}>
-                <SelectTrigger className="w-48" aria-label={t('impactMap.tag', 'Affect the tests tagged')}>
+                <SelectTrigger
+                  className="w-48"
+                  aria-label={t('impactMap.tag', 'Affect the tests tagged')}
+                >
                   <SelectValue placeholder={t('impactMap.chooseTag', 'Choose a tag')} />
                 </SelectTrigger>
                 <SelectContent>
@@ -207,7 +210,10 @@ const ImpactMapCard: React.FC = () => {
         <section className="space-y-2 rounded-md border p-3">
           <p className="text-sm font-medium">{t('impactMap.tryTitle', 'Try it on a change')}</p>
           <Select value={planId} onValueChange={setPlanId}>
-            <SelectTrigger className="w-64 max-w-full" aria-label={t('impactMap.tryTitle', 'Try it on a change')}>
+            <SelectTrigger
+              className="w-64 max-w-full"
+              aria-label={t('impactMap.tryTitle', 'Try it on a change')}
+            >
               <SelectValue placeholder={t('impactMap.choosePlan', 'Choose a plan')} />
             </SelectTrigger>
             <SelectContent>

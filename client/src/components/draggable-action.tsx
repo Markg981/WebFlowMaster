@@ -72,7 +72,7 @@ export function DraggableAction({
       <Card
         // The refs are now on the wrapper div, Card does not need them directly unless it forwards refs.
         // If Card is a simple div, we can apply refs directly to it. For now, wrapper is safer.
-        className={`p-3 cursor-grab active:cursor-grabbing transition-colors hover:border-primary/40 hover:bg-accent ${
+        className={`group p-3 cursor-grab active:cursor-grabbing transition-colors hover:border-primary/40 hover:bg-accent ${
           isDropTarget ? 'border-dashed' : ''
         } ${
           isActionDragging ? 'opacity-50' : '' // Use renamed isDragging state
@@ -85,7 +85,9 @@ export function DraggableAction({
           <ActionIcon action={action.id} className="h-4 w-4 shrink-0 text-muted-foreground" />
           <div>
             <div className="font-medium text-foreground text-sm">{t(action.name)}</div>
-            <div className="text-xs text-muted-foreground">{t(action.description)}</div>
+            <div className="text-xs text-muted-foreground group-hover:text-accent-foreground">
+              {t(action.description)}
+            </div>
             {/* Display info about the target element if it exists */}
             {targetElement && (
               <div className="mt-1 pt-1 border-t border-border">

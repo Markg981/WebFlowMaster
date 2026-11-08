@@ -125,7 +125,13 @@ function CopyField({ label, value, testId }: { label: string; value: string; tes
     <div className="space-y-1">
       <Label>{label}</Label>
       <div className="flex gap-2">
-        <Input readOnly aria-label={label} value={value} data-testid={testId} className="font-mono text-xs" />
+        <Input
+          readOnly
+          aria-label={label}
+          value={value}
+          data-testid={testId}
+          className="font-mono text-xs"
+        />
         <Button
           type="button"
           variant="outline"
