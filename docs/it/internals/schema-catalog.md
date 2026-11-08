@@ -663,7 +663,7 @@ Leggere prima lo [schema per dominio](./database-schema) per le spiegazioni e le
 
 ## tags {#tags}
 
-`tags` — `shared/schema/authoring.ts:372`
+`tags` — `shared/schema/authoring.ts:373`
 
 | Proprietà TS     | Colonna SQL       | Dichiarazione                                                               |
 | ---------------- | ----------------- | --------------------------------------------------------------------------- |
@@ -674,7 +674,7 @@ Leggere prima lo [schema per dominio](./database-schema) per le spiegazioni e le
 
 ## test_tags {#test-tags}
 
-`testTags` — `shared/schema/authoring.ts:396`
+`testTags` — `shared/schema/authoring.ts:397`
 
 | Proprietà TS     | Colonna SQL       | Dichiarazione                                                                   |
 | ---------------- | ----------------- | ------------------------------------------------------------------------------- |
@@ -689,7 +689,7 @@ Leggere prima lo [schema per dominio](./database-schema) per le spiegazioni e le
 
 ## test_versions {#test-versions}
 
-`testVersions` — `shared/schema/authoring.ts:441`
+`testVersions` — `shared/schema/authoring.ts:442`
 
 | Proprietà TS          | Colonna SQL             | Dichiarazione                                                                                       |
 | --------------------- | ----------------------- | --------------------------------------------------------------------------------------------------- |
@@ -715,7 +715,7 @@ Leggere prima lo [schema per dominio](./database-schema) per le spiegazioni e le
 
 ## test_publications {#test-publications}
 
-`testPublications` — `shared/schema/authoring.ts:505`
+`testPublications` — `shared/schema/authoring.ts:506`
 
 | Proprietà TS     | Colonna SQL       | Dichiarazione                                                                                       |
 | ---------------- | ----------------- | --------------------------------------------------------------------------------------------------- |
@@ -732,7 +732,7 @@ Leggere prima lo [schema per dominio](./database-schema) per le spiegazioni e le
 
 ## test_reviews {#test-reviews}
 
-`testReviews` — `shared/schema/authoring.ts:548`
+`testReviews` — `shared/schema/authoring.ts:550`
 
 | Proprietà TS      | Colonna SQL        | Dichiarazione                                                                                       |
 | ----------------- | ------------------ | --------------------------------------------------------------------------------------------------- |
@@ -752,7 +752,7 @@ Leggere prima lo [schema per dominio](./database-schema) per le spiegazioni e le
 
 ## mobile_tests {#mobile-tests}
 
-`mobileTests` — `shared/schema/authoring.ts:595`
+`mobileTests` — `shared/schema/authoring.ts:597`
 
 | Proprietà TS       | Colonna SQL         | Dichiarazione                                                                   |
 | ------------------ | ------------------- | ------------------------------------------------------------------------------- |
@@ -774,7 +774,7 @@ Leggere prima lo [schema per dominio](./database-schema) per le spiegazioni e le
 
 ## mobile_step_groups {#mobile-step-groups}
 
-`mobileStepGroups` — `shared/schema/authoring.ts:622`
+`mobileStepGroups` — `shared/schema/authoring.ts:627`
 
 | Proprietà TS     | Colonna SQL       | Dichiarazione                                                                   |
 | ---------------- | ----------------- | ------------------------------------------------------------------------------- |
@@ -791,7 +791,7 @@ Leggere prima lo [schema per dominio](./database-schema) per le spiegazioni e le
 
 ## load_tests {#load-tests}
 
-`loadTests` — `shared/schema/authoring.ts:657`
+`loadTests` — `shared/schema/authoring.ts:662`
 
 | Proprietà TS     | Colonna SQL       | Dichiarazione                                                                        |
 | ---------------- | ----------------- | ------------------------------------------------------------------------------------ |
@@ -909,7 +909,7 @@ Leggere prima lo [schema per dominio](./database-schema) per le spiegazioni e le
 
 ## test_plan_schedules {#test-plan-schedules}
 
-`testPlanSchedules` — `shared/schema/execution.ts:140`
+`testPlanSchedules` — `shared/schema/execution.ts:141`
 
 | Proprietà TS                 | Colonna SQL                    | Dichiarazione                                                                              |
 | ---------------------------- | ------------------------------ | ------------------------------------------------------------------------------------------ |
@@ -932,7 +932,7 @@ Leggere prima lo [schema per dominio](./database-schema) per le spiegazioni e le
 
 ## test_plan_executions {#test-plan-executions}
 
-`testPlanExecutions` — `shared/schema/execution.ts:183`
+`testPlanExecutions` — `shared/schema/execution.ts:184`
 
 | Proprietà TS            | Colonna SQL               | Dichiarazione                                                                                    |
 | ----------------------- | ------------------------- | ------------------------------------------------------------------------------------------------ |
@@ -974,7 +974,7 @@ Leggere prima lo [schema per dominio](./database-schema) per le spiegazioni e le
 
 ## execution_outbox {#execution-outbox}
 
-`executionOutbox` — `shared/schema/execution.ts:270`
+`executionOutbox` — `shared/schema/execution.ts:271`
 
 | Proprietà TS     | Colonna SQL       | Dichiarazione                                                                                          |
 | ---------------- | ----------------- | ------------------------------------------------------------------------------------------------------ |
@@ -991,7 +991,7 @@ Leggere prima lo [schema per dominio](./database-schema) per le spiegazioni e le
 
 ## report_test_case_results {#report-test-case-results}
 
-`reportTestCaseResults` — `shared/schema/execution.ts:297`
+`reportTestCaseResults` — `shared/schema/execution.ts:298`
 
 | Proprietà TS          | Colonna SQL              | Dichiarazione                                                                                                 |
 | --------------------- | ------------------------ | ------------------------------------------------------------------------------------------------------------- |
@@ -1030,7 +1030,7 @@ Leggere prima lo [schema per dominio](./database-schema) per le spiegazioni e le
 
 ## execution_logs {#execution-logs}
 
-`executionLogs` — `shared/schema/execution.ts:387`
+`executionLogs` — `shared/schema/execution.ts:388`
 
 | Proprietà TS          | Colonna SQL              | Dichiarazione                                                                                                 |
 | --------------------- | ------------------------ | ------------------------------------------------------------------------------------------------------------- |
@@ -1047,7 +1047,7 @@ Leggere prima lo [schema per dominio](./database-schema) per le spiegazioni e le
 
 ## test_plan_webhooks {#test-plan-webhooks}
 
-`testPlanWebhooks` — `shared/schema/execution.ts:412`
+`testPlanWebhooks` — `shared/schema/execution.ts:413`
 
 | Proprietà TS     | Colonna SQL       | Dichiarazione                                                                              |
 | ---------------- | ----------------- | ------------------------------------------------------------------------------------------ |
@@ -1062,7 +1062,7 @@ Leggere prima lo [schema per dominio](./database-schema) per le spiegazioni e le
 
 ## test_plan_selected_tests {#test-plan-selected-tests}
 
-`testPlanSelectedTests` — `shared/schema/execution.ts:439`
+`testPlanSelectedTests` — `shared/schema/execution.ts:440`
 
 | Proprietà TS     | Colonna SQL       | Dichiarazione                                                                              |
 | ---------------- | ----------------- | ------------------------------------------------------------------------------------------ |
@@ -1076,7 +1076,7 @@ Leggere prima lo [schema per dominio](./database-schema) per le spiegazioni e le
 
 ## run_work_items {#run-work-items}
 
-`runWorkItems` — `shared/schema/execution.ts:468`
+`runWorkItems` — `shared/schema/execution.ts:469`
 
 | Proprietà TS     | Colonna SQL        | Dichiarazione                                                                                       |
 | ---------------- | ------------------ | --------------------------------------------------------------------------------------------------- |
@@ -1096,7 +1096,7 @@ Leggere prima lo [schema per dominio](./database-schema) per le spiegazioni e le
 
 ## execution_units {#execution-units}
 
-`executionUnits` — `shared/schema/execution.ts:504`
+`executionUnits` — `shared/schema/execution.ts:505`
 
 | Proprietà TS     | Colonna SQL       | Dichiarazione                                                                                       |
 | ---------------- | ----------------- | --------------------------------------------------------------------------------------------------- |
@@ -1112,7 +1112,7 @@ Leggere prima lo [schema per dominio](./database-schema) per le spiegazioni e le
 
 ## execution_unit_attempts {#execution-unit-attempts}
 
-`executionUnitAttempts` — `shared/schema/execution.ts:532`
+`executionUnitAttempts` — `shared/schema/execution.ts:533`
 
 | Proprietà TS     | Colonna SQL       | Dichiarazione                                                               |
 | ---------------- | ----------------- | --------------------------------------------------------------------------- |
@@ -1131,7 +1131,7 @@ Leggere prima lo [schema per dominio](./database-schema) per le spiegazioni e le
 
 ## impact_rules {#impact-rules}
 
-`impactRules` — `shared/schema/execution.ts:566`
+`impactRules` — `shared/schema/execution.ts:567`
 
 | Proprietà TS     | Colonna SQL       | Dichiarazione                                                               |
 | ---------------- | ----------------- | --------------------------------------------------------------------------- |
@@ -1143,7 +1143,7 @@ Leggere prima lo [schema per dominio](./database-schema) per le spiegazioni e le
 
 ## test_suites {#test-suites}
 
-`testSuites` — `shared/schema/execution.ts:589`
+`testSuites` — `shared/schema/execution.ts:593`
 
 | Proprietà TS     | Colonna SQL       | Dichiarazione                                                                   |
 | ---------------- | ----------------- | ------------------------------------------------------------------------------- |
@@ -1160,7 +1160,7 @@ Leggere prima lo [schema per dominio](./database-schema) per le spiegazioni e le
 
 ## test_suite_items {#test-suite-items}
 
-`testSuiteItems` — `shared/schema/execution.ts:612`
+`testSuiteItems` — `shared/schema/execution.ts:619`
 
 | Proprietà TS     | Colonna SQL       | Dichiarazione                                                                              |
 | ---------------- | ----------------- | ------------------------------------------------------------------------------------------ |
@@ -1175,7 +1175,7 @@ Leggere prima lo [schema per dominio](./database-schema) per le spiegazioni e le
 
 ## test_plan_suites {#test-plan-suites}
 
-`testPlanSuites` — `shared/schema/execution.ts:633`
+`testPlanSuites` — `shared/schema/execution.ts:644`
 
 | Proprietà TS     | Colonna SQL       | Dichiarazione                                                                              |
 | ---------------- | ----------------- | ------------------------------------------------------------------------------------------ |
@@ -1186,7 +1186,7 @@ Leggere prima lo [schema per dominio](./database-schema) per le spiegazioni e le
 
 ## test_quarantines {#test-quarantines}
 
-`testQuarantines` — `shared/schema/execution.ts:658`
+`testQuarantines` — `shared/schema/execution.ts:669`
 
 | Proprietà TS     | Colonna SQL       | Dichiarazione                                                                    |
 | ---------------- | ----------------- | -------------------------------------------------------------------------------- |
@@ -1205,7 +1205,7 @@ Leggere prima lo [schema per dominio](./database-schema) per le spiegazioni e le
 
 ## mobile_test_runs {#mobile-test-runs}
 
-`mobileTestRuns` — `shared/schema/execution.ts:684`
+`mobileTestRuns` — `shared/schema/execution.ts:695`
 
 | Proprietà TS            | Colonna SQL               | Dichiarazione                                                                                     |
 | ----------------------- | ------------------------- | ------------------------------------------------------------------------------------------------- |
@@ -1230,7 +1230,7 @@ Leggere prima lo [schema per dominio](./database-schema) per le spiegazioni e le
 
 ## load_test_runs {#load-test-runs}
 
-`loadTestRuns` — `shared/schema/execution.ts:718`
+`loadTestRuns` — `shared/schema/execution.ts:729`
 
 | Proprietà TS      | Colonna SQL        | Dichiarazione                                                                                 |
 | ----------------- | ------------------ | --------------------------------------------------------------------------------------------- |
@@ -1360,7 +1360,7 @@ Leggere prima lo [schema per dominio](./database-schema) per le spiegazioni e le
 
 ## browser_grids {#browser-grids}
 
-`browserGrids` — `shared/schema/environments.ts:180`
+`browserGrids` — `shared/schema/environments.ts:183`
 
 | Proprietà TS     | Colonna SQL       | Dichiarazione                                                                |
 | ---------------- | ----------------- | ---------------------------------------------------------------------------- |
@@ -1481,7 +1481,7 @@ Leggere prima lo [schema per dominio](./database-schema) per le spiegazioni e le
 
 ## test_management_publications {#test-management-publications}
 
-`testManagementPublications` — `shared/schema/integrations.ts:199`
+`testManagementPublications` — `shared/schema/integrations.ts:203`
 
 | Proprietà TS          | Colonna SQL              | Dichiarazione                                                                                                  |
 | --------------------- | ------------------------ | -------------------------------------------------------------------------------------------------------------- |
@@ -1502,7 +1502,7 @@ Leggere prima lo [schema per dominio](./database-schema) per le spiegazioni e le
 
 ## requirement_tests {#requirement-tests}
 
-`requirementTests` — `shared/schema/integrations.ts:231`
+`requirementTests` — `shared/schema/integrations.ts:235`
 
 | Proprietà TS     | Colonna SQL       | Dichiarazione                                                                                      |
 | ---------------- | ----------------- | -------------------------------------------------------------------------------------------------- |
@@ -1518,7 +1518,7 @@ Leggere prima lo [schema per dominio](./database-schema) per le spiegazioni e le
 
 ## issue_links {#issue-links}
 
-`issueLinks` — `shared/schema/integrations.ts:272`
+`issueLinks` — `shared/schema/integrations.ts:276`
 
 | Proprietà TS       | Colonna SQL          | Dichiarazione                                                                                   |
 | ------------------ | -------------------- | ----------------------------------------------------------------------------------------------- |
@@ -1541,7 +1541,7 @@ Leggere prima lo [schema per dominio](./database-schema) per le spiegazioni e le
 
 ## test_case_sources {#test-case-sources}
 
-`testCaseSources` — `shared/schema/integrations.ts:324`
+`testCaseSources` — `shared/schema/integrations.ts:330`
 
 | Proprietà TS        | Colonna SQL           | Dichiarazione                                                                |
 | ------------------- | --------------------- | ---------------------------------------------------------------------------- |
@@ -1568,7 +1568,7 @@ Leggere prima lo [schema per dominio](./database-schema) per le spiegazioni e le
 
 ## hub_test_cases {#hub-test-cases}
 
-`hubTestCases` — `shared/schema/integrations.ts:371`
+`hubTestCases` — `shared/schema/integrations.ts:377`
 
 | Proprietà TS            | Colonna SQL                | Dichiarazione                                                                                 |
 | ----------------------- | -------------------------- | --------------------------------------------------------------------------------------------- |
@@ -1608,7 +1608,7 @@ Leggere prima lo [schema per dominio](./database-schema) per le spiegazioni e le
 
 ## hub_waves {#hub-waves}
 
-`hubWaves` — `shared/schema/integrations.ts:442`
+`hubWaves` — `shared/schema/integrations.ts:448`
 
 | Proprietà TS       | Colonna SQL         | Dichiarazione                                                                                 |
 | ------------------ | ------------------- | --------------------------------------------------------------------------------------------- |
@@ -1642,7 +1642,7 @@ Leggere prima lo [schema per dominio](./database-schema) per le spiegazioni e le
 
 ## hub_wave_results {#hub-wave-results}
 
-`hubWaveResults` — `shared/schema/integrations.ts:510`
+`hubWaveResults` — `shared/schema/integrations.ts:516`
 
 | Proprietà TS       | Colonna SQL         | Dichiarazione                                                                               |
 | ------------------ | ------------------- | ------------------------------------------------------------------------------------------- |
@@ -1668,7 +1668,7 @@ Leggere prima lo [schema per dominio](./database-schema) per le spiegazioni e le
 
 ## hub_jobs {#hub-jobs}
 
-`hubJobs` — `shared/schema/integrations.ts:569`
+`hubJobs` — `shared/schema/integrations.ts:575`
 
 | Proprietà TS        | Colonna SQL           | Dichiarazione                                                                                 |
 | ------------------- | --------------------- | --------------------------------------------------------------------------------------------- |

@@ -750,6 +750,13 @@
       "when": 1792400000030,
       "tag": "0106_audit_retention",
       "breakpoints": true
+    },
+    {
+      "idx": 107,
+      "version": "7",
+      "when": 1792400000031,
+      "tag": "0107_fk_indexes",
+      "breakpoints": true
     }
   ]
 }

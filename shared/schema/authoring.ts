@@ -350,6 +350,7 @@ export const healingProposals = pgTable(
       foreignColumns: [tests.id, tests.organizationId],
     }).onDelete('cascade'),
     index('healing_proposals_organization_id_idx').on(table.organizationId),
+    index('healing_proposals_project_id_idx').on(table.projectId),
     index('healing_proposals_test_id_idx').on(table.testId),
     index('healing_proposals_execution_id_idx').on(table.executionId),
   ],
@@ -537,6 +538,7 @@ export const testPublications = pgTable(
       sql`num_nonnulls(${table.testId}, ${table.apiTestId}, ${table.mobileTestId}) = 1`,
     ),
     index('test_publications_test_id_idx').on(table.testId),
+    index('test_publications_api_test_id_idx').on(table.apiTestId),
     index('test_publications_organization_id_idx').on(table.organizationId),
   ],
 );
@@ -614,7 +616,10 @@ export const mobileTests = pgTable(
     createdAt: timestamp('created_at').defaultNow().notNull(),
     updatedAt: timestamp('updated_at').defaultNow().notNull(),
   },
-  (table) => [index('mobile_tests_organization_id_idx').on(table.organizationId)],
+  (table) => [
+    index('mobile_tests_organization_id_idx').on(table.organizationId),
+    index('mobile_tests_project_id_idx').on(table.projectId),
+  ],
 );
 
 export type MobileTest = typeof mobileTests.$inferSelect;
