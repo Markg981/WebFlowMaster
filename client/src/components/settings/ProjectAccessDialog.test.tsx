@@ -66,7 +66,8 @@ describe('ProjectAccessDialog', () => {
     const onOpenChange = renderDialog();
 
     const list = await screen.findByTestId('project-members');
-    expect(within(list).getByText('alice')).toBeInTheDocument();
+    // The list renders before the access fetch resolves: wait for the member.
+    expect(await within(list).findByText('alice')).toBeInTheDocument();
     expect(screen.getByRole('switch')).toBeChecked();
 
     fireEvent.click(screen.getByRole('button', { name: 'Remove alice' }));
