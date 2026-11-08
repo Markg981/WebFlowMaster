@@ -12,6 +12,7 @@ import artifactsRoutes from './http/routes/artifacts.routes';
 import apiKeysRoutes from './http/routes/api-keys.routes';
 import serviceAccountsRoutes from './http/routes/service-accounts.routes';
 import mfaRoutes from './http/routes/mfa.routes';
+import sessionsRoutes from './http/routes/sessions.routes';
 import ssoRoutes from './http/routes/sso.routes';
 import testPublishingRoutes from './http/routes/test-publishing.routes';
 import runnersRoutes from './http/routes/runners.routes';
@@ -140,6 +141,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use(apiKeysRoutes);
   app.use(serviceAccountsRoutes);
   app.use(mfaRoutes);
+  app.use(sessionsRoutes);
   app.use(ssoRoutes);
   app.use(testPublishingRoutes);
   app.use(runnersRoutes);

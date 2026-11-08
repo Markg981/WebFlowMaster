@@ -17,6 +17,7 @@ import {
 } from '../messaging/mailer';
 import { passwordResetMail } from '../messaging/mail-messages';
 import { RedisStore } from 'connect-redis';
+import { trackSession } from './session-registry';
 import { storage } from './storage';
 import { AUDIT_ACTIONS, User as SelectUser, type AuditAction } from '@shared/schema';
 import { recordAudit } from '../tenancy/audit';
@@ -376,6 +377,7 @@ export function setupAuth(app: Express) {
   app.use(sharedSessionMiddleware);
   app.use(passport.initialize());
   app.use(passport.session());
+  app.use(trackSession);
   app.use(requireActiveSamlSession);
 
   passport.use(

@@ -1,0 +1,17 @@
+{
+  "id": "MFA-14",
+  "area": "MFA",
+  "title": "Elenco e revoca delle sessioni attive",
+  "priority": "P2",
+  "actor": "admin",
+  "preconditions": "Lo stesso utente è connesso da due browser diversi (A e B).",
+  "steps": [
+    "Da A aprire Impostazioni → Sicurezza e leggere la sezione Sessioni attive.",
+    "Da A usare Termina sessione sulla sessione di B e confermare.",
+    "Ricaricare una pagina in B.",
+    "Accedere di nuovo da B, poi da A usare Termina tutte le altre sessioni e confermare.",
+    "Controllare il registro di audit."
+  ],
+  "expected": "L'elenco mostra due sessioni con A marcata Questa sessione, date, browser e IP abbreviato. Dopo il passo 2 B torna alla pagina di accesso; A resta connesso e non ha il pulsante di revoca su se stesso. Dopo il passo 4 B è disconnesso e A resta attivo. Il registro riporta auth.session_revoked e auth.sessions_revoked_others.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>Lo stesso utente è connesso da due browser diversi (A e B).</p>\n        <h4>Passi</h4>\n        <ol><li>Da A aprire Impostazioni → Sicurezza e leggere la sezione Sessioni attive.</li><li>Da A usare Termina sessione sulla sessione di B e confermare.</li><li>Ricaricare una pagina in B.</li><li>Accedere di nuovo da B, poi da A usare Termina tutte le altre sessioni e confermare.</li><li>Controllare il registro di audit.</li></ol>\n        <h4>Esito atteso</h4><p>L'elenco mostra due sessioni con A marcata Questa sessione, date, browser e IP abbreviato. Dopo il passo 2 B torna alla pagina di accesso; A resta connesso e non ha il pulsante di revoca su se stesso. Dopo il passo 4 B è disconnesso e A resta attivo. Il registro riporta auth.session_revoked e auth.sessions_revoked_others.</p>\n      "
+}

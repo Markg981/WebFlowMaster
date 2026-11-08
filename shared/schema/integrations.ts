@@ -192,7 +192,11 @@ export const testCaseLinks = pgTable(
     createdBy: integer('created_by').references(() => users.id, { onDelete: 'set null' }),
     createdAt: timestamp('created_at').defaultNow().notNull(),
   },
-  (table) => [index('test_case_links_connection_id_idx').on(table.connectionId)],
+  (table) => [
+    index('test_case_links_connection_id_idx').on(table.connectionId),
+    index('test_case_links_test_id_idx').on(table.testId),
+    index('test_case_links_api_test_id_idx').on(table.apiTestId),
+  ],
 );
 
 /** Each publication of a run to a tool, and what came of it. */
@@ -307,6 +311,8 @@ export const issueLinks = pgTable(
     index('issue_links_tracker_id_idx').on(table.trackerId),
     index('issue_links_test_plan_id_idx').on(table.testPlanId),
     index('issue_links_last_execution_id_idx').on(table.lastExecutionId),
+    index('issue_links_ui_test_id_idx').on(table.uiTestId),
+    index('issue_links_first_execution_id_idx').on(table.firstExecutionId),
     unique('issue_links_tracker_dedupe_unique').on(table.trackerId, table.dedupeKey),
   ],
 );

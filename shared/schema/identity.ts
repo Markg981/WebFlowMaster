@@ -731,6 +731,9 @@ export const AUDIT_ACTIONS = {
   // An account stopped answering for a while: too many wrong passwords or second-factor codes.
   ACCOUNT_LOCKED: 'auth.account_locked',
   LOGOUT: 'auth.logout',
+  // A member ended one of their own other sessions, or all the others (audit R-5).
+  SESSION_REVOKED: 'auth.session_revoked',
+  SESSIONS_REVOKED_OTHERS: 'auth.sessions_revoked_others',
   // What the organization's tests are, and what runs them.
   TEST_CREATED: 'test.created',
   TEST_UPDATED: 'test.updated',

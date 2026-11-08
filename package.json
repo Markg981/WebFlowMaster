@@ -77,6 +77,8 @@
     "test:resilience": "node --test scripts/resilience-core.test.mjs",
     "benchmark": "node --import tsx scripts/wfm-benchmark.mjs",
     "test:benchmark": "node --test scripts/benchmark-config.test.mjs",
+    "test:fk-audit": "node --test scripts/db/fk-index-audit.test.mjs",
+    "audit:fk-indexes": "node scripts/db/fk-index-audit.mjs",
     "pilot": "node scripts/wfm-pilot.mjs",
     "test:pilot": "node --test scripts/pilot.test.mjs",
     "build:cli": "esbuild scripts/wfm-cli.ts --platform=node --packages=external --bundle --format=esm --outfile=dist/wfm.js",

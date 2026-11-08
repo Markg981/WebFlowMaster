@@ -134,6 +134,7 @@ export const testPlans = pgTable(
   (table) => [
     index('test_plans_user_id_idx').on(table.userId),
     index('test_plans_organization_id_idx').on(table.organizationId),
+    index('test_plans_browser_grid_id_idx').on(table.browserGridId),
   ],
 );
 
@@ -610,7 +611,10 @@ export const impactRules = pgTable(
     tagId: text('tag_id').references(() => tags.id, { onDelete: 'cascade' }),
     createdAt: timestamp('created_at').defaultNow().notNull(),
   },
-  (table) => [index('impact_rules_organization_id_idx').on(table.organizationId)],
+  (table) => [
+    index('impact_rules_organization_id_idx').on(table.organizationId),
+    index('impact_rules_tag_id_idx').on(table.tagId),
+  ],
 );
 
 export type ImpactRule = typeof impactRules.$inferSelect;
@@ -639,7 +643,10 @@ export const testSuites = pgTable(
     createdAt: timestamp('created_at').defaultNow().notNull(),
     updatedAt: timestamp('updated_at').defaultNow().notNull(),
   },
-  (table) => [index('test_suites_organization_id_idx').on(table.organizationId)],
+  (table) => [
+    index('test_suites_organization_id_idx').on(table.organizationId),
+    index('test_suites_project_id_idx').on(table.projectId),
+  ],
 );
 
 export type TestSuite = typeof testSuites.$inferSelect;
@@ -662,7 +669,11 @@ export const testSuiteItems = pgTable(
     mobileTestId: integer('mobile_test_id'),
     position: integer('position').notNull(),
   },
-  (table) => [index('test_suite_items_suite_id_idx').on(table.suiteId)],
+  (table) => [
+    index('test_suite_items_suite_id_idx').on(table.suiteId),
+    index('test_suite_items_test_id_idx').on(table.testId),
+    index('test_suite_items_api_test_id_idx').on(table.apiTestId),
+  ],
 );
 
 /** The suites a plan includes, in order, after its own tests. */

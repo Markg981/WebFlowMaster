@@ -58,6 +58,7 @@ import BillingAdministrationCard from '@/components/settings/BillingAdministrati
 import AuditLogCard from '@/components/settings/AuditLogCard';
 import ExportEraseCard from '@/components/settings/ExportEraseCard';
 import SecurityCard from '@/components/settings/SecurityCard';
+import SessionsCard from '@/components/settings/SessionsCard';
 import SsoCard from '@/components/settings/SsoCard';
 import EmailProviderCard from '@/components/settings/EmailProviderCard';
 import EmailTemplatesCard from '@/components/settings/EmailTemplatesCard';
@@ -313,6 +314,7 @@ export default function SettingsPage() {
       content: (
         <div className="space-y-6">
           <SecurityCard isOwner={user?.role === 'owner'} />
+          <SessionsCard />
           {user?.role === 'owner' && <SsoCard />}
           {user?.role === 'owner' && (
             <>

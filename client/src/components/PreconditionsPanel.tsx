@@ -134,7 +134,7 @@ const ApiCallsPanel: React.FC<ApiCallsPanelProps> = ({
       </CardHeader>
       <CardContent className="p-3 flex-1 space-y-3">
         <Select onValueChange={add} value="">
-          <SelectTrigger className="h-9">
+          <SelectTrigger className="h-9" aria-label={addLabel}>
             <span className="flex items-center gap-2 text-sm text-muted-foreground">
               <PlusCircle className="h-4 w-4" /> {addLabel}
             </span>

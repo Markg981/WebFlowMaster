@@ -72,7 +72,9 @@ sui test salvati e annullamento dal report dell'esecuzione. `security.spec.ts` c
 MFA e codice di recupero monouso, login OIDC con provider HTTPS e dominio SSO sconosciuto.
 `team.spec.ts` copre gli inviti creati, usati e revocati dall'interfaccia e l'MFA obbligatoria che
 blocca un membro finché non la attiva. `accessibility.spec.ts` esegue axe-core (WCAG 2.1 A e AA,
-solo violazioni serie o critiche) sulla pagina di accesso e sulle pagine principali, il contrasto
+solo violazioni serie o critiche) sulla pagina di accesso, sulle sue varianti di reset e invito e su ogni pagina raggiungibile da un owner
+(pagine principali, editor dei test, API tester, schedulazioni, requisiti, dati di test, test mobile e di carico, hub QA e
+ogni sezione delle impostazioni), con un elenco per pagina dei problemi noti, il contrasto
 nel tema scuro e l'uso da tastiera della sidebar e di un dialog; se fallisce, elenca per pagina
 ogni elemento con il motivo e l'inizio del suo HTML. `mobile.spec.ts` apre la dashboard, i report
 e il report di un run concluso a 375 px (un telefono) e a 768 px (un tablet in verticale) e

@@ -1,6 +1,7 @@
 import type { Request, Response, NextFunction } from 'express';
 import { sql } from 'drizzle-orm';
 import { organizations } from '@shared/schema';
+import { installationAdmins } from './installation-admins-config';
 import { privilegedDb } from '../platform/db';
 
 /**
@@ -17,14 +18,7 @@ import { privilegedDb } from '../platform/db';
  *   the usual case of one company running its own — which is how it behaved before. As soon as a
  *   second organization exists, nobody may until the operator names someone.
  */
-export function installationAdmins(env: NodeJS.ProcessEnv = process.env): string[] | null {
-  const raw = env.INSTALLATION_ADMINS?.trim();
-  if (!raw) return null;
-  return raw
-    .split(',')
-    .map((name) => name.trim())
-    .filter((name) => name !== '');
-}
+export { installationAdmins };
 
 async function organizationCount(): Promise<number> {
   // Installation-wide by nature, and organizations has no row policy: privileged on purpose.
@@ -40,7 +34,7 @@ export async function canManageInstallation(
 ): Promise<boolean> {
   if (!user || (user.kind && user.kind !== 'person')) return false;
   const named = installationAdmins(env);
-  if (named) return named.includes(user.username);
+  if (named) return named.includes(user.username.trim().toLowerCase());
   return user.role === 'owner' && (await organizationCount()) === 1;
 }
 
