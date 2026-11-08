@@ -19,7 +19,7 @@ possono cambiare l’esito. Il replay non aggiorna lo stato della build CI origi
 ## Dashboard
 
 La **Dashboard** mostra com'è andato l'ultimo periodo, i passati e i falliti degli ultimi 30
-giorni, i report più recenti e i prossimi run pianificati.
+giorni (i run che superano il tempo massimo sono contati a parte, come **Timeout**, nel grafico degli stati e nella sua legenda), i report più recenti e i prossimi run pianificati.
 
 ## Report
 
@@ -156,6 +156,11 @@ cambia nulla. Una chiave API ha bisogno anche dello scope `runs:evidence`.
 
 I file di un test in un **progetto riservato** sono disponibili solo a chi è nel progetto (e agli
 owner). Per tutti gli altri non esistono: ricevono la stessa risposta di un file mai scritto.
+
+La stessa restrizione vale per il report di piano, la vista live dell'esecuzione e l'export JUnit
+(anche quello scaricato con una chiave API, che agisce come l'utente della chiave): un test di un
+progetto riservato di cui non fai parte mostra solo nome ed esito, senza passi, log, rete o analisi
+AI, e una run che contiene un test simile non si può seguire in tempo reale.
 
 Un test che gestisce in modo visibile una credenziale — un valore `{{secret_…}}`, oppure un campo,
 un selettore o un valore che si chiama _password_ — **non registra la trace**, anche se il piano

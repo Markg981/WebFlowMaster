@@ -12,7 +12,12 @@ import {
 } from '@shared/failure-analysis';
 import type { NetworkSummary } from '@shared/network';
 import { withTenantTransaction, getTenantOrgId } from '../../platform/middleware/tenancy';
-import { aiEnabled, AI_NOT_ENABLED } from '../../authoring/ai-consent';
+import {
+  aiEnabled,
+  AI_NOT_ENABLED,
+  AI_QUOTA_REACHED,
+  reserveAiCall,
+} from '../../authoring/ai-consent';
 import { requireRole } from '../middleware/require-role';
 import { sharedHeavyRateLimit } from '../middleware/rate-limits';
 import { auditActor, recordAudit } from '../../tenancy/audit';
@@ -93,6 +98,12 @@ router.post(
         return res
           .status(503)
           .json({ error: 'AI analysis is not configured on this server (GEMINI_API_KEY).' });
+      }
+      const reserved = await reserveAiCall(getTenantOrgId()!);
+      if (!reserved.ok) {
+        return res
+          .status(reserved.reason === 'quota' ? 429 : 403)
+          .json({ error: reserved.reason === 'quota' ? AI_QUOTA_REACHED : AI_NOT_ENABLED });
       }
 
       const screenshotPath = run.artifactsPurgedAt

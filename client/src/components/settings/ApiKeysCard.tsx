@@ -422,6 +422,7 @@ const ApiKeysCard: React.FC<{ isOwner?: boolean }> = ({ isOwner = false }) => {
         )}
         confirmLabel={t('common.revoke', 'Revoke')}
         destructive
+        requireText={revoking?.name}
         pending={revokeKey.isPending}
         onConfirm={() => revoking && revokeKey.mutate(revoking.id)}
       />

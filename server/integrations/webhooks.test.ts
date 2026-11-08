@@ -175,8 +175,20 @@ describe('triggering a plan', () => {
 
   it('still accepts the URL existing pipelines were given', async () => {
     const { token } = await createWebhook();
+    warn.mockClear();
     await request(app).post(`/api/webhooks/execute/${token}`).expect(202);
-    expect(runTestPlan).toHaveBeenCalledTimes(1);
+    await request(app).post(`/api/webhooks/execute/${token}`).expect(202);
+    expect(runTestPlan).toHaveBeenCalledTimes(2);
+    const deprecations = warn.mock.calls.filter((c) => JSON.stringify(c).includes('deprecated'));
+    expect(deprecations).toHaveLength(1);
+    expect(JSON.stringify(warn.mock.calls)).not.toContain(token);
+  });
+
+  it('does not warn when the header is used', async () => {
+    const { token } = await createWebhook();
+    warn.mockClear();
+    await request(app).post('/api/webhooks/execute').set('X-Webhook-Token', token).expect(202);
+    expect(JSON.stringify(warn.mock.calls)).not.toContain('deprecated');
   });
 
   it('refuses a wrong token without writing it to the log', async () => {

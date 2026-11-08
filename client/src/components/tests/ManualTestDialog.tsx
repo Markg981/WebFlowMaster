@@ -14,6 +14,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { ArrowDown, ArrowUp, Loader2, Plus, Trash2 } from 'lucide-react';
 import { manualStepsOf, toSequence, type ManualStep } from '@shared/manual-tests';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import GherkinArguments from './GherkinArguments';
 
 /**
@@ -28,6 +29,8 @@ export interface ManualTestDraftSource {
   name: string;
   sequence?: unknown;
   bdd?: unknown;
+  /** When the test was loaded: sent back so a save over someone else's edit is refused (M-07). */
+  updatedAt?: string;
 }
 
 interface Props {
@@ -46,6 +49,7 @@ export const ManualTestDialog: React.FC<Props> = ({ isOpen, onClose, test, onSav
   const [steps, setSteps] = useState<ManualStep[]>([EMPTY_STEP]);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [conflict, setConflict] = useState(false);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -53,6 +57,7 @@ export const ManualTestDialog: React.FC<Props> = ({ isOpen, onClose, test, onSav
     const existing = test ? manualStepsOf(test.sequence) : [];
     setSteps(existing.length > 0 ? existing : [EMPTY_STEP]);
     setError(null);
+    setConflict(false);
   }, [isOpen, test]);
 
   const update = (index: number, patch: Partial<ManualStep>) =>
@@ -65,7 +70,7 @@ export const ManualTestDialog: React.FC<Props> = ({ isOpen, onClose, test, onSav
       return next;
     });
 
-  const save = async () => {
+  const save = async (overwrite = false) => {
     if (test?.bdd) return;
     const written = steps
       .map((step) => ({ ...step, action: step.action.trim(), expected: step.expected.trim() }))
@@ -88,10 +93,16 @@ export const ManualTestDialog: React.FC<Props> = ({ isOpen, onClose, test, onSav
             ...(written[i].gherkin ? { gherkin: written[i].gherkin } : {}),
           })),
           elements: [],
+          ...(test?.updatedAt && !overwrite ? { expectedUpdatedAt: test.updatedAt } : {}),
         }),
       });
       if (!response.ok) {
         const body = await response.json().catch(() => ({}));
+        if (test && response.status === 409 && body.code === 'test_changed') {
+          // The draft stays as typed; the user decides between keeping it and overwriting.
+          setConflict(true);
+          return;
+        }
         throw new Error(
           response.status === 409
             ? t('manualTests.errors.duplicate', 'A test with this name already exists.')
@@ -130,124 +141,143 @@ export const ManualTestDialog: React.FC<Props> = ({ isOpen, onClose, test, onSav
     );
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>
-            {test
-              ? t('manualTests.editTitle', 'Edit manual test')
-              : t('manualTests.newTitle', 'New manual test')}
-          </DialogTitle>
-          <DialogDescription>
-            {t(
-              'manualTests.description',
-              'The steps a person performs, each with the result to expect. In a plan run it waits for a verdict in the report.',
-            )}
-          </DialogDescription>
-        </DialogHeader>
+    <>
+      <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              {test
+                ? t('manualTests.editTitle', 'Edit manual test')
+                : t('manualTests.newTitle', 'New manual test')}
+            </DialogTitle>
+            <DialogDescription>
+              {t(
+                'manualTests.description',
+                'The steps a person performs, each with the result to expect. In a plan run it waits for a verdict in the report.',
+              )}
+            </DialogDescription>
+          </DialogHeader>
 
-        <div className="grid gap-1">
-          <Label htmlFor="manual-test-name">{t('manualTests.name', 'Name')}</Label>
-          <Input
-            id="manual-test-name"
-            value={name}
-            maxLength={200}
-            onChange={(e) => setName(e.target.value)}
-          />
-        </div>
+          <div className="grid gap-1">
+            <Label htmlFor="manual-test-name">{t('manualTests.name', 'Name')}</Label>
+            <Input
+              id="manual-test-name"
+              value={name}
+              maxLength={200}
+              onChange={(e) => setName(e.target.value)}
+            />
+          </div>
 
-        <ol className="space-y-3">
-          {steps.map((step, index) => (
-            <li key={index} className="rounded-md border p-3">
-              <div className="mb-2 flex items-center justify-between">
-                <span className="text-sm font-medium">
-                  {t('manualTests.step', 'Step {{n}}', { n: index + 1 })}
-                </span>
-                <div className="flex gap-1">
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    disabled={index === 0}
-                    onClick={() => move(index, -1)}
-                    aria-label={t('manualTests.moveUp', 'Move up')}
-                  >
-                    <ArrowUp className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    disabled={index === steps.length - 1}
-                    onClick={() => move(index, 1)}
-                    aria-label={t('manualTests.moveDown', 'Move down')}
-                  >
-                    <ArrowDown className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    disabled={steps.length === 1}
-                    onClick={() => setSteps((current) => current.filter((_, i) => i !== index))}
-                    aria-label={t('manualTests.removeStep', 'Remove step')}
-                  >
-                    <Trash2 className="h-4 w-4 text-destructive" />
-                  </Button>
+          <ol className="space-y-3">
+            {steps.map((step, index) => (
+              <li key={index} className="rounded-md border p-3">
+                <div className="mb-2 flex items-center justify-between">
+                  <span className="text-sm font-medium">
+                    {t('manualTests.step', 'Step {{n}}', { n: index + 1 })}
+                  </span>
+                  <div className="flex gap-1">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      disabled={index === 0}
+                      onClick={() => move(index, -1)}
+                      aria-label={t('manualTests.moveUp', 'Move up')}
+                    >
+                      <ArrowUp className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      disabled={index === steps.length - 1}
+                      onClick={() => move(index, 1)}
+                      aria-label={t('manualTests.moveDown', 'Move down')}
+                    >
+                      <ArrowDown className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      disabled={steps.length === 1}
+                      onClick={() => setSteps((current) => current.filter((_, i) => i !== index))}
+                      aria-label={t('manualTests.removeStep', 'Remove step')}
+                    >
+                      <Trash2 className="h-4 w-4 text-destructive" />
+                    </Button>
+                  </div>
                 </div>
-              </div>
-              <div className="grid gap-2 md:grid-cols-2">
-                <div className="grid gap-1">
-                  <Label htmlFor={`manual-action-${index}`} className="text-xs">
-                    {t('manualTests.action', 'Action')}
-                  </Label>
-                  <Textarea
-                    id={`manual-action-${index}`}
-                    value={step.action}
-                    onChange={(e) => update(index, { action: e.target.value })}
-                  />
+                <div className="grid gap-2 md:grid-cols-2">
+                  <div className="grid gap-1">
+                    <Label htmlFor={`manual-action-${index}`} className="text-xs">
+                      {t('manualTests.action', 'Action')}
+                    </Label>
+                    <Textarea
+                      id={`manual-action-${index}`}
+                      value={step.action}
+                      onChange={(e) => update(index, { action: e.target.value })}
+                    />
+                  </div>
+                  <div className="grid gap-1">
+                    <Label htmlFor={`manual-expected-${index}`} className="text-xs">
+                      {t('manualTests.expected', 'Expected result')}
+                    </Label>
+                    <Textarea
+                      id={`manual-expected-${index}`}
+                      value={step.expected}
+                      onChange={(e) => update(index, { expected: e.target.value })}
+                    />
+                  </div>
                 </div>
-                <div className="grid gap-1">
-                  <Label htmlFor={`manual-expected-${index}`} className="text-xs">
-                    {t('manualTests.expected', 'Expected result')}
-                  </Label>
-                  <Textarea
-                    id={`manual-expected-${index}`}
-                    value={step.expected}
-                    onChange={(e) => update(index, { expected: e.target.value })}
-                  />
-                </div>
-              </div>
-              <GherkinArguments argument={step.gherkin} />
-            </li>
-          ))}
-        </ol>
-        <Button
-          type="button"
-          variant="outline"
-          onClick={() => setSteps((current) => [...current, EMPTY_STEP])}
-        >
-          <Plus className="mr-2 h-4 w-4" />
-          {t('manualTests.addStep', 'Add step')}
-        </Button>
+                <GherkinArguments argument={step.gherkin} />
+              </li>
+            ))}
+          </ol>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => setSteps((current) => [...current, EMPTY_STEP])}
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            {t('manualTests.addStep', 'Add step')}
+          </Button>
 
-        {error && (
-          <p role="alert" className="text-sm text-destructive">
-            {error}
-          </p>
+          {error && (
+            <p role="alert" className="text-sm text-destructive">
+              {error}
+            </p>
+          )}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={onClose}>
+              {t('manualTests.cancel', 'Cancel')}
+            </Button>
+            <Button onClick={() => void save()} disabled={saving}>
+              {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {t('manualTests.save', 'Save')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      <ConfirmDialog
+        open={conflict}
+        onOpenChange={setConflict}
+        title={t('testConflict.title', 'This test was changed by someone else')}
+        description={t(
+          'testConflict.description',
+          'Someone saved this test after you opened it. Keep editing to review your draft (close the editor and reopen it to load their version), or overwrite their changes with yours.',
         )}
-
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose}>
-            {t('manualTests.cancel', 'Cancel')}
-          </Button>
-          <Button onClick={save} disabled={saving}>
-            {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {t('manualTests.save', 'Save')}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        confirmLabel={t('testConflict.overwrite', 'Overwrite')}
+        cancelLabel={t('testConflict.keepEditing', 'Keep editing')}
+        destructive
+        pending={saving}
+        onConfirm={() => {
+          setConflict(false);
+          void save(true);
+        }}
+      />
+    </>
   );
 };
 

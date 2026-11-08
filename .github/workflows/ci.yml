@@ -346,6 +346,9 @@ jobs:
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
 
+      - name: Validate versioned collaudo outcomes
+        run: npm run collaudo:verify
+
       - name: Collaudo application tests
         run: npm run test:collaudo
 

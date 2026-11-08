@@ -21,7 +21,10 @@ Connect or SAML.
   emulators and devices (via a local agent), with a live inspector to pick locators.
 - **BDD tests**: versioned Gherkin scenarios executed with Cucumber on dedicated local agents (an operator installs the Cucumber bundle and sets `WFM_BDD_PROFILES`).
 - **Requirements and test management**: epics and stories with computed coverage; results published to
-  TestRail, Xray and Zephyr Scale.
+  TestRail, Xray and Zephyr Scale. A QA hub imports test cases from a git repository and runs them
+  in waves (import, dashboard, re-run, export).
+- **Load tests**: scenarios with virtual users and thresholds, run from the platform and reported
+  next to functional results.
 - **Plans, suites and schedules**: choose the tests, the browsers and how many run at once; run
   them now, on a cron schedule or from a webhook; quarantine flaky tests; get notified on
   completion by email, in Slack or Microsoft Teams, or through your own webhook.
@@ -35,9 +38,15 @@ Connect or SAML.
   report run status back to commits (GitHub and GitLab only).
 - **Administration**: organizations, projects, roles (owner, editor, viewer), invitations,
   scoped API keys and service accounts, single sign-on, SCIM provisioning, an append-only audit
-  log, quotas and data retention.
+  log, quotas and data retention, plans and billing (Stripe or manual mode). AI features are off
+  until an owner gives consent.
 - **Operations**: artifacts on disk or in S3, backups, Prometheus metrics and OpenTelemetry
   tracing.
+
+> **Recorder prerequisite.** Recording opens a real, headed browser on the machine that runs the
+> web process. On a server without a screen, start the web process under a virtual display
+> (`xvfb-run -a node dist/index.js`) or run it on a node with a desktop session; otherwise recording
+> is unavailable and tests are built from actions. Running tests does not need a display.
 
 ## Tech stack
 

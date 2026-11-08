@@ -114,6 +114,10 @@ function sidebar(lang: 'en' | 'it', t: Labels): DefaultTheme.SidebarItem[] {
           text: lang === 'en' ? 'Shared SaaS network' : 'Rete SaaS condiviso',
           link: p('admin/saas-network'),
         },
+        {
+          text: lang === 'it' ? 'Checklist per la produzione' : 'Production checklist',
+          link: p('admin/production-checklist'),
+        },
         { text: t.operations, link: p('admin/operations') },
         {
           text: lang === 'it' ? 'Carico prolungato' : 'Endurance testing',
@@ -193,6 +197,10 @@ function sidebar(lang: 'en' | 'it', t: Labels): DefaultTheme.SidebarItem[] {
         {
           text: lang === 'en' ? 'Implementing an improvement' : 'Implementare un miglioramento',
           link: p('internals/contributing-guide'),
+        },
+        {
+          text: lang === 'en' ? 'Acceptance testing outcomes' : 'Esiti del collaudo',
+          link: p('internals/acceptance-testing'),
         },
         {
           text:
