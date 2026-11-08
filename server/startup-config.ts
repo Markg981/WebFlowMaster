@@ -1,6 +1,7 @@
 import { resolvePort } from './platform/config';
 import { registrationMode } from './identity/registration';
 import { trustProxySetting } from './platform/trust-proxy';
+import { s3MaxAttempts, s3TimeoutMs, localOrphanDays } from './tenancy/artifact-store';
 import { cspMode } from './platform/security-headers';
 
 /**
@@ -23,6 +24,9 @@ export function startupConfigErrors(env: NodeJS.ProcessEnv = process.env): strin
     () => cspMode(env),
     () => resolvePort(env),
     () => trustProxySetting(env),
+    () => s3TimeoutMs(env),
+    () => s3MaxAttempts(env),
+    () => localOrphanDays(env),
   ]) {
     try {
       check();
