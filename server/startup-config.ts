@@ -61,7 +61,7 @@ export function startupConfigWarnings(env: NodeJS.ProcessEnv = process.env): str
   if (env.NODE_ENV !== 'production') return warnings;
   if (!env.EGRESS_PRIVATE_TARGETS?.trim()) {
     warnings.push(
-      'EGRESS_PRIVATE_TARGETS is not set: it defaults to "allow", so tests can reach loopback and private addresses of this server\'s network. Set it explicitly ("deny" unless tests must reach an intranet).',
+      'EGRESS_PRIVATE_TARGETS is not set: it defaults to "allow", so tests can reach loopback and private addresses of this server\'s network. Set it explicitly ("deny" unless tests must reach an intranet) and list the intranet hosts tests may reach in EGRESS_ALLOW_HOSTS. See the production checklist: docs/en/admin/production-checklist.md.',
     );
   }
   if (!env.TRUST_PROXY?.trim()) {
