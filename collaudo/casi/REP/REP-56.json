@@ -1,0 +1,12 @@
+{
+  "id": "REP-56",
+  "area": "REP",
+  "title": "Dashboard: i run in timeout hanno una voce e un colore propri",
+  "priority": "P3",
+  "actor": "owner.a",
+  "preconditions": "Un piano con almeno un run completato e uno terminato per timeout negli ultimi 30 giorni.",
+  "steps": [
+    "Aprire la Dashboard e guardare il grafico degli stati di esecuzione e la sua legenda."
+  ],
+  "expected": "Il grafico mostra una fetta \"Timeout\" (colore diverso dai falliti) e la legenda la elenca; i falliti non includono i timeout in questa fetta."
+}

@@ -557,6 +557,7 @@
     "executionStatus": {
       "passed": "Superati",
       "failed": "Falliti",
+      "timedOut": "Timeout",
       "pending": "In corso o in coda"
     },
     "emptyExecutions": {

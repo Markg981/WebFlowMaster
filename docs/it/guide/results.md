@@ -19,7 +19,7 @@ possono cambiare l’esito. Il replay non aggiorna lo stato della build CI origi
 ## Dashboard
 
 La **Dashboard** mostra com'è andato l'ultimo periodo, i passati e i falliti degli ultimi 30
-giorni, i report più recenti e i prossimi run pianificati.
+giorni (i run che superano il tempo massimo sono contati a parte, come **Timeout**, nel grafico degli stati e nella sua legenda), i report più recenti e i prossimi run pianificati.
 
 ## Report
 
