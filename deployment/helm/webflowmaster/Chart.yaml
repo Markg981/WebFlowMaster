@@ -7,7 +7,7 @@ type: application
 # The chart's own version. Bump it on every change to the templates or the default values.
 version: 0.1.0
 # The application version the image tags default to (image.tag overrides it).
-appVersion: '1.3.0'
+appVersion: '1.0.0-rc.1'
 kubeVersion: '>=1.25.0-0'
 keywords:
   - testing

@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { apiRequest } from '@/lib/queryClient';
@@ -211,27 +212,32 @@ export function useHubWaveResults(id: number | null, filters: HubWaveResultFilte
  */
 export function useHubJob(jobId: string | null) {
   const queryClient = useQueryClient();
-  return useQuery<HubJob>({
+  const query = useQuery<HubJob>({
     queryKey: [...HUB_JOBS_KEY, jobId],
-    queryFn: async () => {
-      const job = await json<HubJob>('GET', `/api/testcase-hub/jobs/${jobId}`);
-      if (!isLiveJob(job)) {
-        await Promise.all([
-          queryClient.invalidateQueries({ queryKey: HUB_WAVES_KEY }),
-          job.kind === 'wave_import' &&
-            Promise.all([
-              queryClient.invalidateQueries({ queryKey: ['/api/testcase-hub/cases'] }),
-              queryClient.invalidateQueries({ queryKey: ['/api/testcase-hub/facets'] }),
-              queryClient.invalidateQueries({ queryKey: ['/api/tests'] }),
-              queryClient.invalidateQueries({ queryKey: ['/api/test-plans'] }),
-            ]),
-        ]);
-      }
-      return job;
-    },
+    queryFn: () => json<HubJob>('GET', `/api/testcase-hub/jobs/${jobId}`),
     enabled: jobId !== null,
-    refetchInterval: (query) => (isLiveJob(query.state.data) ? 1000 : false),
+    // A failed read ends the polling: the caller reports it, it does not hammer the server.
+    refetchInterval: (q) => (q.state.status !== 'error' && isLiveJob(q.state.data) ? 1000 : false),
   });
+
+  const ended = query.data && !isLiveJob(query.data) ? query.data : null;
+  const endedId = ended?.id;
+  const endedKind = ended?.kind;
+  useEffect(() => {
+    if (!endedId) return;
+    void queryClient.invalidateQueries({ queryKey: HUB_WAVES_KEY });
+    if (endedKind === 'wave_import') {
+      for (const key of [
+        ['/api/testcase-hub/cases'],
+        ['/api/testcase-hub/facets'],
+        ['/api/tests'],
+        ['/api/test-plans'],
+      ])
+        void queryClient.invalidateQueries({ queryKey: key });
+    }
+  }, [endedId, endedKind, queryClient]);
+
+  return query;
 }
 
 export function useSyncHubWaves() {

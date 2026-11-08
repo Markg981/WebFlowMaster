@@ -174,5 +174,7 @@ describe('mandatory egress proxy transports', () => {
     } finally {
       await browser.close();
     }
-  }, 30_000);
+    // A real browser launch plus three navigations: seconds when idle, much longer when forks
+    // compete for cores. The limit is only a ceiling for a hang.
+  }, 120_000);
 });
