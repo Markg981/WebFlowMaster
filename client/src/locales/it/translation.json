@@ -4032,7 +4032,10 @@
       "syncSummary": "{{waves}} wave: {{added}} nuove, {{updated}} modificate, {{missing}} non più nell’hub.",
       "imported": "Wave importate",
       "importSummary": "{{waves}} wave, {{results}} risultati, {{imported}} casi importati come test.",
-      "syncFailed": "Non è stato possibile leggere le wave"
+      "syncFailed": "Non è stato possibile leggere le wave",
+      "failedDetail": "Il job non è stato completato. Riprova, oppure controlla la connessione all’hub nelle Impostazioni.",
+      "pollFailed": "Impossibile leggere lo stato del job",
+      "pollFailedDetail": "La connessione al server è caduta o il job non esiste più. Puoi riavviarlo."
     },
     "import": {
       "title_one": "Importa {{count}} wave",
@@ -4068,6 +4071,11 @@
       "summary": "Il plan “{{name}}” contiene {{tests}} test. {{notImported}} casi scelti non sono ancora test.",
       "failed": "Non è stato possibile creare la sessione",
       "open": "Esegui “{{name}}”"
+    },
+    "error": {
+      "title": "Impossibile caricare le wave",
+      "description": "Qualcosa è andato storto nella lettura delle wave. Riprova; se continua a fallire, contatta un amministratore.",
+      "retry": "Riprova"
     }
   },
   "testLibrary": {

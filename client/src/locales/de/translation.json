@@ -4032,7 +4032,10 @@
       "syncSummary": "{{waves}} Wellen: {{added}} neu, {{updated}} geändert, {{missing}} nicht mehr im Hub.",
       "imported": "Wellen importiert",
       "importSummary": "{{waves}} Wellen, {{results}} Ergebnisse, {{imported}} Fälle als Tests importiert.",
-      "syncFailed": "Die Wellen konnten nicht gelesen werden"
+      "syncFailed": "Die Wellen konnten nicht gelesen werden",
+      "failedDetail": "Der Job konnte nicht abgeschlossen werden. Versuchen Sie es erneut oder prüfen Sie die Hub-Verbindung in den Einstellungen.",
+      "pollFailed": "Der Jobstatus konnte nicht gelesen werden",
+      "pollFailedDetail": "Die Verbindung zum Server wurde unterbrochen oder der Job existiert nicht mehr. Sie können ihn neu starten."
     },
     "import": {
       "title_one": "{{count}} Welle importieren",
@@ -4068,6 +4071,11 @@
       "summary": "Der Plan „{{name}}“ enthält {{tests}} Tests. {{notImported}} gewählte Fälle sind noch keine Tests.",
       "failed": "Die Sitzung konnte nicht erstellt werden",
       "open": "„{{name}}“ ausführen"
+    },
+    "error": {
+      "title": "Die Wellen konnten nicht geladen werden",
+      "description": "Beim Lesen der Wellen ist ein Fehler aufgetreten. Versuchen Sie es erneut; falls es weiter fehlschlägt, wenden Sie sich an einen Administrator.",
+      "retry": "Erneut versuchen"
     }
   },
   "testLibrary": {

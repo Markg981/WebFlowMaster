@@ -288,6 +288,8 @@ importata, importata, modificata dopo l'import, non più nell'hub). Aprendo una 
 risultati per modulo e per caso, con ricerca, filtri per modulo e stato e, per ogni risultato,
 tester, stage, build, bug e note.
 
+Se le wave non si possono caricare (errore del server, hub non raggiungibile, permessi mancanti), la scheda mostra **Impossibile caricare le wave** con il pulsante **Riprova** al posto dell'elenco vuoto. Se lo stato del job in background non si riesce più a leggere, un avviso lo segnala e **Leggi le wave** e **Importa** tornano attivi; un job fallito mostra un messaggio generico, i dettagli sono nel log del server.
+
 Selezionare le wave (fino a 25 alla volta) e **Importa**: scegliere il progetto e gli step dei
 nuovi test. I casi citati dalle wave che non sono ancora test vengono prima importati dal
 catalogo, una suite per modulo; poi ogni wave diventa un **test plan con una esecuzione conclusa**
