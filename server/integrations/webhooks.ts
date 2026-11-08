@@ -9,6 +9,9 @@ import { hashWebhookToken, webhookTokenFromRequest } from '../identity/webhook-t
 
 export const webhooksRouter = asyncRouter();
 
+/** Webhooks already warned about, so the deprecation notice is logged once per webhook. */
+const pathTokenWarned = new Set<number>();
+
 /**
  * POST /api/webhooks/execute — start a test plan from a CI system.
  *
@@ -49,6 +52,15 @@ async function executeWebhook(req: Request, res: Response) {
     }
 
     const webhook = webhookResult[0];
+
+    if (req.params.token && token === req.params.token.trim() && !pathTokenWarned.has(webhook.id)) {
+      pathTokenWarned.add(webhook.id);
+      logger.warn({
+        message:
+          'Webhook called with the token in the URL path (deprecated): send it in the X-Webhook-Token header',
+        webhookId: webhook.id,
+      });
+    }
 
     await privilegedDb
       .update(testPlanWebhooks)

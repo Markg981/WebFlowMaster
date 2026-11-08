@@ -6,6 +6,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { and, asc, desc, eq, ilike, inArray, isNull, or, sql, type SQL } from 'drizzle-orm';
 import { withTenantTransaction } from '../../platform/middleware/tenancy';
 import { requireRole, roleAllows } from '../middleware/require-role';
+import { sessionOnly } from '../middleware/session-only';
 import { decryptSecret, encryptSecret } from '../../platform/crypto';
 import {
   AUDIT_ACTIONS,
@@ -295,17 +296,23 @@ router.delete('/api/testcase-hub', sensitiveLimit, requireRole('editor'), async 
 });
 
 // POST /api/testcase-hub/test — can the saved source be read?
-router.post('/api/testcase-hub/test', heavyLimit, requireRole('owner'), async (req, res) => {
-  if (!req.isAuthenticated() || !req.user) return res.status(401).json({ error: 'Unauthorized' });
-  try {
-    const source = await currentSource();
-    if (!source) return res.status(404).json({ error: 'No test case hub is configured.' });
-    const token = await tokenOf(source);
-    res.json(await checkSource(source, { token }));
-  } catch (error) {
-    sendHubError(res, error, 'Failed to test the test case hub.');
-  }
-});
+router.post(
+  '/api/testcase-hub/test',
+  heavyLimit,
+  requireRole('owner'),
+  sessionOnly('Owner action (post /api/testcase-hub/test)'),
+  async (req, res) => {
+    if (!req.isAuthenticated() || !req.user) return res.status(401).json({ error: 'Unauthorized' });
+    try {
+      const source = await currentSource();
+      if (!source) return res.status(404).json({ error: 'No test case hub is configured.' });
+      const token = await tokenOf(source);
+      res.json(await checkSource(source, { token }));
+    } catch (error) {
+      sendHubError(res, error, 'Failed to test the test case hub.');
+    }
+  },
+);
 
 // POST /api/testcase-hub/refresh — read the hub and rewrite the catalog.
 /** Organizations with a refresh in flight in this process. */

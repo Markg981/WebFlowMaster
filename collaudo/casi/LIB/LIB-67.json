@@ -1,0 +1,15 @@
+{
+  "id": "LIB-67",
+  "area": "LIB",
+  "title": "Onde QA: errore API con Riprova e job non leggibile",
+  "priority": "P2",
+  "actor": "editor.a",
+  "preconditions": "LIB-61.",
+  "steps": [
+    "Con il QA hub collegato, aprire Test Manager → Wave QA e, dagli strumenti di rete del browser, far rispondere 500 a GET /api/testcase-hub/waves (o spegnere il server hub), poi ricaricare.",
+    "Premere Riprova dopo aver ripristinato la risposta.",
+    "Premere Leggi le wave e, mentre il job è in corso, far rispondere 404 a GET /api/testcase-hub/jobs/<id>."
+  ],
+  "expected": "1: compare «Impossibile caricare le wave» con il pulsante Riprova, non «Nessuna wave». 2: l'elenco delle wave si carica e l'errore sparisce. 3: toast «Impossibile leggere lo stato del job», Leggi le wave e Importa tornano attivi; un job fallito mostra un messaggio generico senza testo grezzo del server.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>LIB-61.</p>\n        <h4>Passi</h4>\n        <ol><li>Con il QA hub collegato, aprire Test Manager → Wave QA e, dagli strumenti di rete del browser, far rispondere 500 a GET /api/testcase-hub/waves (o spegnere il server hub), poi ricaricare.</li><li>Premere Riprova dopo aver ripristinato la risposta.</li><li>Premere Leggi le wave e, mentre il job è in corso, far rispondere 404 a GET /api/testcase-hub/jobs/<id>.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">1: compare «Impossibile caricare le wave» con il pulsante Riprova, non «Nessuna wave». 2: l'elenco delle wave si carica e l'errore sparisce. 3: toast «Impossibile leggere lo stato del job», Leggi le wave e Importa tornano attivi; un job fallito mostra un messaggio generico senza testo grezzo del server.</p>\n      "
+}

@@ -46,7 +46,12 @@ import {
 } from '../../integrations/requirements';
 import logger from '../../platform/logger';
 import { aiService } from '../../authoring/ai-automation-service';
-import { aiEnabled, AI_NOT_ENABLED } from '../../authoring/ai-consent';
+import {
+  aiEnabled,
+  AI_NOT_ENABLED,
+  AI_QUOTA_REACHED,
+  reserveAiCall,
+} from '../../authoring/ai-consent';
 import { htmlToText } from '../../messaging/email-inbox';
 import { toSequence } from '@shared/manual-tests';
 import { recordTestVersion } from '../../authoring/test-version-store';
@@ -499,6 +504,12 @@ router.post(
       return res
         .status(503)
         .json({ error: 'No AI model is configured on this server (GEMINI_API_KEY).' });
+    }
+    const reserved = await reserveAiCall(getTenantOrgId()!);
+    if (!reserved.ok) {
+      return res
+        .status(reserved.reason === 'quota' ? 429 : 403)
+        .json({ error: reserved.reason === 'quota' ? AI_QUOTA_REACHED : AI_NOT_ENABLED });
     }
     try {
       const loaded = await withTenantTransaction(async (tx) => {

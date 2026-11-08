@@ -11,6 +11,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 
 export interface ConfirmDialogProps {
@@ -26,6 +28,11 @@ export interface ConfirmDialogProps {
   /** Disables the confirming button while the action runs, with a spinner. */
   pending?: boolean;
   onConfirm: () => void;
+  /**
+   * Strong confirmation: the confirming button stays disabled until the user types this text
+   * (the resource name, or a fixed word) exactly. Meant for deletions that cannot be undone.
+   */
+  requireText?: string;
 }
 
 /**
@@ -47,8 +54,16 @@ export function ConfirmDialog({
   destructive = false,
   pending = false,
   onConfirm,
+  requireText,
 }: ConfirmDialogProps) {
   const { t } = useTranslation();
+  const [typed, setTyped] = React.useState('');
+  // A fresh question each time the dialog opens or the target changes.
+  React.useEffect(() => {
+    setTyped('');
+  }, [open, requireText]);
+  const needsText = !!requireText;
+  const textMatches = !needsText || typed.trim() === requireText;
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent>
@@ -56,6 +71,21 @@ export function ConfirmDialog({
           <AlertDialogTitle>{title}</AlertDialogTitle>
           {description && <AlertDialogDescription>{description}</AlertDialogDescription>}
         </AlertDialogHeader>
+        {needsText && (
+          <div className="space-y-2">
+            <Label htmlFor="confirm-dialog-text">
+              {t('common.typeToConfirm', 'Type "{{text}}" to confirm', { text: requireText })}
+            </Label>
+            <Input
+              id="confirm-dialog-text"
+              value={typed}
+              onChange={(event) => setTyped(event.target.value)}
+              autoComplete="off"
+              autoFocus
+              aria-label={t('common.typeToConfirmLabel', 'Confirmation text')}
+            />
+          </div>
+        )}
         <AlertDialogFooter>
           <AlertDialogCancel disabled={pending}>
             {cancelLabel ?? t('common.cancel', 'Cancel')}
@@ -63,10 +93,13 @@ export function ConfirmDialog({
           <AlertDialogAction
             onClick={(event) => {
               // Keep the dialog open while `pending` is true: the caller closes it when done.
-              if (pending) event.preventDefault();
+              if (pending || !textMatches) {
+                event.preventDefault();
+                if (!textMatches) return;
+              }
               onConfirm();
             }}
-            disabled={pending}
+            disabled={pending || !textMatches}
             className={cn(
               destructive && 'bg-destructive text-destructive-foreground hover:bg-destructive/90',
             )}

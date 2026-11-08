@@ -13,7 +13,9 @@ Usate **Precedente** e **Successiva** per sfogliare. La ricerca per nome ignora 
 minuscole e cerca testo letterale (anche `%` e `_`); più tag selezionati richiedono tutti i
 tag. I filtri per progetto e stato si applicano prima della paginazione; cambiare filtro
 riporta alla prima pagina. Anche test API, test mobile e dati di test condivisi usano elenchi
-paginati. Le definizioni complete vengono caricate quando servono: modificare un test manuale
+paginati. Nel catalogo del tester API e nel catalogo dell'hub, pagina, dimensione pagina, ricerca e filtri
+sono nell'indirizzo: ricarica, **Indietro** e un link copiato ripristinano la stessa vista (i valori
+predefiniti non compaiono nell'indirizzo). Le definizioni complete vengono caricate quando servono: modificare un test manuale
 o BDD carica i passi, modificare un set carica la tabella, caricare o eseguire un test API/mobile
 carica la configurazione eseguibile. Gli elenchi contengono metadati e conteggi, senza tutti
 i passi o i valori dei dataset.
@@ -64,6 +66,13 @@ Un test manuale è un test come gli altri: ha versioni e revisioni, porta tag, e
 piani. In un run non apre alcun browser: attende nel report del run l'esito di una persona (vedi
 [Esiti manuali](./results#esiti-manuali)), una volta per run qualunque siano i browser e le lingue
 del piano.
+
+### Modifiche concorrenti
+
+Se due persone modificano lo stesso test manuale o BDD, il secondo salvataggio non sovrascrive in
+silenzio il primo: l'editor chiede se **Sovrascrivere** la modifica dell'altro o **Continuare a
+modificare**. La bozza resta com'è; per vedere la versione dell'altro, chiudere l'editor e riaprire
+il test.
 
 ## Cronologia e versioni {#cronologia-e-versioni}
 
@@ -278,6 +287,8 @@ wave con release, tipo, data di inizio, casi, falliti, avanzamento e stato in We
 importata, importata, modificata dopo l'import, non più nell'hub). Aprendo una wave si vedono i
 risultati per modulo e per caso, con ricerca, filtri per modulo e stato e, per ogni risultato,
 tester, stage, build, bug e note.
+
+Se le wave non si possono caricare (errore del server, hub non raggiungibile, permessi mancanti), la scheda mostra **Impossibile caricare le wave** con il pulsante **Riprova** al posto dell'elenco vuoto. Se lo stato del job in background non si riesce più a leggere, un avviso lo segnala e **Leggi le wave** e **Importa** tornano attivi; un job fallito mostra un messaggio generico, i dettagli sono nel log del server.
 
 Selezionare le wave (fino a 25 alla volta) e **Importa**: scegliere il progetto e gli step dei
 nuovi test. I casi citati dalle wave che non sono ancora test vengono prima importati dal

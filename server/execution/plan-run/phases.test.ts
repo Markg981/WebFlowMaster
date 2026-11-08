@@ -154,6 +154,14 @@ describe('verdictOf', () => {
     expect(verdictOf(rows('Passed', 'Skipped', 'Pending'), 3, false)).toBe('completed');
   });
 
+  it('is an error when every test was skipped, but not when one passed or a person is awaited', () => {
+    expect(verdictOf(rows('Skipped', 'Skipped'), 2, false)).toBe('error');
+    expect(verdictOf(rows('Passed', 'Skipped'), 2, false)).toBe('completed');
+    // Manual tests still Pending: documented as completed (no status for "awaiting a verdict").
+    expect(verdictOf(rows('Pending', 'Pending'), 2, false)).toBe('completed');
+    expect(verdictOf(rows('Skipped', 'Pending'), 2, false)).toBe('completed');
+  });
+
   it('fails a run with a failure that is not in quarantine', () => {
     expect(verdictOf(rows('Passed', 'Failed'), 2, false)).toBe('failed');
     expect(verdictOf(rows('Passed', 'Error'), 2, false)).toBe('failed');

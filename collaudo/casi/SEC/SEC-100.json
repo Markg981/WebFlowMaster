@@ -1,0 +1,16 @@
+{
+  "id": "SEC-100",
+  "area": "SEC",
+  "title": "AI spenta per l'organizzazione: il self-healing non chiama Gemini e il risultato lo dice",
+  "priority": "P1",
+  "actor": "owner.a",
+  "preconditions": "GEMINI_API_KEY impostata (o il doppio di prova del collaudo). Organizzazione con AI spenta (Impostazioni → AI). Un test con healing attivo il cui selettore non esiste più.",
+  "steps": [
+    "Eseguire il test dal piano e attendere il fallimento.",
+    "Aprire il risultato e il log dell'esecuzione: cercare la riga sul self-healing AI.",
+    "Controllare i log/richieste del doppio Gemini (o il registro del provider).",
+    "Ripetere con l'AI accesa dal proprietario: il passo prova il self-healing."
+  ],
+  "expected": "Con l'AI spenta il passo fallisce con il suo errore originale, il dettaglio e il log dicono che il self-healing AI è saltato perché l'AI non è abilitata, e nessuna chiamata Gemini parte (nessun DOM inviato). Con l'AI accesa la chiamata avviene, entro il tetto giornaliero AI_DAILY_CALL_LIMIT; superato il tetto il motivo mostrato è il limite giornaliero.",
+  "detailHtml": "<p>Verifica che il consenso dell'organizzazione copra anche il self-healing e il tetto giornaliero (A-05, B-12).</p>"
+}

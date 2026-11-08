@@ -6,6 +6,8 @@ export interface ConfirmOptions {
   description?: ReactNode;
   confirmLabel?: ReactNode;
   destructive?: boolean;
+  /** Strong confirmation: the user must type this text first. */
+  requireText?: string;
 }
 
 /**
@@ -42,6 +44,7 @@ export function useConfirm() {
       description={options?.description}
       confirmLabel={options?.confirmLabel}
       destructive={options?.destructive}
+      requireText={options?.requireText}
       onConfirm={() => settle(true)}
     />
   );

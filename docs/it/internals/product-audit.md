@@ -1,5 +1,10 @@
 # Audit del prodotto e chiusura della v1
 
+> **Audit indipendente del 7 novembre 2026 (in corso).** I rilievi da A-01 ad A-05 e da M-01 a M-20
+> sono aperti o in corso di correzione. Ogni PR di correzione riporta l'ID del rilievo nel titolo:
+> vedere le PR intitolate con l'ID del rilievo. Il testo seguente fotografa l'11 ottobre 2026 ed è
+> conservato come storico.
+
 Aggiornato l'11 ottobre 2026 sul codice di main al commit `448c95b` (PR #375 integrata).
 Il prodotto copre il perimetro funzionale della suite. La chiusura della v1 richiede ancora
 accettazione corrente, una release installata e prove sugli ambienti dichiarati ai clienti.
