@@ -12,6 +12,7 @@ import {
   S3Client,
   type S3ClientConfig,
 } from '@aws-sdk/client-s3';
+import { NodeHttpHandler } from '@smithy/node-http-handler';
 
 /**
  * Where a run's evidence and the visual baselines are kept.
@@ -399,6 +400,13 @@ export function artifactStoreFromEnv(env: NodeJS.ProcessEnv = process.env): Arti
   if (!env.S3_BUCKET) throw new Error('ARTIFACT_STORE=s3 needs S3_BUCKET.');
 
   const config: S3ClientConfig = {
+    // A slow or unreachable endpoint fails the call instead of hanging the worker.
+    requestHandler: new NodeHttpHandler({
+      connectionTimeout: s3TimeoutMs(env),
+      requestTimeout: s3TimeoutMs(env),
+      throwOnRequestTimeout: true,
+    }),
+    maxAttempts: s3MaxAttempts(env),
     region: env.S3_REGION || 'us-east-1',
     ...(env.S3_ENDPOINT ? { endpoint: env.S3_ENDPOINT } : {}),
     // MinIO and most self-hosted stores address buckets by path, not by subdomain.
@@ -419,6 +427,97 @@ export function artifactStoreFromEnv(env: NodeJS.ProcessEnv = process.env): Arti
     bucket: env.S3_BUCKET,
     prefix: env.S3_PREFIX,
   });
+}
+
+export const DEFAULT_S3_TIMEOUT_MS = 30_000;
+export const DEFAULT_S3_MAX_ATTEMPTS = 3;
+
+function positiveInt(env: NodeJS.ProcessEnv, name: string, fallback: number): number {
+  const raw = env[name]?.trim();
+  if (raw === undefined || raw === '') return fallback;
+  const value = Number(raw);
+  if (!Number.isSafeInteger(value) || value < 1) {
+    throw new Error(`${name} must be a whole number of at least 1, not "${raw}".`);
+  }
+  return value;
+}
+
+/** Milliseconds one S3 request may take to connect and to answer (ARTIFACT_S3_TIMEOUT_MS). */
+export const s3TimeoutMs = (env: NodeJS.ProcessEnv = process.env) =>
+  positiveInt(env, 'ARTIFACT_S3_TIMEOUT_MS', DEFAULT_S3_TIMEOUT_MS);
+/** Attempts the SDK makes per request, first included (ARTIFACT_S3_MAX_ATTEMPTS). */
+export const s3MaxAttempts = (env: NodeJS.ProcessEnv = process.env) =>
+  positiveInt(env, 'ARTIFACT_S3_MAX_ATTEMPTS', DEFAULT_S3_MAX_ATTEMPTS);
+
+/** Days after which an unclaimed local results/ file is removed (ARTIFACT_LOCAL_ORPHAN_DAYS, 0 = never). */
+export function localOrphanDays(env: NodeJS.ProcessEnv = process.env): number {
+  const raw = env.ARTIFACT_LOCAL_ORPHAN_DAYS?.trim();
+  if (raw === undefined || raw === '') return 7;
+  const value = Number(raw);
+  if (!Number.isSafeInteger(value) || value < 0) {
+    throw new Error(
+      `ARTIFACT_LOCAL_ORPHAN_DAYS must be a whole number of at least 0, not "${raw}".`,
+    );
+  }
+  return value;
+}
+
+/** True when `target` is strictly inside `root` (both resolved). */
+function isInside(root: string, target: string): boolean {
+  const relative = path.relative(root, target);
+  return relative !== '' && !relative.startsWith('..') && !path.isAbsolute(relative);
+}
+
+/**
+ * Removes the local evidence of one run (results/<planId>/<runId>). Used by the retention sweep,
+ * which deletes the stored copy: on a worker with the S3 store a failed upload leaves this one.
+ * Refuses ids that would resolve outside the results directory.
+ */
+export async function removeRunArtifacts(
+  testPlanId: string | number,
+  runId: string | number,
+  cwd: string = process.cwd(),
+): Promise<boolean> {
+  const root = path.resolve(cwd, RESULTS_PREFIX);
+  const dir = path.resolve(root, String(testPlanId), String(runId));
+  if (!isInside(root, dir) || path.relative(root, dir).split(path.sep).length !== 2) return false;
+  if (!(await fs.pathExists(dir))) return false;
+  await fs.remove(dir);
+  return true;
+}
+
+/**
+ * Removes files under results/ not modified for `days` days, then empty folders. Only for the S3
+ * store (with the local store these files are the store), so it does nothing there.
+ */
+export async function sweepOrphanedLocalResults(
+  options: { days?: number; cwd?: string; now?: Date; store?: ArtifactStore } = {},
+): Promise<number> {
+  const days = options.days ?? localOrphanDays();
+  if (days <= 0 || (options.store ?? artifactStore()).kind !== 's3') return 0;
+  const root = path.resolve(options.cwd ?? process.cwd(), RESULTS_PREFIX);
+  const cutoff = (options.now ?? new Date()).getTime() - days * 24 * 60 * 60 * 1000;
+  let removed = 0;
+  for (const file of await filesUnder(root)) {
+    const resolved = path.resolve(file);
+    if (!isInside(root, resolved)) continue;
+    try {
+      if ((await fs.stat(resolved)).mtimeMs < cutoff) {
+        await fs.remove(resolved);
+        removed += 1;
+      }
+    } catch {
+      // Gone meanwhile, or in use: the next sweep looks again.
+    }
+  }
+  const prune = async (dir: string): Promise<void> => {
+    for (const entry of await fs.readdir(dir, { withFileTypes: true })) {
+      if (entry.isDirectory()) await prune(path.join(dir, entry.name));
+    }
+    if (dir !== root && (await fs.readdir(dir)).length === 0) await fs.rmdir(dir);
+  };
+  if (await fs.pathExists(root)) await prune(root).catch(() => undefined);
+  return removed;
 }
 
 let configured: ArtifactStore | undefined;

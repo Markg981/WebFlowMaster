@@ -56,10 +56,15 @@ const HubWavesPanel: React.FC = () => {
 
   const { data: source, isLoading: sourceLoading } = useHubSource();
   const { data: overview } = useHubWavesOverview(!!source);
-  const { data: waves = [], isLoading: wavesLoading } = useHubWaves(!!source);
+  const {
+    data: waves = [],
+    isLoading: wavesLoading,
+    isError: wavesFailed,
+    refetch: refetchWaves,
+  } = useHubWaves(!!source);
 
   const [jobId, setJobId] = useState<string | null>(null);
-  const { data: job } = useHubJob(jobId);
+  const { data: job, isError: jobReadFailed, error: jobReadError } = useHubJob(jobId);
   const cancel = useCancelHubJob();
   const sync = useSyncHubWaves();
 
@@ -81,11 +86,31 @@ const HubWavesPanel: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [job]);
 
+  // The job could not be read (gone, offline, no longer allowed): say so once and let the
+  // person start again, instead of leaving the buttons disabled for ever.
+  useEffect(() => {
+    if (!jobReadFailed || !jobId) return;
+    toast({
+      title: t('hubWaves.job.pollFailed', 'The job status could not be read'),
+      description: t(
+        'hubWaves.job.pollFailedDetail',
+        'The connection to the server was lost or the job no longer exists. You can start it again.',
+      ),
+      variant: 'destructive',
+    });
+    announced.current = jobId;
+    setJobId(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [jobReadFailed, jobReadError, jobId]);
+
   const jobToast = (ended: HubJob) => {
     if (ended.status === 'failed')
       return {
         title: t('hubWaves.job.failed', 'The job failed'),
-        description: ended.error ?? '',
+        description: t(
+          'hubWaves.job.failedDetail',
+          'The job could not be completed. Try again, or check the hub connection in Settings.',
+        ),
         variant: 'destructive' as const,
       };
     if (ended.status === 'cancelled')
@@ -246,6 +271,26 @@ const HubWavesPanel: React.FC = () => {
       {wavesLoading ? (
         <Card className="space-y-3 p-6">
           <Skeleton className="h-40 w-full" />
+        </Card>
+      ) : wavesFailed ? (
+        <Card data-testid="hub-waves-error">
+          <EmptyState
+            icon={Waves}
+            title={t('hubWaves.error.title', 'The waves could not be loaded')}
+            description={t(
+              'hubWaves.error.description',
+              'Something went wrong while reading the waves. Try again; if it keeps failing, ask an administrator.',
+            )}
+            action={
+              <Button
+                variant="outline"
+                onClick={() => void refetchWaves()}
+                data-testid="hub-waves-retry"
+              >
+                {t('hubWaves.error.retry', 'Try again')}
+              </Button>
+            }
+          />
         </Card>
       ) : waves.length === 0 ? (
         <Card>

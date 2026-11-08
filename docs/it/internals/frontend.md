@@ -94,11 +94,13 @@ una cartella qui più una riga in `otherLanguages` in `i18n.ts`.
 Il primo bundle contiene solo ciò che serve a ogni visita. Ogni pagina, compresa quella di accesso, si
 carica alla prima apertura (`App.tsx`), e l'editor Monaco quando si mostra il primo editor
 (`components/CodeEditor.tsx`): Monaco si importa solo tramite `CodeEditor`, mai da una pagina. Ogni stringa si scrive come
-`t('area.chiave', 'Testo inglese')`. Tre test in `locales/locales.test.ts` tengono tutto in ordine:
+`t('area.chiave', 'Testo inglese')`. Quattro test in `locales/locales.test.ts` tengono tutto in ordine:
 
 - ogni chiave presente in inglese esiste nelle altre tre lingue, con gli stessi `{{segnaposto}}`;
 - nessun valore è vuoto o un marcatore `[TRANSLATE]`, e le chiavi sono annidate, mai puntate;
-- ogni chiave letterale usata nel codice esiste in inglese (o nelle sue forme plurali `_one`/`_other`).
+- ogni chiave letterale usata nel codice esiste in inglese (o nelle sue forme plurali `_one`/`_other`);
+- nessun valore oltre i 12 caratteri resta identico all'inglese, salvo la allowlist in
+  `scripts/i18n-untranslated.mjs` (nomi di prodotto, termini di protocollo); lo script elenca gli avanzi.
 
 I valori variabili entrano nella traduzione come segnaposto `{{nome}}`, mai concatenati in JavaScript:
 una frase costruita nel codice non si può tradurre. Le chiavi usate con un `count` hanno le forme `_one`

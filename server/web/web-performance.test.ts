@@ -10,7 +10,7 @@ import {
   parsePerformanceLimits,
 } from '@shared/web-performance';
 import { executeStep } from './step-executor';
-import { lighthouseEnv, runLighthouse } from './web-performance';
+import { buildLighthouseArgs, lighthouseEnv, runLighthouse } from './web-performance';
 
 /** How fast a page is, as a test step sees it (shared/web-performance.ts, server/web/web-performance.ts). */
 
@@ -185,5 +185,20 @@ describe('Lighthouse egress and environment', () => {
       CHROME_PATH: '/chrome',
     });
     expect(env).toEqual({ PATH: '/bin', CHROME_PATH: '/chrome' });
+  });
+
+  it('keeps headers out of argv and adds --no-sandbox only on request', () => {
+    const input = {
+      url: 'http://x.test/',
+      base: '/tmp/b',
+      formFactor: 'desktop' as const,
+      headersFile: '/tmp/b.headers.json',
+    };
+    const off = buildLighthouseArgs({ ...input, env: {} }).join(' ');
+    expect(off).not.toContain('--no-sandbox');
+    expect(off).toContain('--extra-headers=/tmp/b.headers.json');
+    expect(off).not.toContain('Cookie');
+    const on = buildLighthouseArgs({ ...input, env: { LIGHTHOUSE_NO_SANDBOX: '1' } });
+    expect(on.find((a) => a.startsWith('--chrome-flags='))).toContain('--no-sandbox');
   });
 });

@@ -1,0 +1,15 @@
+{
+  "id": "LIB-66",
+  "area": "LIB",
+  "title": "Modifica concorrente dello stesso test: il secondo salvataggio mostra il conflitto",
+  "priority": "P2",
+  "actor": "editor.a in due sessioni (due browser)",
+  "preconditions": "Esiste un test manuale «Conflitto» nella libreria.",
+  "steps": [
+    "Sessione 1 e sessione 2: aprire la matita del test «Conflitto» (stessa versione caricata).",
+    "Sessione 1: cambiare il testo di un passo e salvare.",
+    "Sessione 2: cambiare un altro passo e salvare.",
+    "Sessione 2: scegliere «Continuare a modificare», poi salvare di nuovo e scegliere «Sovrascrivi»."
+  ],
+  "expected": "1: entrambe le sessioni aprono l'editor. 2: salvataggio riuscito. 3: compare «Questo test è stato modificato da qualcun altro» e la bozza della sessione 2 resta nei campi. 4: «Continuare a modificare» chiude la domanda senza salvare; «Sovrascrivi» salva e il test contiene la modifica della sessione 2 (la precedente resta nelle versioni)."
+}

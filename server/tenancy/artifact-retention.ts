@@ -3,7 +3,13 @@ import { and, asc, inArray, isNull, lt, eq } from 'drizzle-orm';
 import { testPlanExecutions } from '@shared/schema';
 import { privilegedDb } from '../platform/db';
 import { runWithTenant, withTenantTransaction } from '../platform/middleware/tenancy';
-import { artifactStore, RESULTS_PREFIX, type ArtifactStore } from './artifact-store';
+import {
+  artifactStore,
+  RESULTS_PREFIX,
+  removeRunArtifacts,
+  sweepOrphanedLocalResults,
+  type ArtifactStore,
+} from './artifact-store';
 import logger from '../platform/logger';
 
 /**
@@ -78,6 +84,8 @@ export async function purgeExpiredArtifacts(
       report.removedFiles += await store.deletePrefix(
         `${RESULTS_PREFIX}${run.testPlanId}/${run.id}/`,
       );
+      // The worker's own copy too (left behind by a failed upload); a no-op where there is none.
+      await removeRunArtifacts(run.testPlanId, run.id);
       // Marked only once its files are gone: a run whose removal failed is tried again next time.
       await runWithTenant(run.organizationId, () =>
         withTenantTransaction((tx) =>
@@ -109,6 +117,8 @@ export function startArtifactRetention(intervalMs = 6 * 60 * 60_000): () => void
     if (running) return;
     running = true;
     try {
+      // On every host, outside the lock: leftover files are on the disk of whoever ran the test.
+      await sweepOrphanedLocalResults().catch(() => undefined);
       const locked = await withAdvisoryLock(ADVISORY_KEYS.artifactRetention, purgeExpiredArtifacts);
       if (!locked.ran) return;
       const report = locked.value;

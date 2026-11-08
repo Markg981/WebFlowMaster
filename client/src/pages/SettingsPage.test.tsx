@@ -112,6 +112,18 @@ const openSection = async (label: string | RegExp) => {
   fireEvent.click(within(rail).getByRole('button', { name: label }));
 };
 
+// The strong confirmation enables Delete only after the project name is typed (B-30).
+const confirmByTypingProjectName = async (projectName: string) => {
+  const dialog = screen.getByRole('alertdialog');
+  const confirmButton = within(dialog).getByRole('button', { name: 'Delete' });
+  expect(confirmButton).toBeDisabled();
+  fireEvent.change(within(dialog).getByRole('textbox', { name: 'Confirmation text' }), {
+    target: { value: projectName },
+  });
+  expect(confirmButton).toBeEnabled();
+  fireEvent.click(confirmButton);
+};
+
 const openDeleteDialogFor = async (projectName: string) => {
   await openSection('Projects');
   const deleteButton = await screen.findByRole('button', {
@@ -166,9 +178,7 @@ describe('SettingsPage - Project Deletion', () => {
     renderSettingsPage();
 
     await openDeleteDialogFor('Project Alpha');
-    fireEvent.click(
-      within(screen.getByRole('alertdialog')).getByRole('button', { name: 'Delete' }),
-    );
+    await confirmByTypingProjectName('Project Alpha');
 
     await waitFor(() =>
       expect(globalThis.fetch).toHaveBeenCalledWith(
@@ -189,9 +199,7 @@ describe('SettingsPage - Project Deletion', () => {
     renderSettingsPage();
 
     await openDeleteDialogFor('Project Alpha');
-    fireEvent.click(
-      within(screen.getByRole('alertdialog')).getByRole('button', { name: 'Delete' }),
-    );
+    await confirmByTypingProjectName('Project Alpha');
 
     await waitFor(() =>
       expect(mockToast).toHaveBeenCalledWith(

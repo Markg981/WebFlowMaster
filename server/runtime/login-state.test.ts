@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, beforeEach, afterAll } from 'vitest';
+import { describe, it, expect, beforeAll, beforeEach, afterAll, vi } from 'vitest';
 import http from 'http';
 import type { AddressInfo } from 'net';
 import { privilegedDb } from '../platform/db';
@@ -284,23 +284,33 @@ describe('capturing a login state from a recording session', () => {
   }, 90_000);
 
   it('refuses a recording session that belongs to another user', async () => {
+    // The ownership check happens before the browser is touched, so the session is registered with
+    // stand-ins instead of launching Chromium: nothing here depends on how loaded the machine is.
     const { playwrightService } = await import('../web/playwright-service');
     const environmentId = await makeEnvironment('Foreign capture env');
-    const started = await playwrightService.startRecordingSession(baseUrl, userId);
-    expect(started.success).toBe(true);
+    const sessionId = `foreign-session-${Date.now()}`;
+    const storageState = vi.fn(async () => ({ cookies: [], origins: [] }));
+    playwrightService.registerSession(sessionId, {
+      browser: { close: async () => {} } as never,
+      context: { storageState, close: async () => {} } as never,
+      page: { close: async () => {} } as never,
+      targetUrl: baseUrl,
+      userId,
+    });
 
     try {
       const saved = await playwrightService.captureLoginState(
-        started.sessionId!,
+        sessionId,
         { environmentId, organizationId },
         userId + 1,
       );
       expect(saved).toBe(false);
+      expect(storageState).not.toHaveBeenCalled();
       expect(await loadLoginState({ environmentId, organizationId })).toBeUndefined();
     } finally {
-      await playwrightService.stopRecordingSession(started.sessionId!, userId).catch(() => {});
+      await playwrightService.stopRecordingSession(sessionId, userId).catch(() => {});
     }
-  }, 90_000);
+  });
 
   it('reports an unknown session rather than saving an empty state', async () => {
     const { playwrightService } = await import('../web/playwright-service');

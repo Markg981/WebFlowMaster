@@ -17,7 +17,7 @@
 - Default smoke assertion exactly: `{ id: <uuid>, source: "status_code", comparison: "less_than", targetValue: "500", enabled: true }`.
 - `queryParams` stored as `KeyValuePair[]` = `{ id: string, key: string, value: string, enabled: boolean }`.
 - Tests live in `scripts/netcontent/*.test.ts`; extend `vitest.config.ts` `include` to discover them.
-- Controllers default dir: `C:\Users\marco.oliva\source\repos\DMO_3\DMO.NetContent\_NccNew\Controllers`.
+- Controllers default dir: `<repos>\DMO_3\DMO.NetContent\_NccNew\Controllers`.
 
 ---
 
@@ -380,7 +380,7 @@ Expected: PASS.
 Run:
 
 ```bash
-npx tsx -e "import('./scripts/netcontent/parse-controllers.ts').then(m => { const r = m.parseControllersDir(String.raw`C:\Users\marco.oliva\source\repos\DMO_3\DMO.NetContent\_NccNew\Controllers`); console.log('endpoints:', r.endpoints.length, 'warnings:', r.warnings.length); })"
+npx tsx -e "import('./scripts/netcontent/parse-controllers.ts').then(m => { const r = m.parseControllersDir(String.raw`<repos>\DMO_3\DMO.NetContent\_NccNew\Controllers`); console.log('endpoints:', r.endpoints.length, 'warnings:', r.warnings.length); })"
 ```
 
 Expected: prints roughly `endpoints: ~168` and a small warnings count. (Informational — not an assertion. If endpoints is 0, the regex needs revisiting before continuing.)
@@ -870,7 +870,7 @@ import { parseControllersDir } from './netcontent/parse-controllers';
 import { mapEndpoints } from './netcontent/map-to-apitests';
 import { resolveUserId, findOrCreateProject, importApiTests } from './netcontent/importer';
 
-const DEFAULT_CONTROLLERS = String.raw`C:\Users\marco.oliva\source\repos\DMO_3\DMO.NetContent\_NccNew\Controllers`;
+const DEFAULT_CONTROLLERS = String.raw`<repos>\DMO_3\DMO.NetContent\_NccNew\Controllers`;
 
 async function main() {
   const dryRun = process.argv.includes('--dry-run');

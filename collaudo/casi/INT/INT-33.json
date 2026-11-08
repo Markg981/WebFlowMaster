@@ -1,0 +1,15 @@
+{
+  "id": "INT-33",
+  "area": "INT",
+  "title": "Webhook: token nell'header, percorso deprecato",
+  "priority": "P2",
+  "actor": "editor.a",
+  "preconditions": "Un webhook di un piano con il suo token.",
+  "steps": [
+    "curl -X POST $WFM_URL/api/webhooks/execute -H \"X-Webhook-Token: …\": risposta 202.",
+    "Ripetere con un token errato nell'header.",
+    "Chiamare la vecchia forma $WFM_URL/api/webhooks/execute/<token> due volte e leggere il log del server."
+  ],
+  "expected": "Header corretto: 202. Header errato: 401. Percorso: 202, nel log il token è mascherato ([redacted]) e compare un solo avviso di deprecazione per webhook.",
+  "detailHtml": "\n        <h4>Passi</h4>\n        <ol><li>curl -X POST $WFM_URL/api/webhooks/execute -H \"X-Webhook-Token: …\": risposta 202.</li><li>Ripetere con un token errato nell'header.</li><li>Chiamare la vecchia forma $WFM_URL/api/webhooks/execute/<token> due volte e leggere il log del server.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Header corretto: 202. Header errato: 401. Percorso: 202, nel log il token è mascherato ([redacted]) e compare un solo avviso di deprecazione per webhook.</p>\n      "
+}

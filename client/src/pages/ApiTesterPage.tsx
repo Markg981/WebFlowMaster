@@ -502,7 +502,7 @@ const ApiTesterForm: React.FC = () => {
   });
 
   const { search, setSearch, debouncedSearch, page, setPage, pageSize, setPageSize } =
-    useCatalogControls();
+    useCatalogControls('', true);
   const {
     data: savedCatalog,
     isLoading: isLoadingSavedTests,

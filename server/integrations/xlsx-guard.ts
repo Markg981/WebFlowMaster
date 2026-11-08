@@ -1,5 +1,6 @@
 import fs from 'fs/promises';
 import path from 'path';
+import zlib from 'zlib';
 
 /** Where multer stores uploaded workbooks; the guard opens nothing outside it. */
 export const XLSX_UPLOAD_DIR = path.resolve('uploads');
@@ -18,9 +19,61 @@ const EOCD_SIG = 0x06054b50;
 const CDH_SIG = 0x02014b50;
 const INVALID = 'The file is not a valid .xlsx archive.';
 
+const TOO_MUCH = 'The workbook expands to too much data.';
+
+/** Inflates one entry into a counter (nothing is kept) and aborts as soon as a limit is crossed. */
+async function measureEntry(
+  fh: fs.FileHandle,
+  start: number,
+  compressed: number,
+  method: number,
+  totalLeft: number,
+): Promise<number> {
+  const cap = Math.min(XLSX_LIMITS.maxEntryUncompressedBytes, totalLeft);
+  if (method === 0) {
+    if (compressed > cap) throw new XlsxLimitError(TOO_MUCH);
+    return compressed;
+  }
+  if (method !== 8) throw new Error(INVALID);
+  const inflate = zlib.createInflateRaw();
+  let out = 0;
+  let failure: unknown;
+  inflate.on('data', (chunk: Buffer) => {
+    out += chunk.length;
+    if (out > cap && !failure) {
+      failure = new XlsxLimitError(TOO_MUCH);
+      inflate.destroy();
+    }
+  });
+  const done = new Promise<void>((resolve) => {
+    inflate.on('end', resolve);
+    inflate.on('close', resolve);
+    inflate.on('error', (e) => {
+      failure ??= e;
+      resolve();
+    });
+  });
+  const chunk = Buffer.alloc(64 * 1024);
+  for (let read = 0; read < compressed && !failure;) {
+    const n = Math.min(chunk.length, compressed - read);
+    const { bytesRead } = await fh.read(chunk, 0, n, start + read);
+    if (bytesRead === 0) break;
+    read += bytesRead;
+    if (!inflate.write(Buffer.from(chunk.subarray(0, bytesRead)))) {
+      await Promise.race([new Promise((r) => inflate.once('drain', r)), done]);
+    }
+  }
+  if (!failure) inflate.end();
+  await done;
+  if (failure instanceof XlsxLimitError) throw failure;
+  if (failure) throw new Error(INVALID);
+  return out;
+}
+
 /**
- * Reads only the zip central directory (never inflates anything) and rejects archives whose declared
- * sizes would exhaust memory when ExcelJS loads them. Throws XlsxLimitError.
+ * Reads the zip central directory, rejects archives whose declared sizes would exhaust memory when
+ * ExcelJS loads them, then inflates every entry into a counter (not trusting the declared sizes) and
+ * rejects any whose real size differs from the declaration or crosses the limits. Throws XlsxLimitError.
  */
 export async function assertXlsxWithinLimits(filePath: string): Promise<void> {
   const resolved = path.resolve(filePath);
@@ -52,6 +105,7 @@ export async function assertXlsxWithinLimits(filePath: string): Promise<void> {
     await fh.read(cd, 0, cdSize, cdOffset);
     let pos = 0;
     let total = 0;
+    const parts: { offset: number; compressed: number; declared: number; method: number }[] = [];
     for (let n = 0; n < entries; n++) {
       if (pos + 46 > cdSize || cd.readUInt32LE(pos) !== CDH_SIG) throw new Error(INVALID);
       const compressed = cd.readUInt32LE(pos + 20);
@@ -68,7 +122,27 @@ export async function assertXlsxWithinLimits(filePath: string): Promise<void> {
       total += uncompressed;
       if (total > XLSX_LIMITS.maxTotalUncompressedBytes)
         throw new XlsxLimitError('The workbook expands to too much data.');
+      parts.push({
+        offset: cd.readUInt32LE(pos + 42),
+        compressed,
+        declared: uncompressed,
+        method: cd.readUInt16LE(pos + 10),
+      });
       pos += 46 + cd.readUInt16LE(pos + 28) + cd.readUInt16LE(pos + 30) + cd.readUInt16LE(pos + 32);
+    }
+    // The declared sizes are attacker-controlled: measure what the entries really inflate to.
+    let measured = 0;
+    for (const part of parts) {
+      const lh = Buffer.alloc(30);
+      await fh.read(lh, 0, 30, part.offset);
+      if (lh.readUInt32LE(0) !== 0x04034b50) throw new Error(INVALID);
+      const start = part.offset + 30 + lh.readUInt16LE(26) + lh.readUInt16LE(28);
+      if (start + part.compressed > size) throw new Error(INVALID);
+      const left = XLSX_LIMITS.maxTotalUncompressedBytes - measured;
+      const real = await measureEntry(fh, start, part.compressed, part.method, left);
+      if (real !== part.declared)
+        throw new XlsxLimitError('The workbook sizes do not match its contents.');
+      measured += real;
     }
   } finally {
     await fh.close();

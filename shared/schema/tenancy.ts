@@ -49,6 +49,8 @@ export const ORG_SCOPED_TABLES = [
   'hub_waves',
   'hub_wave_results',
   'hub_jobs',
+  // Calls to the external AI provider per organization and day: the daily cap (migration 0105).
+  'ai_usage',
   // api_keys is org-scoped and policed like the rest. Unlike `invitations`, which cannot be,
   // the one lookup that must happen before an organization is known — authenticating a
   // request that carries a key — is a privileged bootstrap read in middleware, the same shape

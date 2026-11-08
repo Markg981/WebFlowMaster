@@ -9,8 +9,8 @@ import { users, projects, tests, apiTests } from '@shared/schema';
 import { buildViewInventory, type UiElement } from './parse-views';
 import { mapSteps, splitSteps, type MappedStep } from './map-steps';
 
-const DEFAULT_XLSX = String.raw`C:\Users\marco.oliva\Downloads\DMO NCC Test Scripts.xlsx`;
-const DEFAULT_VIEWS = String.raw`C:\Users\marco.oliva\source\repos\DMO_3\DMO.NetContent\Templates\Views`;
+const DEFAULT_XLSX = '';
+const DEFAULT_VIEWS = '';
 const BASE_URL = process.env.APP_BASE_URL || process.env.DMO_BASE_URL || 'http://localhost:7000';
 const PROJECT_NAME = 'NetContent UI';
 

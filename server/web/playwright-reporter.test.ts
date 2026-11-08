@@ -5,6 +5,8 @@ import type { Browser, Page } from 'playwright';
 import {
   auditLog,
   healingProposals,
+  organizations,
+  aiUsage,
   projectElements,
   projects,
   stepGroups,
@@ -72,6 +74,10 @@ let proposals: Record<string, string>;
 beforeAll(async () => {
   browser = await chromium.launch({ headless: true });
   organizationId = await createTestOrganization('Healing Org');
+  await privilegedDb
+    .update(organizations)
+    .set({ aiEnabled: true })
+    .where(eq(organizations.id, organizationId));
   userId = await createTestUser(organizationId, `healer-${uuidv4().slice(0, 6)}`);
   const [project] = await privilegedDb
     .insert(projects)
@@ -280,7 +286,9 @@ describe('which locator a run tries', () => {
     const reporter = new PlaywrightReporter(page);
     reporter.setContext({ testId: test.id, provenance: null, elementId: null });
 
-    await expect(reporter.click('#twin-gone')).rejects.toThrow(/#twin-gone/);
+    await expect(runWithTenant(organizationId, () => reporter.click('#twin-gone'))).rejects.toThrow(
+      /#twin-gone/,
+    );
     expect(reporter.lastActionHealed).toBe(false);
     expect(await proposalsOf(test.id)).toHaveLength(0);
   });
@@ -294,7 +302,7 @@ describe('which locator a run tries', () => {
 
   it('shows the model the page without its form values or tokens', async () => {
     const reporter = new PlaywrightReporter(page);
-    await reporter.click('#gone');
+    await runWithTenant(organizationId, () => reporter.click('#gone'));
     const shown = vi.mocked(aiService.healSelector).mock.calls.at(-1)?.[1] ?? '';
     expect(shown).toContain('id="second"');
     expect(shown).not.toContain('tok-secret');
@@ -312,9 +320,40 @@ describe('the highlight', () => {
     expect(styles).toEqual([null, 'color: blue']);
 
     // A failing click: what the model is shown has no outline either.
-    await reporter.click('#gone');
+    await runWithTenant(organizationId, () => reporter.click('#gone'));
     const shown = vi.mocked(aiService.healSelector).mock.calls.at(-1)?.[1] ?? '';
     expect(shown).not.toContain('solid red');
     expect(await page.locator('#second').getAttribute('style')).toBe('color: blue');
+  });
+});
+
+describe('the AI is asked only with the organization consent and under its daily cap', () => {
+  const setConsent = (id: number, aiEnabled: boolean) =>
+    privilegedDb.update(organizations).set({ aiEnabled }).where(eq(organizations.id, id));
+
+  it('without consent: no model call, the step fails as it first did, and it says why', async () => {
+    const other = await createTestOrganization('No Consent Org');
+    const reporter = new PlaywrightReporter(page);
+    await expect(runWithTenant(other, () => reporter.click('#gone'))).rejects.toThrow();
+    expect(aiService.healSelector).not.toHaveBeenCalled();
+    expect(reporter.lastAiSkipped).toBe('consent');
+  });
+
+  it('outside any organization: no model call either', async () => {
+    const reporter = new PlaywrightReporter(page);
+    await expect(reporter.click('#gone')).rejects.toThrow();
+    expect(aiService.healSelector).not.toHaveBeenCalled();
+  });
+
+  it('over the daily cap: no model call, and it says why', async () => {
+    const capped = await createTestOrganization('Capped Org');
+    await setConsent(capped, true);
+    await privilegedDb
+      .insert(aiUsage)
+      .values({ organizationId: capped, day: new Date().toISOString().slice(0, 10), count: 200 });
+    const reporter = new PlaywrightReporter(page);
+    await expect(runWithTenant(capped, () => reporter.click('#gone'))).rejects.toThrow();
+    expect(aiService.healSelector).not.toHaveBeenCalled();
+    expect(reporter.lastAiSkipped).toBe('quota');
   });
 });
