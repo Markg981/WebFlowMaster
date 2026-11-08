@@ -347,6 +347,33 @@ describe('joining by invitation as an existing account', () => {
     await alice.agent.post('/api/invitations/accept').send({ token }).expect(400);
   });
 
+  it('lets only one of two concurrent accepts create the membership', async () => {
+    const alice = await signedIn('alice');
+    const orgB = await organization('B');
+    const token = 'e'.repeat(64);
+    await privilegedDb.insert(invitations).values({
+      organizationId: orgB,
+      username: 'alice',
+      role: 'editor',
+      token: hashInvitationToken(token),
+      invitedByUserId: null,
+      expiresAt: new Date(Date.now() + 60_000),
+    });
+    const statuses = (
+      await Promise.all(
+        [1, 2].map(() => alice.agent.post('/api/invitations/accept').send({ token })),
+      )
+    )
+      .map((r) => r.status)
+      .sort();
+    // The loser sees the spent link (400), or, when the winner already moved the session to the new
+    // organization before the loser was authenticated, a refused session (401): never a second 200.
+    expect(statuses[0]).toBe(200);
+    expect([400, 401]).toContain(statuses[1]);
+    const rows = (await membershipRows(alice.id)).filter((m) => m.organizationId === orgB);
+    expect(rows).toHaveLength(1);
+  });
+
   it("refuses an invitation for somebody else's username", async () => {
     const alice = await signedIn('alice');
     const orgB = await organization('B');

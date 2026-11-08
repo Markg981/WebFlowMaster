@@ -4,7 +4,7 @@ Generated from `shared/schema/` (one file per domain) with `node scripts/generat
 
 Read the [domain schema](./database-schema) for explanations and relationships, then find the table here. Each row lists the TypeScript property, SQL name and complete builder: type, nullability, default and references declared on the column. Table callback constraints are not expanded here.
 
-**88 tables / 1055 declared columns.**
+**88 tables / 1056 declared columns.**
 
 ## Index
 
@@ -24,7 +24,7 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 | [system_settings](#system-settings)                           | `systemSettings`             | 2       |
 | [invitations](#invitations)                                   | `invitations`                | 9       |
 | [password_resets](#password-resets)                           | `passwordResets`             | 8       |
-| [organization_sso](#organization-sso)                         | `organizationSso`            | 28      |
+| [organization_sso](#organization-sso)                         | `organizationSso`            | 29      |
 | [scim_users](#scim-users)                                     | `scimUsers`                  | 6       |
 | [scim_groups](#scim-groups)                                   | `scimGroups`                 | 6       |
 | [scim_group_members](#scim-group-members)                     | `scimGroupMembers`           | 2       |
@@ -336,12 +336,13 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 | `scimTokenHash`                  | `scim_token_hash`                   | `text('scim_token_hash')`                                                                                                          |
 | `scimTokenPrefix`                | `scim_token_prefix`                 | `text('scim_token_prefix')`                                                                                                        |
 | `scimTokenCreatedAt`             | `scim_token_created_at`             | `timestamp('scim_token_created_at')`                                                                                               |
+| `scimTokenExpiresAt`             | `scim_token_expires_at`             | `timestamp('scim_token_expires_at')`                                                                                               |
 | `scimTokenLastUsedAt`            | `scim_token_last_used_at`           | `timestamp('scim_token_last_used_at')`                                                                                             |
 | `updatedAt`                      | `updated_at`                        | `timestamp('updated_at').defaultNow().notNull()`                                                                                   |
 
 ## scim_users {#scim-users}
 
-`scimUsers` — `shared/schema/identity.ts:440`
+`scimUsers` — `shared/schema/identity.ts:442`
 
 | TS property        | SQL column           | Declaration                                                                                          |
 | ------------------ | -------------------- | ---------------------------------------------------------------------------------------------------- |
@@ -354,7 +355,7 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 
 ## scim_groups {#scim-groups}
 
-`scimGroups` — `shared/schema/identity.ts:459`
+`scimGroups` — `shared/schema/identity.ts:461`
 
 | TS property      | SQL column        | Declaration                                                                                          |
 | ---------------- | ----------------- | ---------------------------------------------------------------------------------------------------- |
@@ -367,7 +368,7 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 
 ## scim_group_members {#scim-group-members}
 
-`scimGroupMembers` — `shared/schema/identity.ts:474`
+`scimGroupMembers` — `shared/schema/identity.ts:476`
 
 | TS property | SQL column | Declaration                                                                             |
 | ----------- | ---------- | --------------------------------------------------------------------------------------- |
@@ -376,7 +377,7 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 
 ## sso_saml_requests {#sso-saml-requests}
 
-`ssoSamlRequests` — `shared/schema/identity.ts:495`
+`ssoSamlRequests` — `shared/schema/identity.ts:497`
 
 | TS property      | SQL column        | Declaration                                                                                          |
 | ---------------- | ----------------- | ---------------------------------------------------------------------------------------------------- |
@@ -388,7 +389,7 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 
 ## sso_saml_replay {#sso-saml-replay}
 
-`ssoSamlReplay` — `shared/schema/identity.ts:510`
+`ssoSamlReplay` — `shared/schema/identity.ts:512`
 
 | TS property      | SQL column        | Declaration                                                                                          |
 | ---------------- | ----------------- | ---------------------------------------------------------------------------------------------------- |
@@ -398,7 +399,7 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 
 ## sso_saml_sessions {#sso-saml-sessions}
 
-`ssoSamlSessions` — `shared/schema/identity.ts:523`
+`ssoSamlSessions` — `shared/schema/identity.ts:525`
 
 | TS property      | SQL column        | Declaration                                                                                          |
 | ---------------- | ----------------- | ---------------------------------------------------------------------------------------------------- |
@@ -413,7 +414,7 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 
 ## sso_domains {#sso-domains}
 
-`ssoDomains` — `shared/schema/identity.ts:549`
+`ssoDomains` — `shared/schema/identity.ts:551`
 
 | TS property         | SQL column           | Declaration                                                                                          |
 | ------------------- | -------------------- | ---------------------------------------------------------------------------------------------------- |
@@ -424,7 +425,7 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 
 ## sso_identities {#sso-identities}
 
-`ssoIdentities` — `shared/schema/identity.ts:565`
+`ssoIdentities` — `shared/schema/identity.ts:567`
 
 | TS property    | SQL column        | Declaration                                                                                    |
 | -------------- | ----------------- | ---------------------------------------------------------------------------------------------- |
@@ -436,7 +437,7 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 
 ## audit_log {#audit-log}
 
-`auditLog` — `shared/schema/identity.ts:597`
+`auditLog` — `shared/schema/identity.ts:599`
 
 | TS property      | SQL column        | Declaration                                                                     |
 | ---------------- | ----------------- | ------------------------------------------------------------------------------- |
@@ -454,7 +455,7 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 
 ## ai_usage {#ai-usage}
 
-`aiUsage` — `shared/schema/identity.ts:635`
+`aiUsage` — `shared/schema/identity.ts:637`
 
 | TS property      | SQL column        | Declaration                                                                 |
 | ---------------- | ----------------- | --------------------------------------------------------------------------- |
@@ -464,7 +465,7 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 
 ## api_keys {#api-keys}
 
-`apiKeys` — `shared/schema/identity.ts:658`
+`apiKeys` — `shared/schema/identity.ts:660`
 
 | TS property      | SQL column        | Declaration                                                                          |
 | ---------------- | ----------------- | ------------------------------------------------------------------------------------ |
@@ -482,7 +483,7 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 
 ## sessions {#sessions}
 
-`sessions` — `shared/schema/identity.ts:896`
+`sessions` — `shared/schema/identity.ts:898`
 
 | TS property | SQL column | Declaration                     |
 | ----------- | ---------- | ------------------------------- |

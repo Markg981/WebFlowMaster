@@ -127,7 +127,7 @@ export async function exportOrganization(organizationId: number): Promise<Record
   }
 
   const organization = await privilegedDb.execute(
-    sql`SELECT * FROM organizations WHERE id = ${organizationId}`,
+    sql`SELECT id, name, created_at, max_concurrent_runs, max_queued_runs, quota_mode, max_tests, max_artifact_bytes, max_monthly_execution_minutes, quota_revision, artifacts_reconciled_at, mfa_required, test_review_required, ai_enabled, sms_inbound_token_prefix, sms_inbound_token_created_at FROM organizations WHERE id = ${organizationId}`,
   );
 
   return {

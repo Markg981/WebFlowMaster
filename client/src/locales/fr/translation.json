@@ -4335,7 +4335,7 @@
       "description": "Votre fournisseur d'identité crée, désactive et supprime les comptes ici, et transmet ses groupes, dès qu'ils changent chez lui — pas à la prochaine connexion. Donnez-lui l'URL de base et un jeton.",
       "baseUrl": "URL de base SCIM (URL du tenant)",
       "tokenShown": "Jeton — copiez-le maintenant, il ne sera plus affiché",
-      "status": "Jeton {{prefix}}… émis le {{created}}, dernière utilisation {{used}}.",
+      "status": "Jeton {{prefix}}… émis le {{created}}, dernière utilisation {{used}}, expire le {{expires}}.",
       "none": "Aucun jeton : le provisionnement est désactivé.",
       "replace": "Remplacer le jeton",
       "issue": "Émettre un jeton",

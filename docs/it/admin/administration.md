@@ -313,7 +313,8 @@ SCIM 2.0 il provider avvisa WebFlowMaster appena qualcosa cambia presso di lui: 
 disattiva e li rimuove, e invia i suoi gruppi. In **Provisioning (SCIM)** premete **Emetti un
 token** e date al provider l'**URL di base SCIM** (`<il vostro indirizzo>/api/scim/v2`) e il token,
 che viene mostrato una sola volta; **Sostituisci il token** chiude subito quello vecchio,
-**Revoca** chiude il provisioning. Prima va configurato il single sign-on: gli account creati così
+**Revoca** chiude il provisioning. Il token scade dopo `SCIM_TOKEN_TTL_DAYS` giorni (predefinito 365; impostato sul server): la scheda mostra la data di scadenza e un token scaduto è rifiutato con 401, quindi sostituitelo prima. I token emessi prima di questo limite non scadono finché non vengono sostituiti.
+Prima va configurato il single sign-on: gli account creati così
 non hanno password e accedono tramite il provider, che li collega per indirizzo al primo accesso.
 
 | Provider                                                      | Dove                                                                                                                                                                                                                            |
@@ -514,7 +515,7 @@ export KEY=wfm_...   # la chiave ad accesso completo di un owner
 JSON: ogni tabella che le appartiene (membri, progetti, test, piani, run, il registro di audit e
 il resto). Password, token, hash e tutto ciò che è cifrato (segreti salvati, token delle
 integrazioni, relativi IV e tag) sono esclusi. L'esportazione richiede la sessione di un owner, non
-una chiave API, ed è registrata nell'audit come `organization.exported`.
+una chiave API, ed è registrata nell'audit come `organization.exported`. Il record dell'organizzazione è esportato con un elenco esplicito di colonne, quindi nessun hash o token (come il token SMS in ingresso) è mai incluso.
 Trattate comunque il file come riservato: contiene test, dati e registro di audit
 dell'organizzazione.
 

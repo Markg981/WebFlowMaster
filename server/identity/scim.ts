@@ -151,9 +151,16 @@ function hashToken(token: string): string {
   return createHash('sha256').update(token, 'utf8').digest('hex');
 }
 
+/** Lifetime of a new SCIM token, in days: SCIM_TOKEN_TTL_DAYS, default 365. */
+function scimTokenTtlDays(): number {
+  const days = Number(process.env.SCIM_TOKEN_TTL_DAYS);
+  return Number.isFinite(days) && days > 0 ? days : 365;
+}
+
 export interface ScimTokenStatus {
   prefix: string;
   createdAt: Date;
+  expiresAt: Date;
   lastUsedAt: Date | null;
 }
 
@@ -170,6 +177,7 @@ export async function issueScimToken(
   const status: ScimTokenStatus = {
     prefix: token.slice(0, VISIBLE_PREFIX_LENGTH),
     createdAt: new Date(),
+    expiresAt: new Date(Date.now() + scimTokenTtlDays() * 86_400_000),
     lastUsedAt: null,
   };
   const issued = await privilegedDb.transaction(async (tx) => {
@@ -179,6 +187,7 @@ export async function issueScimToken(
         scimTokenHash: hashToken(token),
         scimTokenPrefix: status.prefix,
         scimTokenCreatedAt: status.createdAt,
+        scimTokenExpiresAt: status.expiresAt,
         scimTokenLastUsedAt: null,
       })
       .where(eq(organizationSso.organizationId, organizationId))
@@ -207,6 +216,7 @@ export async function revokeScimToken(organizationId: number, actor: AuditActor)
         scimTokenHash: null,
         scimTokenPrefix: null,
         scimTokenCreatedAt: null,
+        scimTokenExpiresAt: null,
         scimTokenLastUsedAt: null,
       })
       .where(eq(organizationSso.organizationId, organizationId));
@@ -229,12 +239,17 @@ const recentlyUsed = new Map<number, number>();
 export async function organizationForScimToken(token: string): Promise<number | null> {
   const hashed = hashToken(token);
   const [row] = await privilegedDb
-    .select({ organizationId: organizationSso.organizationId, hash: organizationSso.scimTokenHash })
+    .select({
+      organizationId: organizationSso.organizationId,
+      hash: organizationSso.scimTokenHash,
+      expiresAt: organizationSso.scimTokenExpiresAt,
+    })
     .from(organizationSso)
     .where(eq(organizationSso.scimTokenHash, hashed))
     .limit(1);
   if (!row?.hash || !hashesMatch(row.hash, hashed)) return null;
   const now = Date.now();
+  if (row.expiresAt && row.expiresAt.getTime() <= now) return null;
   const last = recentlyUsed.get(row.organizationId);
   if (last === undefined || now - last >= LAST_USED_WRITE_INTERVAL_MS) {
     recentlyUsed.set(row.organizationId, now);

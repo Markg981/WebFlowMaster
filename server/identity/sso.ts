@@ -111,7 +111,12 @@ export interface SsoSettings {
   /** OpenID Connect: believe an address without email_verified (Entra ID). Default false. */
   trustUnverifiedEmail: boolean;
   /** The provider's SCIM token (server/identity/scim.ts), never the token itself. Null: no provisioning. */
-  scimToken: { prefix: string; createdAt: Date | null; lastUsedAt: Date | null } | null;
+  scimToken: {
+    prefix: string;
+    createdAt: Date | null;
+    expiresAt: Date | null;
+    lastUsedAt: Date | null;
+  } | null;
   updatedAt: Date;
 }
 
@@ -300,6 +305,7 @@ export async function getSsoSettings(organizationId: number): Promise<SsoSetting
       ? {
           prefix: row.scimTokenPrefix,
           createdAt: row.scimTokenCreatedAt,
+          expiresAt: row.scimTokenExpiresAt,
           lastUsedAt: row.scimTokenLastUsedAt,
         }
       : null,

@@ -40,6 +40,18 @@ describe('relay secret (audit A-12)', () => {
   });
 });
 
+describe('ticket id is mandatory (audit B-02)', () => {
+  it('rejects a signed ticket without a jti', async () => {
+    const { createHmac } = await import('node:crypto');
+    const payload = Buffer.from(
+      JSON.stringify({ ...base, expiresAt: Date.now() + 60_000 }),
+    ).toString('base64url');
+    const sig = createHmac('sha256', 'k').update(payload).digest('base64url');
+    const result = verifyTicket(`${payload}.${sig}`, 'k');
+    expect('error' in result).toBe(true);
+  });
+});
+
 describe('single-use tickets (audit A-12)', () => {
   it('gives every ticket its own id', () => {
     const a = ticketOf('k');

@@ -252,7 +252,9 @@ export async function acceptInvitationAsMember(
       .select()
       .from(invitations)
       .where(eq(invitations.token, hashInvitationToken(token)))
-      .limit(1);
+      .limit(1)
+      // Locks the row: a second concurrent accept waits, then sees acceptedAt and answers 'used'.
+      .for('update');
     if (!invitation) return { error: 'invalid' as const };
     if (invitation.acceptedAt) return { error: 'used' as const };
     if (invitation.expiresAt.getTime() <= Date.now()) return { error: 'expired' as const };

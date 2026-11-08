@@ -300,6 +300,7 @@ suits only one with a single organization. Usernames are unique regardless of ca
 deactivates and removes them, and pushes its groups. Under **Provisioning (SCIM)**, press **Issue a
 token** and give the provider the **SCIM base URL** (`<your address>/api/scim/v2`) and the token,
 which is shown once; **Replace the token** ends the old one at once, **Revoke** ends provisioning.
+The token expires after `SCIM_TOKEN_TTL_DAYS` days (default 365; set on the server): the card shows the expiry date, and an expired token is refused with 401, so replace it before then. Tokens issued before this limit existed do not expire until replaced.
 Single sign-on must be set up first: provisioned accounts have no password and sign in through
 the provider, which links them by address at the first sign-in.
 
@@ -492,7 +493,7 @@ export KEY=wfm_...   # an owner's full-access key
 every table that belongs to it (members, projects, tests, plans, runs, the audit log and the
 rest). Passwords, tokens, hashes and anything encrypted (stored secrets, integration tokens,
 their IVs and tags) are left out. The export needs a signed-in owner session, not an API key, and
-is recorded in the audit log as `organization.exported`. Treat the file as
+is recorded in the audit log as `organization.exported`. The organization's own record is exported with an explicit list of columns, so no hash or token of it (such as the inbound SMS token) is ever included. Treat the file as
 confidential all the same: it holds the organization's tests, data and audit trail.
 
 ```bash
