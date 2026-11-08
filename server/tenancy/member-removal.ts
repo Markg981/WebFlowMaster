@@ -36,7 +36,7 @@ import type { TenantTx } from '../platform/middleware/tenancy';
  *
  * What is genuinely the person's goes with them, through the constraints (migration 0040): their
  * preferences, second factor, API keys, project memberships and API tester history. The audit
- * trail keeps their name. A table added later that references users and is in neither list fails
+ * trail keeps their id; the name in it becomes a pseudonym (pseudonymizeMemberAudit). A table added later that references users and is in neither list fails
  * the removal with a foreign key error, and the test in member-removal.test.ts fails before that:
  * it checks every constraint on users against this list.
  */
@@ -118,4 +118,16 @@ export async function removePersonalRowsInOrganization(
       WHERE ${column} = ${userId} AND ${table.organizationId} = ${organizationId}
     `);
   }
+}
+
+/**
+ * Replaces the username in the person's audit entries of the current organization with a
+ * pseudonym (`removed-user-<hash>`), keeping actor_user_id. audit_log is append-only for every
+ * role (trigger 0102), so this goes through the SECURITY DEFINER function of migration 0105,
+ * which can change that one column of that one person's entries in the caller's organization
+ * and nothing else. Run it before the account is deleted (audit M-12).
+ */
+export async function pseudonymizeMemberAudit(tx: TenantTx, userId: number): Promise<number> {
+  const result = await tx.execute(sql`SELECT audit_pseudonymize_actor(${userId}) AS n`);
+  return Number((result.rows[0] as { n: number | string } | undefined)?.n ?? 0);
 }

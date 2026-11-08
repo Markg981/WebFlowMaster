@@ -132,4 +132,24 @@ describe('SchedulesList', () => {
     fireEvent.click(deleteButtons[0]); // Click the first one
     expect(mockOnDelete).toHaveBeenCalledWith(mockSchedules[0].id);
   });
+
+  it('shows the last refused occurrence with a link to its run', () => {
+    const refused = {
+      ...mockSchedules[0],
+      lastRefusal: {
+        executionId: 'run-9',
+        testPlanId: 'plan1',
+        code: 'environment_missing',
+        message: 'x',
+        at: '2024-08-01T09:00:00Z',
+      },
+    };
+    render(<SchedulesList schedules={[refused, mockSchedules[1]]} isLoading={false} />);
+    expect(screen.getAllByRole('alert')).toHaveLength(1);
+    expect(screen.getByText(/Last run did not start \(environment_missing\)/)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'See the run' })).toHaveAttribute(
+      'href',
+      '/test-plans/plan1/executions/run-9/report',
+    );
+  });
 });
