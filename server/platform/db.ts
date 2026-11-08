@@ -35,11 +35,30 @@ export async function withArtifactLock<T>(
   if (!Number.isSafeInteger(organizationId) || organizationId <= 0)
     throw new Error('Invalid artifact organization');
   if (dbUrl.startsWith('postgres://') || dbUrl.startsWith('postgresql://')) {
-    artifactLockPool ??= attachPoolErrorHandler(
-      new Pool({ connectionString: dbUrl, max: 2 }),
-      'artifact-lock',
-      (message) => logger.error(message),
-    );
+    if (!artifactLockPool) {
+      const lockSettings = readPoolSettings();
+      artifactLockPool = attachPoolErrorHandler(
+        new Pool({
+          connectionString: dbUrl,
+          max: 2,
+          connectionTimeoutMillis: lockSettings.connectionTimeoutMillis,
+          idleTimeoutMillis: lockSettings.idleTimeoutMillis,
+        }),
+        'artifact-lock',
+        (message) => logger.error(message),
+      );
+      // No statement_timeout: the lock wait must be able to outlast one. A session left idle
+      // inside a transaction still gives its lock back.
+      artifactLockPool.on('connect', (lockClient) => {
+        lockClient
+          .query(
+            `SET idle_in_transaction_session_timeout = ${lockSettings.idleInTransactionTimeoutMs}`,
+          )
+          .catch((error: Error) => {
+            logger.error(`Could not set up the artifact lock session: ${error.message}`);
+          });
+      });
+    }
     const client = await artifactLockPool.connect();
     let locked = false;
     try {

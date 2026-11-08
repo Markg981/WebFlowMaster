@@ -1,0 +1,12 @@
+{
+  "release": "1.0.0-rc.1",
+  "catalogHash": "<output di: node scripts/collaudo-hash.mjs>",
+  "date": "2026-11-07",
+  "tester": "nome.cognome",
+  "results": [
+    { "id": "ACC-01", "outcome": "passed", "note": "" },
+    { "id": "ACC-02", "outcome": "failed", "note": "descrivere il difetto e il link al ticket" },
+    { "id": "ACC-03", "outcome": "blocked", "note": "motivo del blocco" },
+    { "id": "ACC-04", "outcome": "skipped", "note": "motivo" }
+  ]
+}

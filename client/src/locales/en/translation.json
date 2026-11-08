@@ -557,6 +557,7 @@
     "executionStatus": {
       "passed": "Passed",
       "failed": "Failed",
+      "timedOut": "Timed out",
       "pending": "Running or queued"
     },
     "emptyExecutions": {
@@ -2883,6 +2884,8 @@
     "clearSearch": "Clear search",
     "requestFailed": "Something went wrong",
     "confirm": "Confirm",
+    "typeToConfirm": "Type \"{{text}}\" to confirm",
+    "typeToConfirmLabel": "Confirmation text",
     "delete": "Delete",
     "revoke": "Revoke",
     "disable": "Disable",
@@ -4029,7 +4032,10 @@
       "syncSummary": "{{waves}} waves: {{added}} new, {{updated}} changed, {{missing}} no longer in the hub.",
       "imported": "Waves imported",
       "importSummary": "{{waves}} waves, {{results}} results, {{imported}} cases imported as tests.",
-      "syncFailed": "The waves could not be read"
+      "syncFailed": "The waves could not be read",
+      "failedDetail": "The job could not be completed. Try again, or check the hub connection in Settings.",
+      "pollFailed": "The job status could not be read",
+      "pollFailedDetail": "The connection to the server was lost or the job no longer exists. You can start it again."
     },
     "import": {
       "title_one": "Import {{count}} wave",
@@ -4065,6 +4071,11 @@
       "summary": "The plan “{{name}}” holds {{tests}} tests. {{notImported}} chosen cases are not tests yet.",
       "failed": "The session could not be created",
       "open": "Run “{{name}}”"
+    },
+    "error": {
+      "title": "The waves could not be loaded",
+      "description": "Something went wrong while reading the waves. Try again; if it keeps failing, ask an administrator.",
+      "retry": "Try again"
     }
   },
   "testLibrary": {
@@ -5521,5 +5532,11 @@
       "reject": "Reject",
       "failed": "The decision was not saved."
     }
+  },
+  "testConflict": {
+    "title": "This test was changed by someone else",
+    "description": "Someone saved this test after you opened it. Keep editing to review your draft (close the editor and reopen it to load their version), or overwrite their changes with yours.",
+    "overwrite": "Overwrite",
+    "keepEditing": "Keep editing"
   }
 }

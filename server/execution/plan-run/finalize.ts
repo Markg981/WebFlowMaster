@@ -46,6 +46,8 @@ export interface Tally {
   passed: number;
   failed: number;
   skipped: number;
+  /** Manual tests still waiting for a person's verdict. */
+  pending: number;
   failures: ReturnType<typeof failuresOf>;
 }
 
@@ -55,6 +57,7 @@ export function tallyResults(rows: VerdictRow[]): Tally {
     passed: rows.filter((r) => r.status === 'Passed').length,
     failed: rows.filter((r) => r.status === 'Failed').length,
     skipped: rows.filter((r) => r.status === 'Skipped').length,
+    pending: rows.filter((r) => r.status === 'Pending').length,
     failures: failuresOf(rows),
   };
 }
@@ -71,6 +74,18 @@ export type Verdict = 'completed' | 'failed' | 'error';
  * could not be written down: the rows that were saved say nothing of the one that was lost.
  * Saying "completed" for any of these is how a gap in coverage comes to look like coverage.
  */
+export function ranNothing(tally: Tally): boolean {
+  // Tests were recorded, but every one was skipped: none produced a verdict. Manual tests still
+  // waiting for a person are not that: the run is waiting, and ends `completed` as documented.
+  return (
+    tally.total > 0 &&
+    tally.passed === 0 &&
+    tally.failed === 0 &&
+    tally.pending === 0 &&
+    tally.skipped > 0
+  );
+}
+
 export function verdictOf(tally: Tally, plannedTests: number, incomplete: boolean): Verdict {
   const verdict: Verdict =
     tally.total === 0
@@ -79,7 +94,9 @@ export function verdictOf(tally: Tally, plannedTests: number, incomplete: boolea
         ? 'failed'
         : // Every test passed, none failed outright (some skipped, or waiting for a person), or
           // there was nothing to run.
-          'completed';
+          ranNothing(tally)
+          ? 'error' // Skipped across the board (`run_all_skipped`): a gap in coverage, not a green
+          : 'completed';
   return incomplete && verdict === 'completed' ? 'error' : verdict;
 }
 
@@ -181,13 +198,20 @@ export async function finalizeRun(
         ...aggregates,
         ...(finalOverallStatus === 'error'
           ? {
-              failureCode: snapshot.selectedTests.length === 0 ? 'run_empty' : 'run_incomplete',
+              failureCode:
+                snapshot.selectedTests.length === 0
+                  ? 'run_empty'
+                  : ranNothing(tally) && !missing && !startupFailures.length && !unitFailures.length
+                    ? 'run_all_skipped'
+                    : 'run_incomplete',
               // The reason itself when there is one: "Not every browser produced a result" sends
               // somebody looking for which, when the run already knows.
               failureMessage: [
                 snapshot.selectedTests.length === 0
                   ? 'The plan has no tests to run: nothing was verified.'
-                  : 'Not every browser or test in the plan produced a recorded result.',
+                  : ranNothing(tally)
+                    ? 'No test produced a verdict (all skipped): nothing was verified.'
+                    : 'Not every browser or test in the plan produced a recorded result.',
                 ...(missing ? [missing] : []),
                 ...startupFailures,
                 ...unitFailures,

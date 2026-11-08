@@ -180,7 +180,13 @@ describe('ApiKeysCard', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Revoke key' }));
     // It asks first: a pipeline's key gone on a stray click is a pipeline down.
     expect(await screen.findByText('Revoke the key “GitHub Actions”?')).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Revoke' }));
+    // Revoking is irreversible: the key's name must be typed first.
+    const confirmButton = screen.getByRole('button', { name: 'Revoke' });
+    expect(confirmButton).toBeDisabled();
+    fireEvent.change(screen.getByRole('textbox', { name: 'Confirmation text' }), {
+      target: { value: 'GitHub Actions' },
+    });
+    fireEvent.click(confirmButton);
 
     await waitFor(() => {
       const call = fetchMock.mock.calls.find(([, init]: any[]) => init?.method === 'DELETE');

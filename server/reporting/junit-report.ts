@@ -1,11 +1,12 @@
 import { asc, eq } from 'drizzle-orm';
 import { reportTestCaseResults, testPlanExecutions, testPlans } from '@shared/schema';
 import { buildJUnitXml } from './junit';
-import { withTenantTransaction } from '../platform/middleware/tenancy';
+import { getTenantOrgId, withTenantTransaction } from '../platform/middleware/tenancy';
 import { reproducibilitySummary } from '../execution/execution-provenance';
 import { readExecutionSnapshot } from '../execution/execution-snapshot';
 import { readMatrixEvidence } from '@shared/matrix-evidence';
 import { readAttempts } from '../execution/execution-units';
+import { resultForViewer, runArtifactAccess } from '../tenancy/artifact-access';
 
 /**
  * A run as JUnit XML, or null when there is no such run in the caller's organization.
@@ -37,7 +38,19 @@ export async function junitReportFor(executionId: string): Promise<string | null
       .from(reportTestCaseResults)
       .where(eq(reportTestCaseResults.testPlanExecutionId, executionId))
       .orderBy(asc(reportTestCaseResults.startedAt));
-    return { execution, results, attempts: await readAttempts(tx, executionId) };
+    // The acting user (the signed-in member, or the API key's user) decides which tests' detail
+    // the export carries: a test of a restricted project they are not on keeps its verdict and
+    // loses its matrix evidence, as in the report (server/reporting/report-model.ts).
+    const access = await runArtifactAccess(tx, {
+      organizationId: getTenantOrgId()!,
+      executionId,
+      principal: null,
+    });
+    return {
+      execution,
+      results: results.map((r) => resultForViewer(r, access)),
+      attempts: await readAttempts(tx, executionId),
+    };
   });
 
   if (!source) return null;
