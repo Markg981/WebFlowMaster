@@ -88,6 +88,16 @@ describe('the startup configuration check', () => {
     expect(() => assertStartupConfig({})).toThrow('SESSION_SECRET');
   });
 
+  it('starts the worker without SESSION_SECRET, which only the web process is given', () => {
+    const { SESSION_SECRET: _omitted, ...workerEnv } = valid;
+    expect(startupConfigErrors(workerEnv, 'worker')).toEqual([]);
+    expect(() => assertStartupConfig(workerEnv, 'worker')).not.toThrow();
+    // The other checks still apply to the worker.
+    expect(() => assertStartupConfig({ ...workerEnv, REGISTRATION: 'foo' }, 'worker')).toThrow(
+      'REGISTRATION',
+    );
+  });
+
   it.each([
     ['ENCRYPTION_KEY', '0'.repeat(64)],
     ['ENCRYPTION_KEY', 'change-me-64-hex-characters'],
