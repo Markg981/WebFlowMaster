@@ -7,7 +7,7 @@ const read = (p: string) => readFileSync(new URL(p, import.meta.url), 'utf8');
 describe('worker bootstrap', () => {
   const worker = read('./worker.ts');
   it('validates the startup configuration before the database checks', () => {
-    const config = worker.indexOf('assertStartupConfig();');
+    const config = worker.indexOf("assertStartupConfig(process.env, 'worker');");
     expect(config).toBeGreaterThan(-1);
     expect(config).toBeLessThan(worker.indexOf('await assertTenancyPreconditions();'));
     expect(worker).toContain('await assertSchemaMigrated();');

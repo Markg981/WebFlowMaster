@@ -65,7 +65,7 @@ configureEgressProxy();
   const loadConcurrency = loadLimits().runsPerWorker;
   // The same database checks as the web process (server/index.ts): a worker deployed alone must
   // not run against a database that does not isolate tenants or whose migrations are behind.
-  assertStartupConfig();
+  assertStartupConfig(process.env, 'worker');
   await assertTenancyPreconditions();
   await assertSchemaMigrated();
   // Every secret a run needs is under an organization key: refuse to start if one of them cannot

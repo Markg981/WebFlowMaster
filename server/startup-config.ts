@@ -16,10 +16,19 @@ import { installationAdminsErrors } from './tenancy/installation-admins-config';
  * Redis have answered. With either of them down, or not yet up, the operator saw
  * ECONNREFUSED and never the misspelt variable that would have stopped the start anyway.
  * All problems are reported at once, so fixing one does not just reveal the next.
+ *
+ * The worker runs the same checks except SESSION_SECRET: it signs no session cookie, and every
+ * deployment (docker-compose.yml, the release and SaaS compose files, the Helm chart) gives that
+ * secret to the web process only, so requiring it there stopped the worker at start.
  */
-export function startupConfigErrors(env: NodeJS.ProcessEnv = process.env): string[] {
+export function startupConfigErrors(
+  env: NodeJS.ProcessEnv = process.env,
+  role: StartupRole = 'web',
+): string[] {
   const errors: string[] = [];
-  if (!env.SESSION_SECRET) errors.push('SESSION_SECRET must be set for session security.');
+  if (role === 'web' && !env.SESSION_SECRET) {
+    errors.push('SESSION_SECRET must be set for session security.');
+  }
   for (const name of ['AUDIT_LOG_RETENTION_DAYS', 'AUDIT_LOG_IP_RETENTION_DAYS']) {
     const raw = env[name]?.trim();
     if (raw && !(Number.isFinite(Number(raw)) && Number(raw) >= 0)) {
@@ -120,8 +129,14 @@ function publishedSecretErrors(env: NodeJS.ProcessEnv): string[] {
     );
 }
 
-export function assertStartupConfig(env: NodeJS.ProcessEnv = process.env): void {
-  const errors = startupConfigErrors(env);
+/** Which process starts: the web process holds the sessions, the worker only runs jobs. */
+export type StartupRole = 'web' | 'worker';
+
+export function assertStartupConfig(
+  env: NodeJS.ProcessEnv = process.env,
+  role: StartupRole = 'web',
+): void {
+  const errors = startupConfigErrors(env, role);
   if (errors.length > 0) {
     throw new Error(`Invalid configuration:\n  - ${errors.join('\n  - ')}`);
   }
