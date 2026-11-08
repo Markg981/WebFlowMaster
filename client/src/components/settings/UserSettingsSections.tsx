@@ -181,7 +181,7 @@ export function TestDefaultsCards({ form, disabled }: Props) {
                 onValueChange={(value: Browser) => form.setBrowser(value)}
                 disabled={disabled}
               >
-                <SelectTrigger>
+                <SelectTrigger id="browser">
                   <SelectValue placeholder={t('settings.playwright.browserPlaceholder')} />
                 </SelectTrigger>
                 <SelectContent>
@@ -307,6 +307,7 @@ export function NotificationsCard({ form, disabled }: Props) {
               <p className="text-sm text-muted-foreground">{toggle.description}</p>
             </div>
             <Switch
+              aria-label={toggle.label}
               checked={toggle.checked}
               onCheckedChange={toggle.onChange}
               disabled={disabled}

@@ -45,7 +45,7 @@ async function settled(page: Page) {
   );
 }
 
-async function seriousViolations(page: Page, rules?: string[]) {
+async function seriousViolations(page: Page, rules?: string[], known: string[] = []) {
   await settled(page);
   // evaluate, not addScriptTag: the page's Content-Security-Policy refuses inline scripts.
   if (!(await page.evaluate(() => 'axe' in window))) await page.evaluate(axeSource);
@@ -69,7 +69,11 @@ async function seriousViolations(page: Page, rules?: string[]) {
     return result.violations;
   }, rules);
   return violations
-    .filter((violation) => violation.impact === 'serious' || violation.impact === 'critical')
+    .filter(
+      (violation) =>
+        (violation.impact === 'serious' || violation.impact === 'critical') &&
+        !known.includes(violation.id),
+    )
     .flatMap((violation) =>
       // Every element, with axe's own words (for contrast: the two colours and the ratio) and the
       // start of its HTML, enough to find it in the source.
@@ -83,38 +87,130 @@ async function seriousViolations(page: Page, rules?: string[]) {
 /** Violations per page, pages without any left out: one failure lists everything to fix. */
 async function auditPages(page: Page, rules?: string[], before?: () => Promise<void>) {
   const found: Record<string, string[]> = {};
-  for (const { path, ready } of PAGES) {
+  for (const { path, ready, known } of PAGES) {
     await page.goto(path);
     await before?.();
     await ready(page);
     // Data arriving after the first paint changes state (a filter button turns primary), and
     // its colour transition would be measured half way.
     await page.waitForLoadState('networkidle');
-    const violations = await seriousViolations(page, rules);
+    const violations = await seriousViolations(page, rules, known);
     if (violations.length) found[path] = violations;
   }
   return found;
 }
 
-const PAGES: { path: string; ready: (page: Page) => Promise<void> }[] = [
-  { path: '/dashboard', ready: (page) => expect(page.getByRole('main')).toBeVisible() },
-  { path: '/test-plans', ready: (page) => expect(page.getByRole('main')).toBeVisible() },
-  { path: '/reports', ready: (page) => expect(page.getByRole('main')).toBeVisible() },
-  { path: '/tests', ready: (page) => expect(page.getByRole('main')).toBeVisible() },
+type AuditedPage = {
+  path: string;
+  ready: (page: Page) => Promise<void>;
+  /**
+   * Known issues: axe rule ids left out for this page only, each with a TODO naming the violation.
+   * Never add a rule globally; a page with a real violation gets an entry here and a tracked fix.
+   */
+  known?: string[];
+};
+
+const mainVisible = (page: Page) => expect(page.getByRole('main')).toBeVisible();
+
+/** Every section of the settings rail; the URL fragment selects it (SettingsLayout). */
+const SETTINGS_SECTIONS = [
+  'preferences',
+  'members',
+  'projects',
+  'environments',
+  'elements',
+  'customActions',
+  'tags',
+  'impactMap',
+  'smsInbox',
+  'issueTrackers',
+  'testCaseHub',
+  'testManagement',
+  'browserGrids',
+  'apiKeys',
+  'sourceHosts',
+  'agents',
+  'security',
+  'runUsage',
+  'billing',
+  'runners',
+  'auditLog',
+  'organizationData',
+  'defaults',
+  'system',
+  'notifications',
+  'account',
+];
+
+/**
+ * The routed pages a signed-in owner reaches without seeded data (client/src/App.tsx). The pages
+ * that need an id in the URL (a plan run, an execution report) are covered by mobile.spec.ts.
+ */
+const PAGES: AuditedPage[] = [
+  { path: '/dashboard', ready: mainVisible },
+  { path: '/test-plans', ready: mainVisible },
+  { path: '/reports', ready: mainVisible },
+  { path: '/tests', ready: mainVisible },
+  { path: '/dashboard/create-test', ready: mainVisible },
   {
     path: '/dashboard/api-tester',
     ready: (page) => expect(page.getByLabel('Base URL', { exact: true })).toBeVisible(),
   },
+  { path: '/scheduling', ready: mainVisible },
+  { path: '/suites', ready: mainVisible },
+  { path: '/requirements', ready: mainVisible },
+  { path: '/test-data', ready: mainVisible },
+  { path: '/mobile-tests', ready: mainVisible },
+  { path: '/load-tests', ready: mainVisible },
+  { path: '/test-manager', ready: mainVisible },
+  { path: '/reviews', ready: mainVisible },
+  { path: '/whats-new', ready: mainVisible },
   {
     path: '/settings',
     ready: (page) => expect(page.getByRole('button', { name: 'Security' })).toBeVisible(),
   },
+  ...SETTINGS_SECTIONS.map((section) => ({
+    path: `/settings#${section}`,
+    // The rail marks the open section; a section hidden from this role falls back to the first.
+    ready: (page: Page) =>
+      expect(
+        page
+          .getByRole('navigation', { name: 'Settings sections' })
+          .locator('[aria-current="page"]'),
+      ).toBeVisible(),
+  })),
+];
+
+/** Pages anyone can open: the sign-in page and its reset and invitation variants, and the 404. */
+const PUBLIC_PAGES: AuditedPage[] = [
+  { path: '/auth', ready: (page) => expect(page.locator('#login-username')).toBeVisible() },
+  {
+    path: '/auth?reset=invalid-token&username=nobody',
+    ready: (page) => expect(page.getByRole('main').or(page.locator('form')).first()).toBeVisible(),
+  },
+  {
+    path: '/auth?invitation=invalid-token&username=nobody',
+    ready: (page) => expect(page.getByRole('main').or(page.locator('form')).first()).toBeVisible(),
+  },
+  { path: '/no-such-page', ready: (page) => expect(page.locator('body')).toBeVisible() },
 ];
 
 test('the sign-in page has no serious accessibility violations', async ({ page }) => {
   await page.goto('/auth');
   await expect(page.locator('#login-username')).toBeVisible();
   expect(await seriousViolations(page)).toEqual([]);
+});
+
+test('the public pages have no serious accessibility violations', async ({ page }) => {
+  const found: Record<string, string[]> = {};
+  for (const { path, ready, known } of PUBLIC_PAGES) {
+    await page.goto(path);
+    await ready(page);
+    await page.waitForLoadState('networkidle');
+    const violations = await seriousViolations(page, undefined, known);
+    if (violations.length) found[path] = violations;
+  }
+  expect(found).toEqual({});
 });
 
 test('the main pages have no serious accessibility violations', async ({ page }) => {

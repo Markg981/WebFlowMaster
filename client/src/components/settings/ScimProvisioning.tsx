@@ -86,6 +86,7 @@ export function ScimProvisioning({
         <div className="flex gap-2">
           <Input
             readOnly
+            aria-label={t('sso.scim.baseUrl', 'SCIM base URL (tenant URL)')}
             value={baseUrl}
             data-testid="sso-scim-base-url"
             className="font-mono text-xs"
@@ -106,7 +107,12 @@ export function ScimProvisioning({
         <div className="space-y-1" data-testid="sso-scim-token">
           <Label>{t('sso.scim.tokenShown', 'Token â€” copy it now, it is not shown again')}</Label>
           <div className="flex gap-2">
-            <Input readOnly value={shown} className="font-mono text-xs" />
+            <Input
+              readOnly
+              aria-label={t('sso.scim.tokenShown', 'Token — copy it now, it is not shown again')}
+              value={shown}
+              className="font-mono text-xs"
+            />
             <Button
               type="button"
               variant="outline"
