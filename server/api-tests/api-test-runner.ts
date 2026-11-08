@@ -242,7 +242,37 @@ function regexFailure(target: string | undefined, error: unknown): string {
   return `Invalid regex: ${target} (${(error as Error).message})`;
 }
 
-function compare(comparison: string, actual: any, target: string | undefined): boolean | string {
+/**
+ * Numeric reading of a value for `greater_than` and friends. `null`, absent and empty values are
+ * not 0 (`Number(null)` is): they fail with a message instead of passing `less_than`.
+ */
+export function numericOperand(value: unknown, label: string): number | string {
+  if (value === null) return `${label} is null`;
+  if (value === undefined) return `${label} is missing`;
+  if (typeof value === 'string' && value.trim() === '') return `${label} is empty`;
+  const n = Number(value);
+  return Number.isNaN(n) ? 'Not a number for a numeric comparison' : n;
+}
+
+/** Applies variables to every string inside a JSON value (keys untouched), so quotes stay valid. */
+function substituteJson(value: unknown, vars: Record<string, string>): unknown {
+  if (typeof value === 'string') return substituteVariables(value, vars);
+  if (Array.isArray(value)) return value.map((v) => substituteJson(v, vars));
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(Object.entries(value).map(([k, v]) => [k, substituteJson(v, vars)]));
+  }
+  return value;
+}
+
+/**
+ * Comparison of an assertion. `equals` on a JSON `null` matches only the target `null`; an absent
+ * value equals nothing; `exists` is false for both null and absent.
+ */
+export function compare(
+  comparison: string,
+  actual: any,
+  target: string | undefined,
+): boolean | string {
   const text = typeof actual === 'string' ? actual : String(actual ?? '');
   switch (comparison) {
     case 'exists':
@@ -264,8 +294,10 @@ function compare(comparison: string, actual: any, target: string | undefined): b
         (Array.isArray(actual) && actual.length === 0)
       );
     case 'equals':
+      if (actual === undefined) return false;
       return String(actual) === String(target);
     case 'not_equals':
+      if (actual === undefined) return true;
       return String(actual) !== String(target);
     case 'contains':
       return text.includes(target ?? '');
@@ -287,9 +319,10 @@ function compare(comparison: string, actual: any, target: string | undefined): b
     case 'less_than':
     case 'greater_than_or_equals':
     case 'less_than_or_equals': {
-      const a = Number(actual);
-      const b = Number(target);
-      if (Number.isNaN(a) || Number.isNaN(b)) return 'Not a number for a numeric comparison';
+      const a = numericOperand(actual, 'value');
+      if (typeof a === 'string') return a;
+      const b = numericOperand(target, 'expected value');
+      if (typeof b === 'string') return b;
       if (comparison === 'greater_than') return a > b;
       if (comparison === 'less_than') return a < b;
       if (comparison === 'greater_than_or_equals') return a >= b;
@@ -648,7 +681,7 @@ export async function runApiRequest(
     } else if (spec.body !== null) {
       // Substituted as text so `{{name}}` works inside nested values, then re-parsed is
       // unnecessary — the target receives JSON either way.
-      options.body = substituteVariables(JSON.stringify(spec.body), vars);
+      options.body = JSON.stringify(substituteJson(spec.body, vars));
       if (!headers['content-type'] && !headers['Content-Type']) {
         headers['Content-Type'] = 'application/json';
       }
@@ -734,7 +767,7 @@ export async function runApiRequest(
 
   const snapshot = { status: response.status, headers: responseHeaders, body, text, durationMs };
   return {
-    ...evaluate(spec, snapshot),
+    ...evaluate(spec, snapshot, vars),
     status: response.status,
     statusText: response.statusText,
     headers: responseHeaders,
@@ -754,12 +787,20 @@ function evaluate(
     text: string;
     durationMs: number;
   },
+  vars: Record<string, string>,
 ): Pick<ApiRunResult, 'passed' | 'assertions' | 'extracted' | 'extractionErrors'> {
   const assertions: AssertionOutcome[] = [];
   for (const assertion of spec.assertions ?? []) {
     if (assertion.enabled === false) continue;
-    const actualValue = valueFrom(assertion.source, assertion.property, snapshot);
-    const outcome = compare(assertion.comparison, actualValue, assertion.targetValue);
+    // Expected value and property name get the same substitution as the request target.
+    const property =
+      assertion.property === undefined ? undefined : substituteVariables(assertion.property, vars);
+    const targetValue =
+      assertion.targetValue === undefined
+        ? undefined
+        : substituteVariables(assertion.targetValue, vars);
+    const actualValue = valueFrom(assertion.source, property, snapshot);
+    const outcome = compare(assertion.comparison, actualValue, targetValue);
     assertions.push(
       typeof outcome === 'string'
         ? { assertion, pass: false, actualValue, error: outcome }
@@ -786,7 +827,7 @@ function evaluate(
   }
 
   // A request with nothing to check is not green on an error answer: with no assertion enabled,
-  // the implicit one is "the status is 2xx" (3xx is an answer the transport already followed).
+  // the implicit one is "the status is below 400" (3xx is an answer the transport already followed).
   const passed = assertions.length > 0 ? assertions.every((a) => a.pass) : snapshot.status < 400;
   return { passed, assertions, extracted, extractionErrors };
 }
@@ -914,7 +955,7 @@ async function runOtherProtocol(
     durationMs,
   };
   return {
-    ...evaluate(spec, snapshot),
+    ...evaluate(spec, snapshot, vars),
     status: answer.status,
     statusText: answer.statusText,
     headers: answer.headers,

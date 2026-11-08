@@ -1,0 +1,14 @@
+{
+  "id": "INT-26",
+  "area": "INT",
+  "title": "Hub test case da cartella: radici per organizzazione e symlink",
+  "priority": "P2",
+  "actor": "owner.a",
+  "preconditions": "Server con TESTCASE_HUB_ROOTS_BY_ORG che assegna una radice solo all'organizzazione A; nella cartella dell'hub un definition.json e' un symlink verso un file fuori dalla cartella.",
+  "steps": [
+    "Come owner dell'organizzazione A, configurare l'hub da cartella sulla propria radice e premere Aggiorna.",
+    "Come owner dell'organizzazione B, provare a configurare un hub da cartella sulla stessa radice.",
+    "Premere Aggiorna due volte in rapida successione come organizzazione A."
+  ],
+  "expected": "A importa i casi ma ignora il symlink verso l'esterno; B riceve il rifiuto 'folder_sources_disabled'; il secondo Aggiorna ancora in corso risponde 409 'refresh_running'. Gli errori di rete verso Azure DevOps non mostrano dettagli interni."
+}

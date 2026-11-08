@@ -1,4 +1,5 @@
 import { resolvePort } from './platform/config';
+import { resolveEventLoopLagMs } from './platform/event-loop-lag';
 import { registrationMode } from './identity/registration';
 import { trustProxySetting } from './platform/trust-proxy';
 import { s3MaxAttempts, s3TimeoutMs, localOrphanDays } from './tenancy/artifact-store';
@@ -17,6 +18,12 @@ import { cspMode } from './platform/security-headers';
 export function startupConfigErrors(env: NodeJS.ProcessEnv = process.env): string[] {
   const errors: string[] = [];
   if (!env.SESSION_SECRET) errors.push('SESSION_SECRET must be set for session security.');
+  for (const name of ['AUDIT_LOG_RETENTION_DAYS', 'AUDIT_LOG_IP_RETENTION_DAYS']) {
+    const raw = env[name]?.trim();
+    if (raw && !(Number.isFinite(Number(raw)) && Number(raw) >= 0)) {
+      errors.push(`${name} must be a number of days (0 keeps for ever), got "${raw}".`);
+    }
+  }
   if (env.NODE_ENV === 'production') errors.push(...publishedSecretErrors(env));
   if (env.NODE_ENV === 'production') errors.push(...publicUrlErrors(env));
   for (const check of [
@@ -38,6 +45,11 @@ export function startupConfigErrors(env: NodeJS.ProcessEnv = process.env): strin
     errors.push(
       'EGRESS_PRIVATE_TARGETS must be "deny" while REGISTRATION=open (anyone can create an organization): "allow" lets their tests reach this server\'s private network. Set it to "deny" and list intranet hosts in EGRESS_ALLOW_HOSTS.',
     );
+  }
+  try {
+    resolveEventLoopLagMs(env);
+  } catch (error) {
+    errors.push(error instanceof Error ? error.message : String(error));
   }
   return errors;
 }

@@ -10,6 +10,7 @@
  * Refreshing writes the catalog (`hub_test_cases`); importing makes manual tests of chosen rows.
  */
 import fs from 'fs/promises';
+import { constants as fsConstants } from 'fs';
 import path from 'path';
 import { createHash } from 'crypto';
 import { inflateRawSync } from 'zlib';
@@ -67,6 +68,8 @@ export const HUB_LIMITS = {
   blobBatch: 400,
   /** One zip from Azure DevOps, compressed. */
   maxZipBytes: 64 * 1024 * 1024,
+  /** All the entries of one zip, once inflated. */
+  maxZipTotalBytes: 256 * 1024 * 1024,
   maxZipEntries: 1000,
   maxCompressionRatio: 200,
   /** The tree listing of the repository, as JSON. */
@@ -114,12 +117,35 @@ export function originOf(value: string | null | undefined): string | null {
  * (path.delimiter-separated). None configured, no folder source: a path typed by a tenant must
  * never be a way to read the server's disk.
  */
-export function allowedHubRoots(env: NodeJS.ProcessEnv = process.env): string[] {
-  return (env.TESTCASE_HUB_ROOTS ?? '')
+export function allowedHubRoots(
+  env: NodeJS.ProcessEnv = process.env,
+  organizationId?: number,
+): string[] {
+  return rootsSetting(env, organizationId)
     .split(path.delimiter)
     .map((root) => root.trim())
     .filter((root) => root !== '')
     .map((root) => path.resolve(root));
+}
+
+/**
+ * The raw roots setting for an organization. TESTCASE_HUB_ROOTS_BY_ORG, a JSON object
+ * `{"<organizationId>": "<root>[<delimiter><root>...]"}`, scopes the roots per organization: when
+ * it is set an organization sees only its own entry (none: no folder source), and
+ * TESTCASE_HUB_ROOTS is ignored. Without it TESTCASE_HUB_ROOTS applies to every organization
+ * (single-tenant installations).
+ */
+function rootsSetting(env: NodeJS.ProcessEnv, organizationId?: number): string {
+  const byOrg = (env.TESTCASE_HUB_ROOTS_BY_ORG ?? '').trim();
+  if (byOrg === '') return env.TESTCASE_HUB_ROOTS ?? '';
+  try {
+    const map = JSON.parse(byOrg) as Record<string, unknown>;
+    const entry = organizationId === undefined ? undefined : map[String(organizationId)];
+    return typeof entry === 'string' ? entry : '';
+  } catch {
+    logger.error({ message: 'TESTCASE_HUB_ROOTS_BY_ORG is not valid JSON: no folder is allowed.' });
+    return '';
+  }
 }
 
 function within(root: string, candidate: string): boolean {
@@ -134,13 +160,14 @@ function within(root: string, candidate: string): boolean {
 export async function resolveHubFolder(
   input: string,
   env: NodeJS.ProcessEnv = process.env,
+  organizationId?: number,
 ): Promise<string> {
-  const roots = allowedHubRoots(env);
+  const roots = allowedHubRoots(env, organizationId);
   if (roots.length === 0)
     throw new HubSourceError(
       400,
       'folder_sources_disabled',
-      'The operator has not allowed any folder for test case hubs (TESTCASE_HUB_ROOTS).',
+      'The operator has not allowed any folder for test case hubs (TESTCASE_HUB_ROOTS, TESTCASE_HUB_ROOTS_BY_ORG).',
     );
   const trimmed = input.trim();
   if (trimmed === '' || trimmed.includes('\0'))
@@ -180,27 +207,41 @@ export interface HubSnapshot {
   warnings: string[];
 }
 
+type BoundedRead = { kind: 'absent' } | { kind: 'too_large' } | { kind: 'read'; text: string };
+
 /**
- * One definition.json, checked and read through one handle, so the file measured is the file
- * read even if the hub is being written to meanwhile.
+ * One file under the hub folder: its real path must stay under `root` (a symlink to a file
+ * elsewhere is refused as absent), it is opened without following a final symlink and measured
+ * and read through that one handle, so the file checked is the file read.
  */
-async function readDefinition(
-  file: string,
-): Promise<{ kind: 'absent' } | { kind: 'too_large' } | { kind: 'read'; text: string }> {
-  const handle = await fs.open(file, 'r').catch(() => null);
+async function readFileUnder(root: string, file: string, maxBytes: number): Promise<BoundedRead> {
+  const real = await fs.realpath(file).catch(() => null);
+  if (!real || !within(root, real)) return { kind: 'absent' };
+  const handle = await fs
+    .open(real, fsConstants.O_RDONLY | (fsConstants.O_NOFOLLOW ?? 0))
+    .catch(() => null);
   if (!handle) return { kind: 'absent' };
   try {
     const stat = await handle.stat();
     if (!stat.isFile()) return { kind: 'absent' };
-    if (stat.size > HUB_LIMITS.maxDefinitionBytes) return { kind: 'too_large' };
-    const text = await handle.readFile('utf8');
-    return text.length > HUB_LIMITS.maxDefinitionBytes
+    if (stat.size > maxBytes) return { kind: 'too_large' };
+    const buffer = Buffer.alloc(maxBytes + 1);
+    let filled = 0;
+    while (filled < buffer.length) {
+      const { bytesRead } = await handle.read(buffer, filled, buffer.length - filled, filled);
+      if (bytesRead === 0) break;
+      filled += bytesRead;
+    }
+    return filled > maxBytes
       ? { kind: 'too_large' }
-      : { kind: 'read', text };
+      : { kind: 'read', text: buffer.toString('utf8', 0, filled) };
   } finally {
     await handle.close();
   }
 }
+
+const readDefinition = (root: string, file: string) =>
+  readFileUnder(root, file, HUB_LIMITS.maxDefinitionBytes);
 
 function parseModules(json: unknown): string[] {
   if (!Array.isArray(json)) return [];
@@ -237,6 +278,7 @@ async function folderHead(folder: string): Promise<string | null> {
 
 /** Reads a hub checkout: TestCasesDefinitions/<module>/<case>/definition.json, nothing else. */
 export async function readHubFolder(folder: string): Promise<HubSnapshot> {
+  folder = await fs.realpath(folder).catch(() => folder);
   const definitions = path.join(folder, HUB_DEFINITIONS_DIR);
   const root = await fs.stat(definitions).catch(() => null);
   if (!root?.isDirectory())
@@ -247,9 +289,12 @@ export async function readHubFolder(folder: string): Promise<HubSnapshot> {
     );
   const warnings: string[] = [];
   const cases: HubCaseDefinition[] = [];
-  const modulesJson = await fs
-    .readFile(path.join(folder, HUB_MODULES_FILE), 'utf8')
-    .then((text) => (text.length > HUB_LIMITS.maxModulesBytes ? null : JSON.parse(text)))
+  const modulesJson = await readFileUnder(
+    folder,
+    path.join(folder, HUB_MODULES_FILE),
+    HUB_LIMITS.maxModulesBytes,
+  )
+    .then((read) => (read.kind === 'read' ? JSON.parse(read.text) : null))
     .catch(() => null);
   const modules = parseModules(modulesJson);
   for (const moduleEntry of await fs.readdir(definitions, { withFileTypes: true })) {
@@ -259,7 +304,7 @@ export async function readHubFolder(folder: string): Promise<HubSnapshot> {
       if (!caseEntry.isDirectory()) continue;
       const file = path.join(moduleDir, caseEntry.name, HUB_DEFINITION_FILE);
       const where = `${moduleEntry.name}/${caseEntry.name}`;
-      const read = await readDefinition(file);
+      const read = await readDefinition(folder, file);
       if (read.kind === 'absent') continue;
       if (read.kind === 'too_large') {
         warnings.push(`${where}: definition.json is too large and was skipped.`);
@@ -343,6 +388,43 @@ function describeHttpFailure(status: number, what: string): HubSourceError {
 /** What the Azure DevOps REST API answers with: a list under `value`, or one object. */
 type AdoJson = { value?: Array<Record<string, unknown>>; objectId?: unknown } | null;
 
+/**
+ * The body of a response, refused as soon as it is known to exceed `maxBytes`: by the
+ * content-length header before reading, and while streaming, so an oversized answer is never
+ * buffered whole.
+ */
+export async function readBodyLimited(
+  response: Response,
+  maxBytes: number,
+  what: string,
+): Promise<Buffer> {
+  const tooLarge = () => new HubSourceError(400, 'too_large', `${what} is larger than allowed.`);
+  const declared = Number(response.headers.get('content-length'));
+  if (Number.isFinite(declared) && declared > maxBytes) {
+    await response.body?.cancel().catch(() => undefined);
+    throw tooLarge();
+  }
+  if (!response.body) {
+    const all = Buffer.from(await response.arrayBuffer());
+    if (all.length > maxBytes) throw tooLarge();
+    return all;
+  }
+  const reader = response.body.getReader();
+  const chunks: Buffer[] = [];
+  let total = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    total += value.byteLength;
+    if (total > maxBytes) {
+      await reader.cancel().catch(() => undefined);
+      throw tooLarge();
+    }
+    chunks.push(Buffer.from(value));
+  }
+  return Buffer.concat(chunks, total);
+}
+
 export async function adoGetJson(
   config: AzureDevOpsHubConfig,
   deps: HubReaderDeps,
@@ -357,16 +439,14 @@ export async function adoGetJson(
       headers: { Authorization: authHeader(config.token), Accept: 'application/json' },
     });
   } catch (error) {
-    throw new HubSourceError(
-      502,
-      'upstream_unreachable',
-      `Azure DevOps could not be reached: ${(error as Error).message}`,
-    );
+    logger.warn({
+      message: 'Test case hub: Azure DevOps could not be reached',
+      error: (error as Error).message,
+    });
+    throw new HubSourceError(502, 'upstream_unreachable', 'Azure DevOps could not be reached.');
   }
   if (!response.ok) throw describeHttpFailure(response.status, what);
-  const text = await response.text();
-  if (text.length > maxBytes)
-    throw new HubSourceError(400, 'too_large', `The ${what} answer is larger than allowed.`);
+  const text = (await readBodyLimited(response, maxBytes, `The ${what} answer`)).toString('utf8');
   try {
     return JSON.parse(text);
   } catch {
@@ -456,21 +536,14 @@ export async function azureDevOpsBlobsZip(
       body: JSON.stringify(objectIds),
     });
   } catch (error) {
-    throw new HubSourceError(
-      502,
-      'upstream_unreachable',
-      `Azure DevOps could not be reached: ${(error as Error).message}`,
-    );
+    logger.warn({
+      message: 'Test case hub: Azure DevOps could not be reached',
+      error: (error as Error).message,
+    });
+    throw new HubSourceError(502, 'upstream_unreachable', 'Azure DevOps could not be reached.');
   }
   if (!response.ok) throw describeHttpFailure(response.status, 'blobs');
-  const bytes = Buffer.from(await response.arrayBuffer());
-  if (bytes.length > HUB_LIMITS.maxZipBytes)
-    throw new HubSourceError(
-      400,
-      'too_large',
-      'A blob archive from Azure DevOps is larger than allowed.',
-    );
-  return bytes;
+  return readBodyLimited(response, HUB_LIMITS.maxZipBytes, 'A blob archive from Azure DevOps');
 }
 
 const EOCD_SIG = 0x06054b50;
@@ -507,6 +580,7 @@ export function readZipEntries(zip: Buffer, limits = HUB_LIMITS): Map<string, Bu
     );
   if (cdOffset + cdSize > zip.length) throw invalid();
   const out = new Map<string, Buffer>();
+  let totalInflated = 0;
   let pos = cdOffset;
   for (let n = 0; n < entries; n++) {
     if (pos + 46 > zip.length || zip.readUInt32LE(pos) !== CDH_SIG) throw invalid();
@@ -525,6 +599,9 @@ export function readZipEntries(zip: Buffer, limits = HUB_LIMITS): Map<string, Bu
         'too_large',
         `A blob in the archive expands to too much data (${name}).`,
       );
+    totalInflated += uncompressed;
+    if (totalInflated > limits.maxZipTotalBytes)
+      throw new HubSourceError(400, 'too_large', 'The blob archive expands to too much data.');
     if (
       uncompressed > 64 * 1024 &&
       uncompressed / Math.max(compressed, 1) > limits.maxCompressionRatio
@@ -642,7 +719,7 @@ export async function readSource(
   deps: SourceReadDeps = {},
 ): Promise<HubSnapshot> {
   if (source.kind === 'folder') {
-    const folder = await resolveHubFolder(source.path ?? '', deps.env);
+    const folder = await resolveHubFolder(source.path ?? '', deps.env, source.organizationId);
     return readHubFolder(folder);
   }
   if (!deps.token)
@@ -666,7 +743,7 @@ export async function checkSource(
 ): Promise<{ ok: boolean; detail: string }> {
   try {
     if (source.kind === 'folder') {
-      const folder = await resolveHubFolder(source.path ?? '', deps.env);
+      const folder = await resolveHubFolder(source.path ?? '', deps.env, source.organizationId);
       const definitions = path.join(folder, HUB_DEFINITIONS_DIR);
       const stat = await fs.stat(definitions).catch(() => null);
       if (!stat?.isDirectory())
@@ -697,7 +774,8 @@ export async function checkSource(
     };
   } catch (error) {
     if (error instanceof HubSourceError) return { ok: false, detail: error.message };
-    return { ok: false, detail: (error as Error).message };
+    logger.warn({ message: 'Test case hub check failed', error: (error as Error)?.message });
+    return { ok: false, detail: 'The hub could not be checked.' };
   }
 }
 
