@@ -290,6 +290,16 @@ describe('Scheduler Service', () => {
         .from(testPlanSchedules)
         .where(eq(testPlanSchedules.id, past.id));
       expect(row.isActive).toBe(false);
+      // It is not silent: the missed occurrence is a run in error.
+      const runs = await privilegedDb
+        .select()
+        .from(testPlanExecutions)
+        .where(eq(testPlanExecutions.scheduleId, past.id));
+      expect(runs).toHaveLength(1);
+      expect(runs[0]).toMatchObject({
+        status: 'error',
+        failureCode: 'schedule_refused:missed_while_down',
+      });
     });
   });
 });

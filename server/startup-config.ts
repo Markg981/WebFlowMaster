@@ -20,6 +20,12 @@ import { installationAdminsErrors } from './tenancy/installation-admins-config';
 export function startupConfigErrors(env: NodeJS.ProcessEnv = process.env): string[] {
   const errors: string[] = [];
   if (!env.SESSION_SECRET) errors.push('SESSION_SECRET must be set for session security.');
+  for (const name of ['AUDIT_LOG_RETENTION_DAYS', 'AUDIT_LOG_IP_RETENTION_DAYS']) {
+    const raw = env[name]?.trim();
+    if (raw && !(Number.isFinite(Number(raw)) && Number(raw) >= 0)) {
+      errors.push(`${name} must be a number of days (0 keeps for ever), got "${raw}".`);
+    }
+  }
   if (env.NODE_ENV === 'production') errors.push(...publishedSecretErrors(env));
   if (env.NODE_ENV === 'production') errors.push(...publicUrlErrors(env));
   if (env.NODE_ENV === 'production') errors.push(...encryptionKeyErrors(env));

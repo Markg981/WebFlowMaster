@@ -1,0 +1,15 @@
+{
+  "id": "ADM-41",
+  "area": "ADM",
+  "title": "Retention del registro di audit: IP azzerato dopo la finestra e membro rimosso pseudonimizzato",
+  "priority": "P2",
+  "actor": "owner.a",
+  "preconditions": "Server avviato con AUDIT_LOG_IP_RETENTION_DAYS=1 (e riavviato dopo la modifica); accesso al database per invecchiare una voce di audit; un membro con alcune azioni già nel registro.",
+  "steps": [
+    "Dal database, con app.audit_maintenance='on' nella transazione, portare created_at di una voce con IP a 3 giorni fa.",
+    "Attendere lo sweep (avvio del server) e rileggere la voce.",
+    "Rimuovere il membro da Impostazioni → Membri e aprire il registro di audit."
+  ],
+  "expected": "1-2: la voce vecchia resta ma ha ip_address vuoto; le voci recenti conservano l'IP; nel log compare 'Data retention' con le righe per tabella. 3: le voci del membro rimosso mostrano 'removed-user-xxxxxxxx' al posto dello username; quelle degli altri membri sono invariate.",
+  "detailHtml": "<p>Verifica di M-10 e M-12: lo sweep gira a lotti sotto lock; la pseudonimizzazione passa dalla funzione audit_pseudonymize_actor (migrazione 0105).</p>"
+}

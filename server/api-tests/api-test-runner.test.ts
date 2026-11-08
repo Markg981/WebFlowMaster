@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, beforeEach, afterAll } from 'vitest';
 import http from 'http';
 import type { AddressInfo } from 'net';
-import { runApiRequest } from './api-test-runner';
+import { runApiRequest, compare } from './api-test-runner';
 
 /**
  * Executing an API test for real.
@@ -37,6 +37,12 @@ beforeAll(async () => {
         res
           .writeHead(201, { 'Content-Type': 'application/json', 'x-request-id': 'req-99' })
           .end(JSON.stringify({ id: 4711, status: 'confirmed', lines: [{ sku: 'A' }] }));
+        return;
+      }
+      if (url.pathname === '/nulls') {
+        res
+          .writeHead(200, { 'Content-Type': 'application/json' })
+          .end(JSON.stringify({ count: null, name: 'x', token: 'abc' }));
         return;
       }
       if (url.pathname === '/boom') {
@@ -440,5 +446,66 @@ describe('reading the response body', () => {
       expect(result.passed).toBe(false);
       expect(result.error).toBe('Response body larger than 2048 bytes');
     }
+  });
+});
+
+describe('assertion semantics', () => {
+  it('substitutes variables in the expected value and in the property', async () => {
+    const result = await runApiRequest(
+      {
+        method: 'GET',
+        url: `${baseUrl}/nulls`,
+        assertions: [
+          assertion({
+            source: 'body_json_path',
+            property: '{{field}}',
+            comparison: 'equals',
+            targetValue: '{{expected}}',
+          }),
+        ],
+      },
+      { field: 'token', expected: 'abc' },
+    );
+    expect(result.passed).toBe(true);
+  });
+
+  it('a null field equals only null and fails numeric comparisons', async () => {
+    const run = (comparison: string, targetValue: string) =>
+      runApiRequest(
+        {
+          method: 'GET',
+          url: `${baseUrl}/nulls`,
+          assertions: [
+            assertion({ source: 'body_json_path', property: 'count', comparison, targetValue }),
+          ],
+        },
+        {},
+      );
+    expect((await run('equals', '0')).passed).toBe(false);
+    expect((await run('less_than', '5')).passed).toBe(false);
+    expect((await run('less_than', '5')).assertions[0].error).toContain('value is null');
+    expect((await run('equals', 'null')).passed).toBe(true);
+  });
+
+  it('keeps the JSON body valid when a variable holds a quote', async () => {
+    await runApiRequest(
+      { method: 'POST', url: `${baseUrl}/orders`, body: { note: '{{n}}' } },
+      { n: 'say "hi"' },
+    );
+    expect(JSON.parse(received[0].body)).toEqual({ note: 'say "hi"' });
+  });
+
+  it('without assertions, any status below 400 passes and 400+ fails', async () => {
+    expect((await runApiRequest({ method: 'GET', url: `${baseUrl}/orders` }, {})).passed).toBe(
+      true,
+    );
+    expect((await runApiRequest({ method: 'GET', url: `${baseUrl}/boom` }, {})).passed).toBe(false);
+  });
+
+  it('compare: absent value equals nothing, numeric on empty fails', () => {
+    expect(compare('equals', undefined, 'undefined')).toBe(false);
+    expect(compare('exists', null, undefined)).toBe(false);
+    expect(compare('greater_than', '', '1')).toBe('value is empty');
+    expect(compare('less_than', 1, '')).toBe('expected value is empty');
   });
 });
