@@ -1,5 +1,9 @@
 # Product audit and v1 acceptance
 
+> **Independent audit of 7 November 2026 (in progress).** Findings A-01 to A-05 and M-01 to M-20
+> are open or being fixed. Each fix PR carries the finding ID in its title: see the PRs titled with
+> the finding ID. The text below is the state of 11 October 2026 and is kept as history.
+
 Updated on 11 October 2026 against main commit `448c95b` (merged PR #375).
 The suite covers its functional scope. Closing v1 still requires current acceptance, an installed
 release and evidence from the environments included in customer support commitments.

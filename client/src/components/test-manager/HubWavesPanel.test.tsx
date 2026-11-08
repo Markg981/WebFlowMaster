@@ -103,10 +103,12 @@ function answer(routes: Record<string, unknown>) {
     const key = `${method} ${url}`;
     let body = key in routes ? routes[key] : {};
     if (typeof body === 'function') body = body();
+    const failure = body as { __status?: number } | null;
+    const status = failure?.__status ?? 200;
     return Promise.resolve({
-      ok: true,
-      status: 200,
-      statusText: 'OK',
+      ok: status < 400,
+      status,
+      statusText: status < 400 ? 'OK' : 'Error',
       headers: new Headers(),
       json: async () => body,
       text: async () => JSON.stringify(body),
@@ -151,6 +153,63 @@ afterEach(() => {
 });
 
 describe('HubWavesPanel', () => {
+  it('shows an error with a retry when the waves cannot be loaded, not the empty state', async () => {
+    let failing = true;
+    answer({
+      ...baseRoutes,
+      'GET /api/testcase-hub/waves': () => (failing ? { __status: 500 } : [wave(1, 'W1', 'Alpha')]),
+    });
+    renderPanel();
+    expect(await screen.findByTestId('hub-waves-error')).toBeInTheDocument();
+    expect(screen.getByText('The waves could not be loaded')).toBeInTheDocument();
+    expect(screen.queryByText('No waves yet')).toBeNull();
+    failing = false;
+    fireEvent.click(screen.getByTestId('hub-waves-retry'));
+    expect(await screen.findByText('Alpha')).toBeInTheDocument();
+    expect(screen.queryByTestId('hub-waves-error')).toBeNull();
+  });
+
+  it('reports a job that cannot be read and enables the buttons again', async () => {
+    answer({
+      ...baseRoutes,
+      'POST /api/testcase-hub/waves/sync': job('running'),
+      'GET /api/testcase-hub/jobs/job-1': { __status: 404, error: 'Job not found' },
+    });
+    renderPanel();
+    fireEvent.click(await screen.findByTestId('hub-waves-sync'));
+    await waitFor(() =>
+      expect(toastMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          title: 'The job status could not be read',
+          variant: 'destructive',
+        }),
+      ),
+    );
+    await waitFor(() => expect(screen.getByTestId('hub-waves-sync')).not.toBeDisabled());
+    expect(toastMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not show the raw server text of a failed job', async () => {
+    answer({
+      ...baseRoutes,
+      'POST /api/testcase-hub/waves/sync': job('running'),
+      'GET /api/testcase-hub/jobs/job-1': () => ({
+        ...job('failed'),
+        error: 'ECONNRESET at 10.0.0.5:22',
+      }),
+    });
+    renderPanel();
+    fireEvent.click(await screen.findByTestId('hub-waves-sync'));
+    await waitFor(() =>
+      expect(toastMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          title: 'The job failed',
+          description: expect.not.stringContaining('ECONNRESET'),
+        }),
+      ),
+    );
+  });
+
   it('asks for the hub first when there is no source', async () => {
     answer({ 'GET /api/testcase-hub': null });
     renderPanel();

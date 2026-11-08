@@ -11,16 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import ProjectAccessDialog from '@/components/settings/ProjectAccessDialog';
 import { useProjects, type ProjectSummary } from '@/hooks/use-projects';
 
@@ -255,42 +246,24 @@ export default function ProjectsCard() {
         />
       )}
 
-      <AlertDialog
+      <ConfirmDialog
         open={deleting !== null}
         onOpenChange={(open) => {
           if (!open) setDeleting(null);
         }}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>
-              {t('settingsPage.deleteProjectDialog.title', 'Confirm Project Deletion')}
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              {t(
-                'settingsPage.deleteProjectDialog.description',
-                'Are you sure you want to delete project "{{name}}"? This action cannot be undone.',
-                { name: deleting?.name ?? '' },
-              )}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setDeleting(null)}>
-              {t('settingsPage.deleteProjectDialog.cancelButton', 'Cancel')}
-            </AlertDialogCancel>
-            <AlertDialogAction
-              onClick={confirmDeleteProject}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              disabled={deleteProjectMutation.isPending}
-            >
-              {deleteProjectMutation.isPending ? (
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              ) : null}
-              {t('settingsPage.deleteProjectDialog.deleteButton', 'Delete')}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+        title={t('settingsPage.deleteProjectDialog.title', 'Confirm Project Deletion')}
+        description={t(
+          'settingsPage.deleteProjectDialog.description',
+          'Are you sure you want to delete project "{{name}}"? This action cannot be undone.',
+          { name: deleting?.name ?? '' },
+        )}
+        cancelLabel={t('settingsPage.deleteProjectDialog.cancelButton', 'Cancel')}
+        confirmLabel={t('settingsPage.deleteProjectDialog.deleteButton', 'Delete')}
+        destructive
+        requireText={deleting?.name}
+        pending={deleteProjectMutation.isPending}
+        onConfirm={confirmDeleteProject}
+      />
     </>
   );
 }

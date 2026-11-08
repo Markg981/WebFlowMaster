@@ -7,7 +7,7 @@ in section 7. Nothing implemented.
 
 WFM planned to import test cases from the per-module Excel workbooks (the Test Manager page
 does a first, minimal version of that). The QA team now keeps the same cases in the git
-repository `C:\Users\marco.oliva\source\repos\CoE-QA-TestCasesHub`, written by a desktop
+repository `<repos>\CoE-QA-TestCasesHub`, written by a desktop
 application. Is the hub really the same data as the Excel, and how can WFM read the cases from
 it when a user sets a path?
 

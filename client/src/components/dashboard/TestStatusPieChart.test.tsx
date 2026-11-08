@@ -90,3 +90,18 @@ describe('TestStatusPieChart', () => {
     expect(screen.getAllByTestId('cell-element')).toHaveLength(2);
   });
 });
+
+describe('TestStatusPieChart timed-out slice', () => {
+  it('draws timeouts as their own slice, apart from failures', () => {
+    render(
+      <TestStatusPieChart
+        data={[
+          { status: 'failed', value: 2 },
+          { status: 'timed_out', value: 1 },
+        ]}
+      />,
+    );
+
+    expect(screen.getAllByTestId('cell-element')).toHaveLength(2);
+  });
+});

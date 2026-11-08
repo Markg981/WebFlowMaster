@@ -38,7 +38,10 @@ Pull requests touching packaging or application inputs and manual workflow runs 
 They have no registry-write permission. A push of `vX.Y.Z` (or a valid SemVer prerelease) enables
 publication only when all of these checks pass:
 
-- The tag equals `package.json` and `package-lock.json` version.
+- The tag equals `package.json` and `package-lock.json` version. `package.json` is the single source
+  of truth; the Helm `Chart.yaml` `appVersion` (the default image tag) and `AGENT_VERSION` in
+  `scripts/wfm-agent.ts` are copies, set with `node scripts/release/sync-version.mjs` and checked
+  by the release inputs and by a CI test.
 - The tagged commit belongs to `origin/main`.
 - The latest GitHub Actions runs named `static-checks`, `server-tests`, `client-tests`, `collaudo`,
   `build`, `network-on-guarded-installation`, `ui-on-real-installation` and `rls-on-real-postgres`

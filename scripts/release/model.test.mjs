@@ -227,3 +227,16 @@ test('source gate refuses a clean report that omitted locked build dependencies'
     }),
   );
 });
+
+test('every version carrier equals the package.json version', async () => {
+  const { readVersionCarriers, assertVersionsAligned, VERSION_CARRIERS } =
+    await import('./model.mjs');
+  const root = new URL('../../', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1');
+  const carriers = readVersionCarriers(root);
+  assert.equal(Object.keys(carriers).length, VERSION_CARRIERS.length);
+  assertVersionsAligned(carriers);
+  assert.throws(
+    () => assertVersionsAligned({ ...carriers, 'scripts/wfm-agent.ts': '9.9.9' }),
+    /wfm-agent/,
+  );
+});

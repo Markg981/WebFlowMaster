@@ -73,6 +73,40 @@ export const HUB_LIMITS = {
   maxTreeBytes: 128 * 1024 * 1024,
 };
 
+// ─── Azure DevOps hosts ────────────────────────────────────────────────────────
+
+/**
+ * Whether the personal access token of an Azure DevOps source may be sent to `baseUrl`: https
+ * only, on dev.azure.com, *.visualstudio.com, or a host the operator listed in
+ * TESTCASE_HUB_AZURE_HOSTS (comma-separated, for Azure DevOps Server on premises).
+ */
+export function isAllowedAzureHost(baseUrl: string, env: NodeJS.ProcessEnv = process.env): boolean {
+  let url: URL;
+  try {
+    url = new URL(baseUrl);
+  } catch {
+    return false;
+  }
+  if (url.protocol !== 'https:') return false;
+  const host = url.hostname.toLowerCase();
+  if (host === 'dev.azure.com' || host.endsWith('.visualstudio.com')) return true;
+  return (env.TESTCASE_HUB_AZURE_HOSTS ?? '')
+    .split(',')
+    .map((entry) => entry.trim().toLowerCase())
+    .filter((entry) => entry !== '')
+    .includes(host);
+}
+
+/** The scheme, host and port of a URL, lower-cased; null when it is not a URL. */
+export function originOf(value: string | null | undefined): string | null {
+  if (!value) return null;
+  try {
+    return new URL(value).origin.toLowerCase();
+  } catch {
+    return null;
+  }
+}
+
 // ─── Folder sources ────────────────────────────────────────────────────────────
 
 /**

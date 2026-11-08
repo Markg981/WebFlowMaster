@@ -15,6 +15,11 @@ import {
   parseArgs,
   parseCounts,
   restoreRefusal,
+  decryptFile,
+  encryptFile,
+  resolveBackupKey,
+  safeRestoreDatabase,
+  type RestoreDriver,
   type Manifest,
 } from './wfm-backup';
 
@@ -185,5 +190,165 @@ describe('files', () => {
       'results.tar is missing.',
     ]);
     fs.rmSync(dir, { recursive: true, force: true });
+  });
+});
+
+describe('encryption at rest', () => {
+  const key = 'ab'.repeat(32);
+  const tmp = () => fs.mkdtempSync(path.join(os.tmpdir(), 'wfm-enc-'));
+
+  it('round-trips a dump with a raw key and writes ciphertext, not the plaintext', async () => {
+    const dir = tmp();
+    const plain = path.join(dir, 'database.dump');
+    const content = Buffer.from('PGDMP-secret-rows'.repeat(5000));
+    fs.writeFileSync(plain, content);
+    const info = await encryptFile(plain, path.join(dir, 'd.enc'), { BACKUP_ENCRYPTION_KEY: key });
+    expect(info).toMatchObject({ cipher: 'aes-256-gcm', kdf: 'raw', file: 'd.enc' });
+    expect(info.plaintextSha256).toBe(createHash('sha256').update(content).digest('hex'));
+    expect(fs.readFileSync(path.join(dir, 'd.enc')).includes('PGDMP-secret')).toBe(false);
+    await decryptFile(path.join(dir, 'd.enc'), path.join(dir, 'out'), info, {
+      BACKUP_ENCRYPTION_KEY: key,
+    });
+    expect(fs.readFileSync(path.join(dir, 'out')).equals(content)).toBe(true);
+  });
+
+  it('derives the key from a passphrase with a salt kept in the manifest', async () => {
+    const dir = tmp();
+    fs.writeFileSync(path.join(dir, 'p'), 'data');
+    const env = { BACKUP_PASSPHRASE: 'correct horse' };
+    const info = await encryptFile(path.join(dir, 'p'), path.join(dir, 'e'), env);
+    expect(info.kdf).toBe('scrypt');
+    expect(info.salt).toHaveLength(32);
+    await decryptFile(path.join(dir, 'e'), path.join(dir, 'o'), info, env);
+    expect(fs.readFileSync(path.join(dir, 'o'), 'utf8')).toBe('data');
+  });
+
+  it('fails with a wrong key or a tampered file, and leaves no output', async () => {
+    const dir = tmp();
+    fs.writeFileSync(path.join(dir, 'p'), 'x'.repeat(1000));
+    const info = await encryptFile(path.join(dir, 'p'), path.join(dir, 'e'), {
+      BACKUP_ENCRYPTION_KEY: key,
+    });
+    await expect(
+      decryptFile(path.join(dir, 'e'), path.join(dir, 'o'), info, {
+        BACKUP_ENCRYPTION_KEY: 'cd'.repeat(32),
+      }),
+    ).rejects.toThrow(/wrong key/);
+    const bytes = fs.readFileSync(path.join(dir, 'e'));
+    bytes[3] ^= 1;
+    fs.writeFileSync(path.join(dir, 'e'), bytes);
+    await expect(
+      decryptFile(path.join(dir, 'e'), path.join(dir, 'o'), info, { BACKUP_ENCRYPTION_KEY: key }),
+    ).rejects.toThrow(/altered/);
+    expect(fs.existsSync(path.join(dir, 'o'))).toBe(false);
+  });
+
+  it('rejects a missing or malformed key without echoing it', () => {
+    expect(() => resolveBackupKey({})).toThrow(/BACKUP_ENCRYPTION_KEY/);
+    let message = '';
+    try {
+      resolveBackupKey({ BACKUP_ENCRYPTION_KEY: 'short-secret-value' });
+    } catch (e) {
+      message = (e as Error).message;
+    }
+    expect(message).toMatch(/32 bytes/);
+    expect(message).not.toContain('short-secret-value');
+    const b64 = Buffer.alloc(32, 1).toString('base64');
+    expect(resolveBackupKey({ BACKUP_ENCRYPTION_KEY: b64 }).key).toHaveLength(32);
+  });
+
+  it('parses --encrypt and refuses --in-place without --i-understand', () => {
+    expect(parseArgs(['create', '--encrypt'])).toMatchObject({ encrypt: true });
+    expect(parseArgs(['restore', '/b', '--in-place'])).toHaveProperty('error');
+    expect(parseArgs(['restore', '/b', '--in-place', '--i-understand'])).toMatchObject({
+      inPlace: true,
+    });
+  });
+});
+
+describe('safeRestoreDatabase', () => {
+  const now = new Date('2026-11-07T10:00:00Z');
+  const T = 'wfm_restore_20261107-100000';
+  const P = 'wfm_prev_20261107-100000';
+  const good = {
+    migrationsApplied: 59,
+    rlsTables: 44,
+    counts: database.counts,
+    appUserCanRead: true,
+  };
+  const makeDriver = (over: Partial<RestoreDriver> = {}) => {
+    const calls: string[] = [];
+    const rec =
+      (name: string, result?: unknown) =>
+      async (...args: string[]) => {
+        calls.push(`${name} ${args.join(' ')}`.trim());
+        return result as never;
+      };
+    const driver: RestoreDriver = {
+      createDatabase: rec('create'),
+      dropDatabase: rec('drop'),
+      terminateConnections: rec('terminate'),
+      renameDatabase: rec('rename'),
+      ensureAppUser: rec('appuser'),
+      loadDump: rec('load'),
+      facts: rec('facts', good),
+      stopServices: rec('stop'),
+      ...over,
+    };
+    return { driver, calls };
+  };
+  const run = (driver: RestoreDriver) =>
+    safeRestoreDatabase(driver, { dbName: 'wfm', manifest: manifest(), now }, () => undefined);
+
+  it('verifies the temporary database before stopping anything or renaming', async () => {
+    const { driver, calls } = makeDriver();
+    const result = await run(driver);
+    expect(result).toMatchObject({ ok: true, previousDatabase: P });
+    expect(calls).toEqual([
+      `create ${T}`,
+      'appuser',
+      `load ${T}`,
+      `facts ${T}`,
+      'stop',
+      'terminate wfm',
+      `terminate ${T}`,
+      `rename wfm ${P}`,
+      `rename ${T} wfm`,
+    ]);
+    expect(calls.some((c) => c.startsWith('drop'))).toBe(false);
+  });
+
+  it('leaves the live database alone when pg_restore fails', async () => {
+    const { driver, calls } = makeDriver({
+      loadDump: async () => {
+        throw new Error('pg_restore failed');
+      },
+    });
+    await expect(run(driver)).rejects.toThrow('pg_restore failed');
+    expect(calls).toEqual([`create ${T}`, 'appuser', `drop ${T}`]);
+  });
+
+  it('leaves the live database alone when the row counts differ from the manifest', async () => {
+    const { driver, calls } = makeDriver({
+      facts: async () => ({ ...good, counts: { organizations: 0, tests: 10 } }),
+    });
+    const result = await run(driver);
+    expect(result.ok).toBe(false);
+    expect(result.problems[0]).toMatch(/organizations/);
+    expect(calls).not.toContain('stop');
+    expect(calls.some((c) => c.startsWith('rename') || c.startsWith('terminate'))).toBe(false);
+    expect(calls.at(-1)).toBe(`drop ${T}`);
+  });
+
+  it('puts the old database back if the second rename fails', async () => {
+    const renames: string[] = [];
+    const { driver } = makeDriver({
+      renameDatabase: async (from, to) => {
+        renames.push(`${from}>${to}`);
+        if (from.includes('_restore_')) throw new Error('rename failed');
+      },
+    });
+    await expect(run(driver)).rejects.toThrow('rename failed');
+    expect(renames.at(-1)).toBe(`${P}>wfm`);
   });
 });
