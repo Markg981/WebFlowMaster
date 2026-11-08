@@ -17,22 +17,22 @@ organization testing against production-like data should assume it does.
 
 ## Data inventory
 
-| Data                      | Examples                                                                                                                          | Where it is kept                               | How long                                                           |
-| ------------------------- | --------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------- | ------------------------------------------------------------------ |
-| Accounts                  | Username (may be an e-mail address), role, creation date                                                                          | Database                                       | Until the member is removed or the organization is erased          |
-| Single sign-on identities | The provider's issuer and its identifier for the person (not their e-mail address), first and last sign-in                        | Database                                       | Until the account is removed                                       |
-| Credentials               | Password hash (scrypt), second-factor secret (encrypted), recovery codes (hashed)                                                 | Database                                       | As accounts                                                        |
-| Sessions                  | Session id, user id, browser (user agent), network address minus its last octet (IPv6: first 48 bits), start and last-active time | Redis                                          | 7 days, or until sign-out                                          |
-| Audit trail               | Actor's name, action, target, client IP address, key used, time                                                                   | Database                                       | Until the organization is erased; not deletable by the application |
-| Application logs          | User ids, request paths, correlation ids, errors                                                                                  | Log files, standard output, Loki if configured | 7 days by default (configurable)                                   |
-| Tests and plans           | Steps, addresses, element descriptions, schedules, notification addresses, comments on reviews                                    | Database                                       | Until deleted, or the organization is erased                       |
-| Stored secrets            | Test account passwords, tokens                                                                                                    | Database, encrypted                            | Until deleted                                                      |
-| Run results               | Verdicts, step outcomes, error messages, who started the run, CI context (repository, commit, branch, build)                      | Database                                       | Until the organization is erased                                   |
-| Run evidence              | Screenshots, videos, Playwright traces, network captures without bodies ([raw evidence](#raw-evidence))                           | Artifact store (disk or S3)                    | `ARTIFACT_RETENTION_DAYS`, 90 days by default                      |
-| Visual baselines          | Reference screenshots                                                                                                             | Artifact store                                 | Until replaced or removed                                          |
-| Password reset links      | Whose, who issued it, a hash of the token                                                                                         | Database                                       | One day, or until used; not included in exports                    |
-| Invitations               | Invited username, role, who invited                                                                                               | Database                                       | Until revoked; the invitation token expires after 7 days           |
-| Uploaded spreadsheets     | Imported test cases                                                                                                               | Local disk while being read                    | Deleted once parsed                                                |
+| Data                      | Examples                                                                                                                          | Where it is kept                               | How long                                                                                                                                                     |
+| ------------------------- | --------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Accounts                  | Username (may be an e-mail address), role, creation date                                                                          | Database                                       | Until the member is removed or the organization is erased                                                                                                    |
+| Single sign-on identities | The provider's issuer and its identifier for the person (not their e-mail address), first and last sign-in                        | Database                                       | Until the account is removed                                                                                                                                 |
+| Credentials               | Password hash (scrypt), second-factor secret (encrypted), recovery codes (hashed)                                                 | Database                                       | As accounts                                                                                                                                                  |
+| Sessions                  | Session id, user id, browser (user agent), network address minus its last octet (IPv6: first 48 bits), start and last-active time | Redis                                          | 7 days, or until sign-out                                                                                                                                    |
+| Audit trail               | Actor's name, action, target, client IP address, key used, time                                                                   | Database                                       | Entry: until the organization is erased or `AUDIT_LOG_RETENTION_DAYS`; IP address: `AUDIT_LOG_IP_RETENTION_DAYS` (90 days); not deletable by the application |
+| Application logs          | User ids, request paths, correlation ids, errors                                                                                  | Log files, standard output, Loki if configured | 7 days by default (configurable)                                                                                                                             |
+| Tests and plans           | Steps, addresses, element descriptions, schedules, notification addresses, comments on reviews                                    | Database                                       | Until deleted, or the organization is erased                                                                                                                 |
+| Stored secrets            | Test account passwords, tokens                                                                                                    | Database, encrypted                            | Until deleted                                                                                                                                                |
+| Run results               | Verdicts, step outcomes, error messages, who started the run, CI context (repository, commit, branch, build)                      | Database                                       | Until the organization is erased                                                                                                                             |
+| Run evidence              | Screenshots, videos, Playwright traces, network captures without bodies ([raw evidence](#raw-evidence))                           | Artifact store (disk or S3)                    | `ARTIFACT_RETENTION_DAYS`, 90 days by default                                                                                                                |
+| Visual baselines          | Reference screenshots                                                                                                             | Artifact store                                 | Until replaced or removed                                                                                                                                    |
+| Password reset links      | Whose, who issued it, a hash of the token                                                                                         | Database                                       | One day, or until used; not included in exports                                                                                                              |
+| Invitations               | Invited username, role, who invited                                                                                               | Database                                       | Until revoked; the invitation token expires after 7 days                                                                                                     |
+| Uploaded spreadsheets     | Imported test cases                                                                                                               | Local disk while being read                    | Deleted once parsed                                                                                                                                          |
 
 Backups made by the operator hold copies of the database and of the artifact store for as long
 as the operator keeps them.
@@ -100,13 +100,13 @@ database, storage and logging.
 
 ## Rights of the people concerned
 
-| Request                    | How                                                                                                                                                                                                                                                                                                                                                                                                      |
-| -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Access, portability        | An owner exports the whole organization as JSON (`GET /api/organization/export`); see [Export and erasure](../admin/administration#export-and-erasure-owners). A person's own entries can be found in the export and in the audit log by username.                                                                                                                                                       |
-| Erasure of one person      | An owner removes the member in **Settings → Members**. The account, its API keys, second factor and preferences are deleted; what the person made for the organization (tests, plans, environments…) is handed to another member. The audit trail keeps the name the person acted under, as the record of what happened. See [Members and invitations](../admin/administration#members-and-invitations). |
-| Erasure of an organization | An owner erases it: every row, including every member account and the audit trail, in one transaction.                                                                                                                                                                                                                                                                                                   |
-| Rectification              | Usernames cannot be changed; a person with a wrong username is invited again under the right one.                                                                                                                                                                                                                                                                                                        |
-| Restriction                | An owner can lower a member to viewer, or restrict projects.                                                                                                                                                                                                                                                                                                                                             |
+| Request                    | How                                                                                                                                                                                                                                                                                                                                                                                                            |
+| -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Access, portability        | An owner exports the whole organization as JSON (`GET /api/organization/export`); see [Export and erasure](../admin/administration#export-and-erasure-owners). A person's own entries can be found in the export and in the audit log by username.                                                                                                                                                             |
+| Erasure of one person      | An owner removes the member in **Settings → Members**. The account, its API keys, second factor and preferences are deleted; what the person made for the organization (tests, plans, environments…) is handed to another member. In the audit trail the person's name becomes a pseudonym; the record of what happened stays. See [Members and invitations](../admin/administration#members-and-invitations). |
+| Erasure of an organization | An owner erases it: every row, including every member account and the audit trail, in one transaction.                                                                                                                                                                                                                                                                                                         |
+| Rectification              | Usernames cannot be changed; a person with a wrong username is invited again under the right one.                                                                                                                                                                                                                                                                                                              |
+| Restriction                | An owner can lower a member to viewer, or restrict projects.                                                                                                                                                                                                                                                                                                                                                   |
 
 ## What erasure does and does not reach
 
@@ -127,8 +127,11 @@ Because the audit trail goes with the organization, every erasure is also writte
 privilege for the application role: organization id and name, who asked, when, rows deleted per
 table and files removed or left. It holds no tenant data and is kept.
 
-Erasing a single person (GDPR art. 17) is not implemented yet: members can be removed, but
-their audit entries and results keep naming them. This is an open item.
+Erasing a single person (GDPR art. 17) is only partly implemented. When a member is removed,
+their name in the audit entries of that organization is replaced by a pseudonym
+(`removed-user-` and eight hex characters) and the entries keep the account id (which becomes
+empty if the account is deleted). Results keep the name they were recorded under. The `username`
+saved inside the metadata of earlier entries is not rewritten.
 
 ## Raw evidence and exposed credentials {#raw-evidence}
 
@@ -203,14 +206,26 @@ an installation upgraded from such a release:
 
 ### Optional database retention
 
-Two settings, both off when unset, empty or `0` (the behaviour before they existed):
+Three settings. The first and the third are off when unset, empty or `0`; the IP setting has a default of 90 days:
 
 - `AUDIT_LOG_RETENTION_DAYS` deletes audit entries older than that many days. The table is
   append-only for the application; the sweep runs on the privileged database connection, the
   same one organization erasure uses. Choose a window that satisfies your own accountability
   obligations: deleted entries cannot be recovered.
+- `AUDIT_LOG_IP_RETENTION_DAYS` (default `90`) clears the client IP address of audit entries older
+  than that many days; the entry itself stays. `0` keeps addresses as long as the entry.
 - `EVIDENCE_RETENTION_DAYS` clears the stored evidence references and failure reason of unit
   attempts that finished earlier than that. The attempt and its verdict stay.
+
+The sweep runs every 6 hours, in batches of 1000 rows with a pause between them and a time limit
+per run, and only one process runs it at a time. The log line `Data retention` reports the rows
+handled per table.
+
+| What is kept in the audit trail | Until                                                                  |
+| ------------------------------- | ---------------------------------------------------------------------- |
+| Entry (action, target, time)    | `AUDIT_LOG_RETENTION_DAYS`; if unset, until the organization is erased |
+| Client IP address               | `AUDIT_LOG_IP_RETENTION_DAYS`, 90 days by default                      |
+| Username of the actor           | Until the member is removed, then a pseudonym                          |
 
 Network captures (HAR) are cleaned when recorded: bodies are never kept, `Authorization`,
 `Cookie`, `Set-Cookie` and similar headers, credential-looking query parameters and form posts

@@ -2854,6 +2854,8 @@
       },
       "active": "Active",
       "inactive": "Inactive",
+      "lastRefusal": "La dernière exécution n'a pas démarré ({{code}}), {{when}}",
+      "lastRefusalRun": "Voir l'exécution",
       "deleteSchedule": "Supprimer la planification"
     },
     "toast": {

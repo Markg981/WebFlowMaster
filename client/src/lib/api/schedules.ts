@@ -6,6 +6,14 @@ const BASE_URL = '/api/test-plan-schedules';
 // Also ensures that fields that might be JSON strings from DB are correctly typed after server parsing
 export interface TestPlanScheduleEnhanced extends TestPlanSchedule {
   testPlanName?: string; // Joined in by the server
+  /** The last occurrence that could not start, when it is the schedule's latest run; it is a run in `error`. */
+  lastRefusal?: {
+    executionId: string;
+    testPlanId: string;
+    code: string;
+    message: string | null;
+    at: string;
+  } | null;
   // Fields below are expected to be parsed by the server from JSON strings to appropriate types
   browsers: string[] | null;
   notificationConfigOverride: Record<string, any> | null;
@@ -56,6 +64,8 @@ const parseServerScheduleResponse = (schedule: TestPlanSchedule): TestPlanSchedu
   return {
     ...schedule,
     testPlanName: (schedule as any).testPlanName, // testPlanName is joined by server
+    lastRefusal:
+      (schedule as Partial<Pick<TestPlanScheduleEnhanced, 'lastRefusal'>>).lastRefusal ?? null,
     nextRunAt: new Date(schedule.nextRunAt), // nextRunAt is returned as ISO string
     browsers: schedule.browsers as string[] | null,
     notificationConfigOverride: schedule.notificationConfigOverride as Record<string, any> | null,
