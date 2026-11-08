@@ -168,7 +168,10 @@ export const bddExecutionProfiles = pgTable(
     createdAt: timestamp('created_at').defaultNow().notNull(),
     updatedAt: timestamp('updated_at').defaultNow().notNull(),
   },
-  (table) => [index('bdd_execution_profiles_organization_idx').on(table.organizationId)],
+  (table) => [
+    index('bdd_execution_profiles_organization_idx').on(table.organizationId),
+    index('bdd_execution_profiles_project_id_idx').on(table.projectId),
+  ],
 );
 
 /**

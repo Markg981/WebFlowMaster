@@ -72,7 +72,9 @@ quotas and cancellation from the execution report. `security.spec.ts` covers MFA
 single-use recovery code, OIDC login through an HTTPS identity provider and unknown SSO domains.
 `team.spec.ts` covers invitations created, used and revoked through the interface, and a
 two-factor requirement holding a member until they enroll. `accessibility.spec.ts` runs axe-core
-(WCAG 2.1 A and AA, serious and critical violations only) on the sign-in page and the main pages,
+(WCAG 2.1 A and AA, serious and critical violations only) on the sign-in page, its reset and invitation variants and every routed page a signed-in owner reaches
+(the main pages, the test editor, the API tester, schedules, requirements, test data, mobile and load tests, the QA hub and
+every settings section), with a per-page list for known issues,
 contrast in the dark theme, and keyboard use of the sidebar and of a dialog; a failure lists, per
 page, every element with the reason and the start of its HTML. `mobile.spec.ts` opens the
 dashboard, the reports and the report of a finished run at 375px (a phone) and 768px (a portrait

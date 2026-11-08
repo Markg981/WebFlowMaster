@@ -64,7 +64,7 @@ export default function RunUsageCard() {
           {format(used)} / {limit > 0 ? format(limit) : t('quota.unlimited', 'Unlimited')}
         </span>
       </div>
-      <Progress value={limit > 0 ? Math.min(100, (used / limit) * 100) : 0} />
+      <Progress value={limit > 0 ? Math.min(100, (used / limit) * 100) : 0} aria-label={label} />
       <p className="text-xs text-muted-foreground">{hint}</p>
     </div>
   );
