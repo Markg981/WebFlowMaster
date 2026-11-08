@@ -1167,7 +1167,7 @@
       "text": "Report completi"
     },
     "edition": {
-      "text": "Premium Enterprise Edition"
+      "text": "Edizione Premium Enterprise"
     },
     "firstAccount": {
       "description": "Questo è il primo account dell'installazione: crea la prima organizzazione, e ne sarai owner."
@@ -3163,7 +3163,7 @@
       "suite": "Suite",
       "agent": "Agenti locali",
       "source_host": "GitHub e GitLab",
-      "sso": "Single sign-on",
+      "sso": "Accesso unico (SSO)",
       "custom_action": "Azioni personalizzate",
       "requirement": "Requisiti",
       "test_management": "Gestione test",
@@ -3759,7 +3759,7 @@
     "issueType": "Tipo di issue",
     "userEmail": "Email dell'account",
     "apiToken": "Token API",
-    "pat": "Personal access token",
+    "pat": "Token di accesso personale",
     "tokenHint": "Salvato cifrato e mai più mostrato. Per cambiarlo, inseriscine uno nuovo.",
     "add": "Aggiungi tracker",
     "loading": "Caricamento…",
@@ -3826,7 +3826,7 @@
       "project": "Progetto",
       "repository": "Repository",
       "branch": "Branch",
-      "token": "Personal access token",
+      "token": "Token di accesso personale",
       "tokenKept": "Salvato — lascia vuoto per mantenerlo",
       "tokenHint": "Serve il permesso Code (read) sul repository. Salvato cifrato e mai più mostrato.",
       "nameRequired": "Dai un nome all'hub.",
@@ -4209,7 +4209,7 @@
     "moveDown": "Sposta lo step giù"
   },
   "sso": {
-    "title": "Single sign-on",
+    "title": "Accesso unico (SSO)",
     "on": "attivo",
     "requiredBadge": "obbligatorio",
     "description": "I membri accedono con il vostro identity provider (OpenID Connect o SAML 2.0: Entra ID, Okta, Google Workspace, ADFS, Keycloak…). La prima volta che qualcuno dei vostri domini accede, il suo account viene creato.",
