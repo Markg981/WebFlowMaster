@@ -9,7 +9,13 @@ import {
   createLocalArtifactStore,
   createS3ArtifactStore,
   keyForLocalPath,
+  localOrphanDays,
+  removeRunArtifacts,
+  s3MaxAttempts,
+  s3TimeoutMs,
+  sweepOrphanedLocalResults,
 } from './artifact-store';
+import net from 'net';
 import { fakeS3 } from '../tests/fake-s3';
 
 let cwd: string;
@@ -266,5 +272,86 @@ describe('artifactStoreFromEnv', () => {
     expect(() => artifactStoreFromEnv({ ARTIFACT_STORE: 'ftp' } as NodeJS.ProcessEnv)).toThrow(
       /"local" or "s3"/,
     );
+  });
+});
+
+describe('S3 timeouts (M-11)', () => {
+  it('defaults and validates the environment values', () => {
+    expect(s3TimeoutMs({} as NodeJS.ProcessEnv)).toBe(30_000);
+    expect(s3MaxAttempts({} as NodeJS.ProcessEnv)).toBe(3);
+    expect(s3TimeoutMs({ ARTIFACT_S3_TIMEOUT_MS: '5000' } as NodeJS.ProcessEnv)).toBe(5000);
+    expect(() => s3TimeoutMs({ ARTIFACT_S3_TIMEOUT_MS: 'soon' } as NodeJS.ProcessEnv)).toThrow(
+      /ARTIFACT_S3_TIMEOUT_MS/,
+    );
+    expect(() => s3MaxAttempts({ ARTIFACT_S3_MAX_ATTEMPTS: '0' } as NodeJS.ProcessEnv)).toThrow(
+      /ARTIFACT_S3_MAX_ATTEMPTS/,
+    );
+  });
+
+  it('fails a request to an endpoint that never answers within the timeout', async () => {
+    const sockets: net.Socket[] = [];
+    const server = net.createServer((socket) => sockets.push(socket));
+    await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+    const port = (server.address() as net.AddressInfo).port;
+    try {
+      const store = artifactStoreFromEnv({
+        ARTIFACT_STORE: 's3',
+        S3_BUCKET: 'b',
+        S3_ENDPOINT: `http://127.0.0.1:${port}`,
+        S3_ACCESS_KEY_ID: 'k',
+        S3_SECRET_ACCESS_KEY: 's',
+        ARTIFACT_S3_TIMEOUT_MS: '300',
+        ARTIFACT_S3_MAX_ATTEMPTS: '1',
+      } as NodeJS.ProcessEnv);
+      const started = Date.now();
+      await expect(store.read('results/a/b.png')).rejects.toThrow();
+      expect(Date.now() - started).toBeLessThan(5000);
+    } finally {
+      sockets.forEach((socket) => socket.destroy());
+      server.close();
+    }
+  });
+});
+
+describe('local evidence cleanup (M-05)', () => {
+  it('removes one run folder, and refuses ids that climb out of results/', async () => {
+    await writeRunFiles();
+    await fs.outputFile(path.join(cwd, 'outside.txt'), 'x');
+    expect(await removeRunArtifacts('plan-1', '..', cwd)).toBe(false);
+    expect(await removeRunArtifacts('..', '..', cwd)).toBe(false);
+    expect(await fs.pathExists(path.join(cwd, 'outside.txt'))).toBe(true);
+    expect(await removeRunArtifacts('plan-1', 'exec-1', cwd)).toBe(true);
+    expect(await fs.pathExists(path.join(cwd, 'results', 'plan-1', 'exec-1'))).toBe(false);
+    expect(await removeRunArtifacts('plan-1', 'exec-1', cwd)).toBe(false);
+  });
+
+  it('sweeps only old files, only with the S3 store, and only under results/', async () => {
+    const oldFile = path.join(cwd, 'results', 'p', 'old', 'a.png');
+    const newFile = path.join(cwd, 'results', 'p', 'new', 'b.png');
+    const outside = path.join(cwd, 'keep.txt');
+    for (const file of [oldFile, newFile, outside]) await fs.outputFile(file, 'x');
+    const old = new Date(Date.now() - 10 * 24 * 60 * 60 * 1000);
+    await fs.utimes(oldFile, old, old);
+    await fs.utimes(outside, old, old);
+    const s3 = createS3ArtifactStore({ client: fakeS3(), bucket: 'b' });
+
+    expect(
+      await sweepOrphanedLocalResults({ days: 7, cwd, store: createLocalArtifactStore(cwd) }),
+    ).toBe(0);
+    expect(await fs.pathExists(oldFile)).toBe(true);
+
+    expect(await sweepOrphanedLocalResults({ days: 7, cwd, store: s3 })).toBe(1);
+    expect(await fs.pathExists(oldFile)).toBe(false);
+    expect(await fs.pathExists(path.dirname(oldFile))).toBe(false);
+    expect(await fs.pathExists(newFile)).toBe(true);
+    expect(await fs.pathExists(outside)).toBe(true);
+  });
+
+  it('reads ARTIFACT_LOCAL_ORPHAN_DAYS', () => {
+    expect(localOrphanDays({} as NodeJS.ProcessEnv)).toBe(7);
+    expect(localOrphanDays({ ARTIFACT_LOCAL_ORPHAN_DAYS: '0' } as NodeJS.ProcessEnv)).toBe(0);
+    expect(() =>
+      localOrphanDays({ ARTIFACT_LOCAL_ORPHAN_DAYS: '-1' } as NodeJS.ProcessEnv),
+    ).toThrow();
   });
 });

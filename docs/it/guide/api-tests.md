@@ -64,8 +64,7 @@ Un XPath viene valutato su documenti fino a 2 MB e 20.000 nodi, con espressione 
 Confronti: equals, not equals, contains, not contains, exists, not exists, is empty, is not
 empty, greater than, less than (o uguale), matches regex, not matches regex. Un'asserzione si può
 disattivare senza cancellarla. Il test passa quando passano tutte quelle attive. Un test senza asserzioni attive passa solo se lo stato è inferiore a 400 (controllo implicito). Un run di un piano senza test termina in errore (`run_empty`), non completato.
-Una regex è limitata a 200 caratteri e non può ripetere un gruppo già ripetuto come `(a+)+` (bloccherebbe
-il server): l'asserzione fallisce subito con il messaggio "Invalid regex".
+Una regex è limitata a 200 caratteri e a 100.000 caratteri di testo della risposta. I pattern che ripetono un gruppo già ripetuto come `(a+)+`, o ripetono un'alternativa i cui rami iniziano allo stesso modo come `(a|aa)+`, sono rifiutati subito con il messaggio "Invalid regex". Ogni confronto gira inoltre con un limite di 100 ms su un thread separato: un pattern ancora troppo lento fa fallire l'asserzione con "regex timed out after 100 ms" invece di bloccare il server. Questi controlli riducono il rischio ma non rendono veloce ogni pattern: meglio tenere i pattern semplici.
 
 Il **response time** va dall'invio della richiesta all'ultimo byte del corpo, non agli header: un
 corpo che arriva lentamente conta per intero. Anche il timeout di 30 secondi copre tutto il

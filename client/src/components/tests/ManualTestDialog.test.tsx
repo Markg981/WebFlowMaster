@@ -106,4 +106,32 @@ describe('ManualTestDialog', () => {
     expect(fetchMock.mock.calls[0][0]).toBe('/api/tests/3');
     expect(fetchMock.mock.calls[0][1].method).toBe('PUT');
   });
+  it('sends the loaded updatedAt and offers an overwrite on a 409', async () => {
+    const loaded = '2026-11-07T10:00:00.000Z';
+    render(
+      <ManualTestDialog
+        isOpen
+        onClose={vi.fn()}
+        test={{
+          id: 3,
+          name: 'Shared',
+          updatedAt: loaded,
+          sequence: toSequence([{ action: 'Given A', expected: '' }]),
+        }}
+        onSaved={vi.fn()}
+      />,
+    );
+    fetchMock.mockResolvedValueOnce({
+      ok: false,
+      status: 409,
+      json: async () => ({ code: 'test_changed', error: 'changed' }),
+    });
+    fireEvent.click(screen.getByText('Save'));
+    await waitFor(() => expect(screen.getByText('Overwrite')).toBeTruthy());
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body).expectedUpdatedAt).toBe(loaded);
+    expect(screen.queryByRole('alert')).toBeNull();
+    fireEvent.click(screen.getByText('Overwrite'));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
+    expect(JSON.parse(fetchMock.mock.calls[1][1].body).expectedUpdatedAt).toBeUndefined();
+  });
 });

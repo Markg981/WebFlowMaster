@@ -161,4 +161,34 @@ describe('BddTestDialog', () => {
     await waitFor(() => expect(fetchMock).toHaveBeenCalled());
     expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toEqual({ bdd: null });
   });
+  it('sends the loaded updatedAt and asks before overwriting on a 409', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 409,
+        json: async () => ({ code: 'test_changed', error: 'changed' }),
+      })
+      .mockResolvedValue({ ok: true, status: 200, json: async () => ({}) });
+    vi.stubGlobal('fetch', fetchMock);
+    const onSaved = vi.fn();
+    render(
+      wrap(
+        <BddTestDialog
+          test={{ id: 1, name: 'A', bdd, updatedAt: '2026-11-07T10:00:00.000Z' }}
+          onClose={vi.fn()}
+          onSaved={onSaved}
+        />,
+      ),
+    );
+    fireEvent.click(screen.getByTestId('bdd-save'));
+    await waitFor(() => expect(screen.getByText('Overwrite')).toBeTruthy());
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body).expectedUpdatedAt).toBe(
+      '2026-11-07T10:00:00.000Z',
+    );
+    expect(onSaved).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByText('Overwrite'));
+    await waitFor(() => expect(onSaved).toHaveBeenCalled());
+    expect(JSON.parse(fetchMock.mock.calls[1][1].body).expectedUpdatedAt).toBeUndefined();
+  });
 });

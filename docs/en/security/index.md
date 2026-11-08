@@ -240,6 +240,9 @@ following leaves the installation for Google's API:
 | Tests from a story, when an editor asks for them                                              | The requirement's key and title, and its description and acceptance criteria as the tracker has them (up to 12,000 characters).                                                                                                                             |
 | Failure analysis, when an editor asks for it on a failed result                               | The test's name, the runner's reason, the steps around the failure with their selectors, errors and values (values that look like passwords, codes or keys are replaced by `[hidden]`), the failed and slowest requests, and the screenshot of the failure. |
 
+An organization's consent (off by default) gates all of these, selector healing during runs
+included, and each organization is capped at `AI_DAILY_CALL_LIMIT` calls a day.
+
 Page HTML can contain personal data of the application under test. Enable the key only where
 sending it to Google is acceptable; everything else works without it.
 
