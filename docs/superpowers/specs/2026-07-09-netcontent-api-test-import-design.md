@@ -131,7 +131,7 @@ Natural key of a test: `(projectId, method, url)`.
 ## Configuration
 
 - `NETCONTENT_CONTROLLERS_DIR` — path to controllers (default:
-  `C:\Users\marco.oliva\source\repos\DMO_3\DMO.NetContent\_NccNew\Controllers`)
+  `<repos>\DMO_3\DMO.NetContent\_NccNew\Controllers`)
 - `WFM_IMPORT_USER_ID` — optional; default = primary user
 - `--dry-run` — parse and write the manifest only; **no DB writes** (for inspection)
 - `DATABASE_URL` — existing WebFlowMaster env

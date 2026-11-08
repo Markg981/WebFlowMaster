@@ -1,0 +1,13 @@
+{
+  "id": "WEB-95",
+  "area": "WEB",
+  "title": "Audit Lighthouse: cookie fuori dalla riga di comando e sandbox attivo",
+  "priority": "P2",
+  "actor": "owner.a",
+  "preconditions": "Runner con Lighthouse installato; test web con login state e uno step Audit Lighthouse; LIGHTHOUSE_NO_SANDBOX non impostata.",
+  "steps": [
+    "Eseguire il test e, durante l'audit, elencare i processi del runner con i relativi argomenti.",
+    "Ripetere con LIGHTHOUSE_NO_SANDBOX=1."
+  ],
+  "expected": "1: l'audit riesce, nessun argomento contiene il cookie e Chrome non riceve --no-sandbox. 2: Chrome riceve --no-sandbox, il cookie resta fuori dagli argomenti."
+}

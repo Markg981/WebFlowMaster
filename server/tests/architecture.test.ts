@@ -271,6 +271,27 @@ describe('route modules cannot query outside the tenant context', () => {
    * outside every rule here, and would bring back the second convention for writing an
    * endpoint that the move removed.
    */
+  it('every module that imports the AI service also imports the consent gate', () => {
+    const serverDir = path.join(repoRoot, 'server');
+    const files: string[] = [];
+    const walk = (dir: string) => {
+      for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+        const full = path.join(dir, entry.name);
+        if (entry.isDirectory()) walk(full);
+        else if (/\.ts$/.test(entry.name) && !/\.test\.ts$/.test(entry.name)) files.push(full);
+      }
+    };
+    walk(serverDir);
+    const offenders = files.filter((file) => {
+      if (file.endsWith(`${path.sep}ai-automation-service.ts`)) return false;
+      const source = fs.readFileSync(file, 'utf8');
+      const usesClient =
+        /from ['"][^'"]*ai-automation-service['"]|from ['"]@google\/generative-ai['"]/.test(source);
+      return usesClient && !/from ['"][^'"]*ai-consent['"]/.test(source);
+    });
+    expect(offenders.map((f) => path.relative(repoRoot, f))).toEqual([]);
+  });
+
   it('server/routes.ts only mounts routers and defines no handler of its own', () => {
     const source = fs.readFileSync(path.join(serverDir, 'routes.ts'), 'utf8');
     // Guards the guard: the parser must still recognise a route, or the rule passes vacuously.
@@ -636,6 +657,34 @@ describe('owner-only mutations are session-only (audit C-03)', () => {
         if (!/sessionOnly/.test(c.chain))
           offenders.push(`${name}:${c.line} ${c.method} ${c.paths}`);
       }
+    }
+    expect(offenders).toEqual([]);
+  });
+});
+
+describe('result rows reach a viewer through one projection (audit A-01)', () => {
+  /**
+   * A route module that reads `report_test_case_results` and spreads a row (`...r`, `...row`,
+   * `...result`) copies every column into the response, including the log, the network capture and
+   * the AI analysis that a restricted project hides. Such a module must import `resultForViewer`
+   * (server/tenancy/artifact-access.ts), the one place that blanks them. The pattern is textual and
+   * deliberately coarse: it flags the spread of a conventionally named row in a module that touches
+   * the table, so a new route cannot reintroduce the leak without either importing the projection
+   * or being reviewed into the list below.
+   */
+  const reviewed: Record<string, string> = {
+    'analytics.routes.ts': 'selects named columns for flakiness input, none of the detail columns',
+    'comments.routes.ts': 'spreads comment rows; the result table is only a link target',
+    'test-versions.routes.ts': 'version aggregates (counts), not result rows',
+  };
+
+  it('every route module that spreads a result row imports resultForViewer', () => {
+    const offenders: string[] = [];
+    for (const { name, source } of routeFiles()) {
+      if (!/\breportTestCaseResults\b|\bReportTestCaseResult\b/.test(source)) continue;
+      if (!/\.\.\.(?:r|row|result)\b(?!\.)/.test(source)) continue;
+      if (/\bresultForViewer\b/.test(source) || name in reviewed) continue;
+      offenders.push(name);
     }
     expect(offenders).toEqual([]);
   });

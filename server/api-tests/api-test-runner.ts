@@ -2,6 +2,7 @@ import { AuthParamsSchema, type ApiTest, type Assertion, type AuthParams } from 
 import { runGrpc, runWebSocket, xpathValue, type ProtocolResponse } from './api-protocols';
 import { fetchTarget, substituteInValues, substituteVariables } from '../platform/outbound-http';
 import { compileSafeRegex, safeRegexTest } from '../platform/utils/safe-regex';
+import { RegexTimeoutError } from '../platform/utils/regex-guard';
 import { findUnresolvedVariables } from '../runtime/variables';
 import {
   ProtocolConfigSchema,
@@ -236,6 +237,11 @@ export function getValueByPath(obj: any, path: string): any {
   return current;
 }
 
+function regexFailure(target: string | undefined, error: unknown): string {
+  if (error instanceof RegexTimeoutError) return `Regex ${target} ${error.message}`;
+  return `Invalid regex: ${target} (${(error as Error).message})`;
+}
+
 function compare(comparison: string, actual: any, target: string | undefined): boolean | string {
   const text = typeof actual === 'string' ? actual : String(actual ?? '');
   switch (comparison) {
@@ -269,13 +275,13 @@ function compare(comparison: string, actual: any, target: string | undefined): b
       try {
         return safeRegexTest(compileSafeRegex(target ?? ''), text);
       } catch (error) {
-        return `Invalid regex: ${target} (${(error as Error).message})`;
+        return regexFailure(target, error);
       }
     case 'not_matches_regex':
       try {
         return !safeRegexTest(compileSafeRegex(target ?? ''), text);
       } catch (error) {
-        return `Invalid regex: ${target} (${(error as Error).message})`;
+        return regexFailure(target, error);
       }
     case 'greater_than':
     case 'less_than':

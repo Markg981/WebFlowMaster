@@ -114,6 +114,10 @@ function sidebar(lang: 'en' | 'it', t: Labels): DefaultTheme.SidebarItem[] {
           text: lang === 'en' ? 'Shared SaaS network' : 'Rete SaaS condiviso',
           link: p('admin/saas-network'),
         },
+        {
+          text: lang === 'it' ? 'Checklist per la produzione' : 'Production checklist',
+          link: p('admin/production-checklist'),
+        },
         { text: t.operations, link: p('admin/operations') },
         {
           text: lang === 'it' ? 'Carico prolungato' : 'Endurance testing',
@@ -195,11 +199,19 @@ function sidebar(lang: 'en' | 'it', t: Labels): DefaultTheme.SidebarItem[] {
           link: p('internals/contributing-guide'),
         },
         {
+          text: lang === 'en' ? 'Acceptance testing outcomes' : 'Esiti del collaudo',
+          link: p('internals/acceptance-testing'),
+        },
+        {
           text:
             lang === 'en'
               ? 'Product and documentation audit'
               : 'Audit del prodotto e della documentazione',
           link: p('internals/product-audit'),
+        },
+        {
+          text: lang === 'en' ? 'CI governance' : 'Governance della CI',
+          link: p('internals/ci-governance'),
         },
         { text: t.decisions, link: p('internals/decisions') },
         { text: t.glossary, link: p('internals/glossary') },

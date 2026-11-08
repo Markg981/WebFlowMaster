@@ -121,6 +121,9 @@ project's tests. The database enforces it, not only the interface.
 A restricted project cannot be deleted: its tests would lose their project and become visible to
 the whole organization. Remove the restriction first (recorded in the audit log), then delete.
 
+Irreversible deletions ask for a strong confirmation: deleting a project, deleting an environment and
+revoking an API key stay disabled until you type the exact name shown in the dialog (case matters).
+
 ## Two-factor authentication
 
 Each person can turn on a second factor in **Settings → Security**: a code from an

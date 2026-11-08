@@ -200,6 +200,7 @@ describe('the source', () => {
   });
 
   it('saves an Azure DevOps source with its token encrypted and never returns it', async () => {
+    currentUser = { ...editor, role: 'owner' };
     const res = await request(app).put('/api/testcase-hub').send({
       kind: 'azure-devops',
       name: 'ADO hub',
@@ -243,6 +244,67 @@ describe('the source', () => {
     expect(JSON.stringify(updated.metadata)).not.toContain('dev.azure.com');
   });
 
+  const adoBody = (overrides: Record<string, unknown> = {}) => ({
+    kind: 'azure-devops',
+    name: 'ADO hub renamed',
+    baseUrl: 'https://dev.azure.com/my-org',
+    project: 'QA',
+    repository: 'CoE-QA-TestCasesHub',
+    ...overrides,
+  });
+
+  it('keeps the token when only the path of the URL changes', async () => {
+    const res = await request(app)
+      .put('/api/testcase-hub')
+      .send(adoBody({ baseUrl: 'https://dev.azure.com/another-org' }));
+    expect(res.status).toBe(200);
+    expect(res.body.hasToken).toBe(true);
+  });
+
+  it('discards the token when the host changes without a new one', async () => {
+    currentUser = { ...editor, role: 'owner' };
+    const res = await request(app)
+      .put('/api/testcase-hub')
+      .send(adoBody({ baseUrl: 'https://my-org.visualstudio.com' }));
+    expect(res.status).toBe(200);
+    expect(res.body.hasToken).toBe(false);
+    const [row] = await privilegedDb.select().from(testCaseSources);
+    expect(row.encryptedToken).toBeNull();
+    const again = await request(app)
+      .put('/api/testcase-hub')
+      .send(adoBody({ baseUrl: 'https://my-org.visualstudio.com', token: 'pat-new-value' }));
+    expect(again.status).toBe(200);
+    expect(again.body.hasToken).toBe(true);
+  });
+
+  it('refuses a host that is not an Azure DevOps one, or not https', async () => {
+    currentUser = { ...editor, role: 'owner' };
+    for (const baseUrl of ['https://evil.example.com/x', 'http://dev.azure.com/my-org']) {
+      const res = await request(app)
+        .put('/api/testcase-hub')
+        .send(adoBody({ baseUrl, token: 'pat-x' }));
+      expect(res.status).toBe(422);
+      expect(res.body.code).toBe('host_not_allowed');
+    }
+    process.env.TESTCASE_HUB_AZURE_HOSTS = 'tfs.example.com';
+    const ok = await request(app)
+      .put('/api/testcase-hub')
+      .send(adoBody({ baseUrl: 'https://tfs.example.com/tfs', token: 'pat-x' }));
+    delete process.env.TESTCASE_HUB_AZURE_HOSTS;
+    expect(ok.status).toBe(200);
+  });
+
+  it('lets only an owner set a token or test the connection', async () => {
+    currentUser = editor;
+    const save = await request(app)
+      .put('/api/testcase-hub')
+      .send(adoBody({ token: 'pat-y' }));
+    expect(save.status).toBe(403);
+    const test = await request(app).post('/api/testcase-hub/test');
+    expect(test.status).toBe(403);
+    currentUser = { ...editor, role: 'owner' };
+  });
+
   it('switches to a folder, dropping the token, and the viewer only reads it', async () => {
     const res = await request(app).put('/api/testcase-hub').send(folderSource());
     expect(res.status).toBe(200);
@@ -269,6 +331,7 @@ describe('the source', () => {
   });
 
   it('tests the connection', async () => {
+    currentUser = { ...editor, role: 'owner' };
     const res = await request(app).post('/api/testcase-hub/test');
     expect(res.status).toBe(200);
     expect(res.body).toMatchObject({ ok: true });

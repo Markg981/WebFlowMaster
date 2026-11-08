@@ -4,6 +4,7 @@ import de from './de/translation.json';
 import en from './en/translation.json';
 import fr from './fr/translation.json';
 import italian from './it/translation.json';
+import { findUntranslated } from '../../../scripts/i18n-untranslated.mjs';
 
 /**
  * Guards on the translation bundles themselves.
@@ -50,6 +51,16 @@ describe.each(BUNDLES.map(([lang]) => lang))('%s translation bundle', (lang) => 
     const marked = [...bundle].filter(([, value]) => value.includes('[TRANSLATE]'));
     expect(marked.map(([key]) => key)).toEqual([]);
   });
+
+  it.skipIf(lang === 'en')(
+    'has no value left identical to English (see scripts/i18n-untranslated.mjs)',
+    () => {
+      // Audit B-20: strings copied from English were never translated. Genuine equals (brand names,
+      // protocol terms, shared loanwords) are listed in the script's allowlist, with a reason each.
+      const identical = findUntranslated(en as Bundle, BUNDLES.find(([l]) => l === lang)![1], lang);
+      expect(identical.map(([key]: [string, string]) => key)).toEqual([]);
+    },
+  );
 
   it('has no blank values', () => {
     const blank = [...bundle].filter(([, value]) => value.trim() === '');
