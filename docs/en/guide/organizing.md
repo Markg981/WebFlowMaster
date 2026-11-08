@@ -12,7 +12,9 @@ The library loads 25 summaries per page and shows the total matching your filter
 **Previous** and **Next** to browse. Name search ignores letter case and matches literal text
 (including `%` and `_`); multiple selected tags require every tag. Project and status filters
 apply before pagination, and changing a filter returns to the first page. API tests, mobile
-tests and shared test data also use paginated lists. Each list loads full definitions only
+tests and shared test data also use paginated lists. In the API tester catalog and in the
+TestCase Hub catalog, page, page size, search and filters are kept in the address: reload, **Back**
+and a copied link restore the same view (default values are not shown in the address). Each list loads full definitions only
 when needed: editing a manual or BDD test fetches its steps, editing a data set fetches its
 table, and loading or running an API/mobile test fetches its executable configuration.
 List responses contain metadata and counts, rather than all steps or dataset values.
