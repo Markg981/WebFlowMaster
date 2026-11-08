@@ -7,7 +7,7 @@ import { Loader2, PieChart as PieChartIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
 
-export type ExecutionStatus = 'passed' | 'failed' | 'pending';
+export type ExecutionStatus = 'passed' | 'failed' | 'timed_out' | 'pending';
 
 export interface StatusSlice {
   status: ExecutionStatus;
@@ -28,12 +28,14 @@ interface TestStatusPieChartProps {
 const SLICE_COLOUR: Record<ExecutionStatus, string> = {
   passed: 'hsl(var(--success))',
   failed: 'hsl(var(--destructive))',
+  timed_out: 'hsl(var(--chart-4))',
   pending: 'hsl(var(--warning))',
 };
 
 const SLICE_LABEL: Record<ExecutionStatus, string> = {
   passed: 'dashboard.executionStatus.passed',
   failed: 'dashboard.executionStatus.failed',
+  timed_out: 'dashboard.executionStatus.timedOut',
   pending: 'dashboard.executionStatus.pending',
 };
 

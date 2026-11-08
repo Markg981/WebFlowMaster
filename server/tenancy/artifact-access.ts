@@ -267,3 +267,34 @@ export async function runArtifactAccess(
       (!!row.mobileTestId && hidden.has(`mobile:${row.mobileTestId}`)),
   };
 }
+
+/**
+ * Whether this run includes a test the caller cannot see, counting the tests its manifest has
+ * queued but not yet reported. For surfaces that stream a run as a whole (the live log socket).
+ */
+export async function runHasHiddenTests(tx: TenantTx, executionId: string): Promise<boolean> {
+  const { hidden } = await hiddenOwners(tx, executionId);
+  return Array.from(hidden).some((owner) => owner !== UNKNOWN_UNIT);
+}
+
+/**
+ * The columns of a result row that carry what the test saw and did: the step log, the network
+ * capture and the AI reading of the failure. A caller outside the test's restricted project gets
+ * the verdict (name, status, timings, counts) but not these.
+ */
+const DETAIL_COLUMNS = ['detailedLog', 'networkSummary', 'aiAnalysis'] as const;
+
+/**
+ * The one projection of a result row for a viewer: the row itself when the caller may see its
+ * test, otherwise the same shape with the detail columns blanked. Every surface that hands result
+ * rows out (plan report, live execution socket, JUnit export) goes through this instead of
+ * spreading the raw row, so a new column is hidden in one place (see server/architecture.test.ts).
+ */
+export function resultForViewer<
+  T extends { uiTestId?: number | null; mobileTestId?: number | null },
+>(row: T, access: Pick<RunArtifactAccess, 'hiddenResult'>): T {
+  if (!access.hiddenResult(row)) return row;
+  const blanked: Record<string, unknown> = { ...row };
+  for (const column of DETAIL_COLUMNS) if (column in blanked) blanked[column] = null;
+  return blanked as T;
+}

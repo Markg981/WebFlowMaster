@@ -12,7 +12,9 @@ The library loads 25 summaries per page and shows the total matching your filter
 **Previous** and **Next** to browse. Name search ignores letter case and matches literal text
 (including `%` and `_`); multiple selected tags require every tag. Project and status filters
 apply before pagination, and changing a filter returns to the first page. API tests, mobile
-tests and shared test data also use paginated lists. Each list loads full definitions only
+tests and shared test data also use paginated lists. In the API tester catalog and in the
+TestCase Hub catalog, page, page size, search and filters are kept in the address: reload, **Back**
+and a copied link restore the same view (default values are not shown in the address). Each list loads full definitions only
 when needed: editing a manual or BDD test fetches its steps, editing a data set fetches its
 table, and loading or running an API/mobile test fetches its executable configuration.
 List responses contain metadata and counts, rather than all steps or dataset values.
@@ -61,6 +63,12 @@ A manual test is a test like the others: it has versions and reviews, carries ta
 suites and plans. In a run it opens no browser — it waits in the run's report for somebody's
 verdict (see [Manual results](./results#manual-results)), once per run whatever browsers and
 languages the plan has.
+
+### Concurrent edits
+
+When two people edit the same manual or BDD test, the second save is not allowed to overwrite the
+first silently: the editor asks whether to **Overwrite** the other change or **Keep editing**. Your
+draft stays as typed; to see the other person's version, close the editor and open the test again.
 
 ## History and versions {#history-and-versions}
 
@@ -225,6 +233,12 @@ with _Code: read_, stored encrypted and never shown again). **Test connection** 
 source; **Refresh catalog** reads every case into a catalog kept in WebFlowMaster and says how
 many are new, changed or no longer in the hub. Nothing becomes a test yet.
 
+The token is only ever sent to Azure DevOps: the URL must be https on `dev.azure.com` or
+`*.visualstudio.com`, or on a host the operator listed in `TESTCASE_HUB_AZURE_HOSTS` (Azure DevOps
+Server on premises); any other host is refused. If you change the host of the URL, the saved token is
+discarded and you must enter it again; changing only the organization or path keeps it. Setting the
+token and **Test connection** are for organization owners; editors can still refresh the catalog.
+
 The **QA test case hub** tab of **Test Manager** (also `/test-manager?source=hub`) lists the
 catalog: id, module, priority, readiness level, objective, and where each case stands against
 the library (not imported, imported, changed since import, missing from the hub). Filter by
@@ -258,6 +272,8 @@ type, start date, cases, failures, progress and where each stands in WebFlowMast
 imported, changed since import, no longer in the hub). Open a wave for its results by module and
 by case, with search, module and status filters and the tester, stage, build, bug and notes of
 each result.
+
+If the waves cannot be loaded (server error, hub not reachable, no permission), the tab shows **The waves could not be loaded** with a **Try again** button instead of the empty list. If the background job can no longer be read, a notice says so and **Read the waves** and **Import** are enabled again; a job that fails shows a generic message, the details are in the server log.
 
 Select waves (up to 25 at a time) and **Import**: choose the project and the steps of the new
 tests. The cases the waves name that are not tests yet are imported from the catalog first, one

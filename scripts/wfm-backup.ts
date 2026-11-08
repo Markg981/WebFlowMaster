@@ -23,8 +23,9 @@
  * Exit codes: 0 done, 1 the check found a problem, 2 the command could not be carried out.
  */
 import { spawn } from 'node:child_process';
-import { createHash } from 'node:crypto';
+import { createCipheriv, createDecipheriv, createHash, randomBytes, scryptSync } from 'node:crypto';
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import { localDir } from './local-dir.mjs';
 
@@ -78,6 +79,8 @@ export interface Manifest {
   artifactStore: 'local' | 's3';
   /** sha256 of the 32-byte key server/platform/crypto.ts derives, first 16 hex characters. */
   encryptionKeyFingerprint: string | null;
+  /** present when the dump is encrypted (create --encrypt) */
+  encryption?: EncryptionInfo;
   files: BackupFile[];
 }
 
@@ -91,6 +94,9 @@ export interface Options {
   dbUser: string;
   yes: boolean;
   ignoreKey: boolean;
+  encrypt: boolean;
+  inPlace: boolean;
+  understand: boolean;
 }
 
 export function parseArgs(argv: string[]): Options | { error: string } {
@@ -103,6 +109,9 @@ export function parseArgs(argv: string[]): Options | { error: string } {
     dbUser: 'postgres',
     yes: false,
     ignoreKey: false,
+    encrypt: false,
+    inPlace: false,
+    understand: false,
   };
   if (!command || command === 'help' || command === '--help' || command === '-h') return options;
   if (command !== 'create' && command !== 'verify' && command !== 'restore')
@@ -123,6 +132,9 @@ export function parseArgs(argv: string[]): Options | { error: string } {
       else if (arg === '--db-user') options.dbUser = value();
       else if (arg === '--yes') options.yes = true;
       else if (arg === '--ignore-key') options.ignoreKey = true;
+      else if (arg === '--encrypt') options.encrypt = true;
+      else if (arg === '--in-place') options.inPlace = true;
+      else if (arg === '--i-understand') options.understand = true;
       else if (!arg.startsWith('-') && !options.dir) options.dir = arg;
       else return { error: `Unknown option "${arg}".` };
     } catch (error) {
@@ -133,6 +145,10 @@ export function parseArgs(argv: string[]): Options | { error: string } {
     return { error: `${options.command} needs the backup directory.` };
   if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(options.dbName))
     return { error: 'The database name may contain only letters, digits and underscores.' };
+  if (options.inPlace && !options.understand)
+    return { error: '--in-place drops the live database first: add --i-understand to confirm.' };
+  if (options.encrypt && options.command !== 'create')
+    return { error: '--encrypt applies to create only; restore reads the manifest.' };
   return options;
 }
 
@@ -251,6 +267,254 @@ export async function checkFiles(dir: string, files: BackupFile[]): Promise<stri
       problems.push(`${file.name} does not match its checksum: it changed or is damaged.`);
   }
   return problems;
+}
+
+/* ---- encryption at rest ---- */
+
+export const DUMP_NAME = 'database.dump';
+export const DUMP_ENCRYPTED_NAME = 'database.dump.enc';
+const GCM_TAG_BYTES = 16;
+
+export interface EncryptionInfo {
+  cipher: 'aes-256-gcm';
+  kdf: 'raw' | 'scrypt';
+  /** hex; present when kdf is scrypt */
+  salt?: string;
+  /** hex, 12 bytes */
+  iv: string;
+  /** sha256 of the plaintext dump, so a restore can check it after decrypting */
+  plaintextSha256: string;
+  /** the file holding the dump: ciphertext followed by the 16-byte GCM tag */
+  file: string;
+}
+
+/**
+ * The 32-byte key from BACKUP_ENCRYPTION_KEY (64 hex characters or base64 of 32 bytes), or derived
+ * with scrypt from BACKUP_PASSPHRASE. Throws a message that never contains the secret.
+ */
+export function resolveBackupKey(
+  env: Record<string, string | undefined>,
+  salt?: Buffer,
+): { key: Buffer; kdf: 'raw' | 'scrypt'; salt?: Buffer } {
+  const raw = env.BACKUP_ENCRYPTION_KEY?.trim();
+  if (raw) {
+    const key = /^[0-9a-fA-F]{64}$/.test(raw)
+      ? Buffer.from(raw, 'hex')
+      : Buffer.from(raw, 'base64');
+    if (key.length !== 32)
+      throw new Error('BACKUP_ENCRYPTION_KEY must be 32 bytes, as 64 hex characters or base64.');
+    return { key, kdf: 'raw' };
+  }
+  const pass = env.BACKUP_PASSPHRASE;
+  if (pass) {
+    const s = salt ?? randomBytes(16);
+    return { key: scryptSync(pass, s, 32), kdf: 'scrypt', salt: s };
+  }
+  throw new Error('Set BACKUP_ENCRYPTION_KEY (32 bytes, hex or base64) or BACKUP_PASSPHRASE.');
+}
+
+function endStream(out: fs.WriteStream): Promise<void> {
+  return new Promise<void>((resolve, reject) => {
+    out.once('error', reject);
+    out.end(() => resolve());
+  });
+}
+
+/** Encrypts `input` into `output` (ciphertext + tag); returns what the manifest records. */
+export async function encryptFile(
+  input: string,
+  output: string,
+  env: Record<string, string | undefined>,
+): Promise<EncryptionInfo> {
+  const { key, kdf, salt } = resolveBackupKey(env);
+  const iv = randomBytes(12);
+  const cipher = createCipheriv('aes-256-gcm', key, iv);
+  const plain = createHash('sha256');
+  const out = fs.createWriteStream(output, { mode: 0o600 });
+  for await (const chunk of fs.createReadStream(input) as AsyncIterable<Buffer>) {
+    plain.update(chunk);
+    if (!out.write(cipher.update(chunk))) await new Promise((r) => out.once('drain', r));
+  }
+  out.write(cipher.final());
+  out.write(cipher.getAuthTag());
+  await endStream(out);
+  return {
+    cipher: 'aes-256-gcm',
+    kdf,
+    ...(salt ? { salt: salt.toString('hex') } : {}),
+    iv: iv.toString('hex'),
+    plaintextSha256: plain.digest('hex'),
+    file: path.basename(output),
+  };
+}
+
+/** Decrypts into `output`, checking the GCM tag and the plaintext checksum. Throws on any mismatch. */
+export async function decryptFile(
+  input: string,
+  output: string,
+  info: EncryptionInfo,
+  env: Record<string, string | undefined>,
+): Promise<void> {
+  if (info.cipher !== 'aes-256-gcm') throw new Error(`Unknown cipher "${info.cipher}".`);
+  // One descriptor for size, tag and body so the file cannot change between the checks.
+  const fd = fs.openSync(input, 'r');
+  const tag = Buffer.alloc(GCM_TAG_BYTES);
+  let size: number;
+  try {
+    size = fs.fstatSync(fd).size;
+    if (size < GCM_TAG_BYTES) throw new Error('The encrypted dump is truncated.');
+    fs.readSync(fd, tag, 0, GCM_TAG_BYTES, size - GCM_TAG_BYTES);
+  } catch (error) {
+    fs.closeSync(fd);
+    throw error;
+  }
+  const { key } = resolveBackupKey(env, info.salt ? Buffer.from(info.salt, 'hex') : undefined);
+  const decipher = createDecipheriv('aes-256-gcm', key, Buffer.from(info.iv, 'hex'));
+  decipher.setAuthTag(tag);
+  const plain = createHash('sha256');
+  const out = fs.createWriteStream(output, { mode: 0o600 });
+  try {
+    if (size > GCM_TAG_BYTES) {
+      // The stream owns the descriptor and closes it when it ends or is destroyed.
+      const body = fs.createReadStream('', {
+        fd,
+        start: 0,
+        end: size - GCM_TAG_BYTES - 1,
+        autoClose: true,
+      });
+      for await (const chunk of body as AsyncIterable<Buffer>) {
+        const p = decipher.update(chunk);
+        plain.update(p);
+        if (!out.write(p)) await new Promise((r) => out.once('drain', r));
+      }
+    } else {
+      fs.closeSync(fd);
+    }
+    const last = decipher.final();
+    plain.update(last);
+    out.write(last);
+  } catch {
+    out.on('error', () => undefined);
+    out.destroy();
+    fs.rmSync(output, { force: true });
+    throw new Error(
+      'Could not decrypt the dump: wrong key or passphrase, or the file was altered.',
+    );
+  }
+  await endStream(out);
+  if (plain.digest('hex') !== info.plaintextSha256) {
+    fs.rmSync(output, { force: true });
+    throw new Error('The decrypted dump does not match the checksum in the manifest.');
+  }
+}
+
+/* ---- safe restore: temporary database, verify, then swap ---- */
+
+export interface RestoreDriver {
+  /** All of these run against the server's maintenance database. */
+  createDatabase(name: string): Promise<void>;
+  dropDatabase(name: string): Promise<void>;
+  terminateConnections(name: string): Promise<void>;
+  renameDatabase(from: string, to: string): Promise<void>;
+  ensureAppUser(): Promise<void>;
+  /** pg_restore of the dump into `name`; rejects on a non-zero exit. */
+  loadDump(name: string): Promise<void>;
+  facts(name: string): Promise<{
+    migrationsApplied: number;
+    rlsTables: number;
+    counts: Record<string, number>;
+    appUserCanRead: boolean;
+  }>;
+  /** Stop the web process and the workers; called once, after verification and before the swap. */
+  stopServices(): Promise<void>;
+}
+
+export function restoreStamp(now: Date): string {
+  return backupDirName(now).replace('wfm-backup-', '');
+}
+
+export interface SafeRestoreResult {
+  ok: boolean;
+  problems: string[];
+  previousDatabase?: string;
+}
+
+/**
+ * Restores into `<db>_restore_<stamp>`, verifies it against the manifest and only then touches the
+ * live database: stop services, terminate connections, rename live to `<db>_prev_<stamp>`, rename
+ * the temporary one to `<db>`. The live database is never dropped. A failed verification drops the
+ * temporary database and leaves everything else untouched.
+ */
+export async function safeRestoreDatabase(
+  driver: RestoreDriver,
+  opts: { dbName: string; manifest: Manifest; now: Date },
+  log: (s: string) => void,
+): Promise<SafeRestoreResult> {
+  const stamp = restoreStamp(opts.now);
+  const temp = `${opts.dbName}_restore_${stamp}`;
+  const prev = `${opts.dbName}_prev_${stamp}`;
+  log(`Restoring into the temporary database "${temp}" (the live one is not touched yet)...`);
+  await driver.createDatabase(temp);
+  try {
+    await driver.ensureAppUser();
+    await driver.loadDump(temp);
+    const problems = compareRestore(opts.manifest.database, await driver.facts(temp));
+    if (problems.length) {
+      await driver.dropDatabase(temp);
+      return { ok: false, problems };
+    }
+  } catch (error) {
+    await driver.dropDatabase(temp).catch(() => undefined);
+    throw error;
+  }
+  log('Verified: the dump is readable and matches the manifest. Swapping databases...');
+  await driver.stopServices();
+  await driver.terminateConnections(opts.dbName);
+  await driver.terminateConnections(temp);
+  await driver.renameDatabase(opts.dbName, prev);
+  try {
+    await driver.renameDatabase(temp, opts.dbName);
+  } catch (error) {
+    await driver.renameDatabase(prev, opts.dbName);
+    throw error;
+  }
+  return { ok: true, problems: [], previousDatabase: prev };
+}
+
+/** Warning printed when artifacts live in S3, which the backup does not contain. */
+export const S3_WARNING =
+  'WARNING: ARTIFACT_STORE is s3. Screenshots, videos, traces and reports in the bucket are NOT in ' +
+  'this backup. Enable bucket versioning or cross-region replication to protect them. ' +
+  '--include-s3 is not implemented by this tool (no S3 client runs outside the api container).';
+
+/** sha256 and size of a file. */
+export async function checkFilesHash(file: string): Promise<{ sha256: string; bytes: number }> {
+  const hash = createHash('sha256');
+  let bytes = 0;
+  for await (const c of fs.createReadStream(file) as AsyncIterable<Buffer>) {
+    hash.update(c);
+    bytes += c.length;
+  }
+  return { sha256: hash.digest('hex'), bytes };
+}
+
+/** Path of a readable plain dump: the dump itself, or a decrypted temporary copy. */
+export async function preparePlainDump(
+  dir: string,
+  manifest: Manifest,
+  env: Record<string, string | undefined>,
+): Promise<{ file: string; cleanup: () => void }> {
+  if (!manifest.encryption) return { file: path.join(dir, DUMP_NAME), cleanup: () => undefined };
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'wfm-restore-'));
+  const file = path.join(tmpDir, DUMP_NAME);
+  const cleanup = () => fs.rmSync(tmpDir, { recursive: true, force: true });
+  try {
+    await decryptFile(path.join(dir, manifest.encryption.file), file, manifest.encryption, env);
+  } catch (error) {
+    cleanup();
+    throw error;
+  }
+  return { file, cleanup };
 }
 
 /* c8 ignore start — the rest drives Docker, and is exercised against a real stack */
@@ -405,9 +669,23 @@ async function create(options: Options, log: (s: string) => void): Promise<numbe
       '--format=custom',
       '--no-owner',
     ],
-    { stdoutFile: path.join(dir, 'database.dump') },
+    { stdoutFile: path.join(dir, DUMP_NAME) },
   );
-  files.push({ name: 'database.dump', bytes: dump.bytes!, sha256: dump.sha256! });
+  let encryption: EncryptionInfo | undefined;
+  if (options.encrypt) {
+    // Fail on a missing key before the dump is written, then replace the clear file.
+    resolveBackupKey(process.env);
+    const encPath = path.join(dir, DUMP_ENCRYPTED_NAME);
+    encryption = await encryptFile(path.join(dir, DUMP_NAME), encPath, process.env);
+    fs.rmSync(path.join(dir, DUMP_NAME), { force: true });
+    const enc = await checkFilesHash(encPath);
+    files.push({ name: DUMP_ENCRYPTED_NAME, bytes: enc.bytes, sha256: enc.sha256 });
+  } else {
+    files.push({ name: DUMP_NAME, bytes: dump.bytes!, sha256: dump.sha256! });
+    log(
+      '  WARNING       the dump is stored in clear: use --encrypt (BACKUP_ENCRYPTION_KEY) for a backup at rest.',
+    );
+  }
   log(
     `  database          ${(dump.bytes! / 1e6).toFixed(1)} MB, ${facts.migrationsApplied} migrations, ${facts.counts.organizations ?? 0} organizations, ${facts.counts.test_plan_executions ?? 0} runs`,
   );
@@ -430,9 +708,7 @@ async function create(options: Options, log: (s: string) => void): Promise<numbe
       log(`  ${a.name.padEnd(17)} ${(tar.bytes! / 1e6).toFixed(1)} MB`);
     }
   } else {
-    log(
-      '  artifacts     in the S3 bucket: back the bucket up with its own versioning or replication.',
-    );
+    log(`  ${S3_WARNING}`);
   }
 
   const fingerprint = await liveKeyFingerprint(compose);
@@ -448,6 +724,7 @@ async function create(options: Options, log: (s: string) => void): Promise<numbe
     },
     artifactStore: store,
     encryptionKeyFingerprint: fingerprint,
+    ...(encryption ? { encryption } : {}),
     files,
   };
   fs.writeFileSync(path.join(dir, 'manifest.json'), JSON.stringify(manifest, null, 2) + '\n');
@@ -482,6 +759,7 @@ async function verify(options: Options, log: (s: string) => void): Promise<numbe
   }
   log(`  checksums     ${manifest.files.length} files match`);
 
+  const plain = await preparePlainDump(dir, manifest, process.env);
   const scratch = `${options.dbName}_restore_check`;
   await compose.psql('postgres', `DROP DATABASE IF EXISTS "${scratch}";`);
   await compose.psql('postgres', `CREATE DATABASE "${scratch}";`);
@@ -500,7 +778,7 @@ async function verify(options: Options, log: (s: string) => void): Promise<numbe
         '--no-owner',
         '--exit-on-error',
       ],
-      { stdinFile: path.join(dir, 'database.dump') },
+      { stdinFile: plain.file },
     );
     const problems = compareRestore(manifest.database, await databaseFacts(compose, scratch));
     if (problems.length) {
@@ -511,6 +789,7 @@ async function verify(options: Options, log: (s: string) => void): Promise<numbe
       `  database      restored into "${scratch}": row counts, ${manifest.database.migrationsApplied} migrations, row-level security on ${manifest.database.rlsTables} tables and app_user grants all match`,
     );
   } finally {
+    plain.cleanup();
     await compose.psql('postgres', `DROP DATABASE IF EXISTS "${scratch}";`, true);
   }
 
@@ -544,6 +823,7 @@ async function restore(options: Options, log: (s: string) => void): Promise<numb
     return EXIT_CHECK_FAILED;
   }
 
+  let previous: string | undefined;
   const refusal = restoreRefusal(
     manifest,
     {
@@ -561,36 +841,83 @@ async function restore(options: Options, log: (s: string) => void): Promise<numb
     log(
       `This replaces the database "${options.dbName}" and the artifacts with the backup of ${manifest.createdAt}.`,
     );
-    log('Everything written since is lost. Run again with --yes to go ahead.');
+    log(
+      'The database is restored aside, verified and swapped in; the old one is kept as <name>_prev_<time>.',
+    );
+    log('Artifacts written since are lost. Run again with --yes to go ahead.');
     return EXIT_TOOL_ERROR;
   }
 
-  log('Stopping the web process and the workers...');
-  await compose.run(['stop', 'api', 'worker']);
+  const plain = await preparePlainDump(dir, manifest, process.env);
+  const pgRestore = (db: string) =>
+    compose.run(
+      [
+        'exec',
+        '-T',
+        'postgres',
+        'pg_restore',
+        '-U',
+        options.dbUser,
+        '-d',
+        db,
+        '--no-owner',
+        '--exit-on-error',
+      ],
+      { stdinFile: plain.file },
+    );
+  const stopServices = async () => {
+    log('Stopping the web process and the workers...');
+    await compose.run(['stop', 'api', 'worker']);
+  };
+  const terminate = (db: string) =>
+    compose
+      .psql(
+        'postgres',
+        `SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = '${db}' AND pid <> pg_backend_pid();`,
+      )
+      .then(() => undefined);
 
-  log(`Replacing the database "${options.dbName}"...`);
-  await compose.psql(
-    'postgres',
-    `SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = '${options.dbName}' AND pid <> pg_backend_pid();`,
-  );
-  await compose.psql('postgres', `DROP DATABASE IF EXISTS "${options.dbName}";`);
-  await compose.psql('postgres', `CREATE DATABASE "${options.dbName}";`);
-  await ensureAppUser(compose);
-  await compose.run(
-    [
-      'exec',
-      '-T',
-      'postgres',
-      'pg_restore',
-      '-U',
-      options.dbUser,
-      '-d',
-      options.dbName,
-      '--no-owner',
-      '--exit-on-error',
-    ],
-    { stdinFile: path.join(dir, 'database.dump') },
-  );
+  try {
+    if (options.inPlace) {
+      log(
+        'WARNING: --in-place drops the live database BEFORE the dump is restored. If the restore fails, the data is gone.',
+      );
+      await stopServices();
+      await terminate(options.dbName);
+      await compose.psql('postgres', `DROP DATABASE IF EXISTS "${options.dbName}";`);
+      await compose.psql('postgres', `CREATE DATABASE "${options.dbName}";`);
+      await ensureAppUser(compose);
+      await pgRestore(options.dbName);
+    } else {
+      const result = await safeRestoreDatabase(
+        {
+          createDatabase: (n) =>
+            compose.psql('postgres', `CREATE DATABASE "${n}";`).then(() => undefined),
+          dropDatabase: (n) =>
+            compose.psql('postgres', `DROP DATABASE IF EXISTS "${n}";`).then(() => undefined),
+          terminateConnections: terminate,
+          renameDatabase: (from, to) =>
+            compose
+              .psql('postgres', `ALTER DATABASE "${from}" RENAME TO "${to}";`)
+              .then(() => undefined),
+          ensureAppUser: () => ensureAppUser(compose),
+          loadDump: (n) => pgRestore(n).then(() => undefined),
+          facts: (n) => databaseFacts(compose, n),
+          stopServices,
+        },
+        { dbName: options.dbName, manifest, now: new Date() },
+        log,
+      );
+      if (!result.ok) {
+        result.problems.forEach((p) => log(`FAIL ${p}`));
+        log('The live database was not touched; the temporary database was dropped.');
+        return EXIT_CHECK_FAILED;
+      }
+      previous = result.previousDatabase;
+    }
+  } finally {
+    plain.cleanup();
+  }
 
   for (const a of ARTIFACT_DIRS) {
     if (!manifest.files.some((f) => f.name === a.file)) continue;
@@ -628,6 +955,12 @@ async function restore(options: Options, log: (s: string) => void): Promise<numb
     problems.forEach((p) => log(`FAIL ${p}`));
     return EXIT_CHECK_FAILED;
   }
+  if (previous) {
+    log(`The previous database is kept as "${previous}". Once you are satisfied, delete it with:`);
+    log(
+      `  docker compose exec postgres psql -U ${options.dbUser} -d postgres -c 'DROP DATABASE "${previous}";'`,
+    );
+  }
   log('Restored. Sessions in Redis still name the old users: people may have to sign in again.');
   log(
     'Runs that were queued when the backup was taken stay queued: cancel them and start them again.',
@@ -637,9 +970,10 @@ async function restore(options: Options, log: (s: string) => void): Promise<numb
 
 const HELP = `wfm-backup — back up, verify and restore a WebFlowMaster Docker Compose installation
 
-  npm run backup:create  -- [--out .local/backups]
+  npm run backup:create  -- [--out .local/backups] [--encrypt]   (key: BACKUP_ENCRYPTION_KEY hex/base64, or BACKUP_PASSPHRASE)
   npm run backup:verify  -- <backup-dir>
-  npm run backup:restore -- <backup-dir> --yes [--ignore-key]
+  npm run backup:restore -- <backup-dir> --yes [--ignore-key] [--in-place --i-understand]
+    (restore decrypts with the same env var; --in-place skips the temporary database and drops the live one first)
 
 Options (all commands):
   -p, --project <name>   the Compose project (as with docker compose -p)

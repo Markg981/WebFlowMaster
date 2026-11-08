@@ -21,6 +21,22 @@ describe('network defaults at startup (A-04)', () => {
     expect(text).toMatch(/TRUST_PROXY is not set/);
   });
 
+  it('names the variables and the checklist page in the egress warning, once', () => {
+    const egress = startupConfigWarnings(prod).filter((w) => /EGRESS_PRIVATE_TARGETS/.test(w));
+    expect(egress).toHaveLength(1);
+    expect(egress[0]).toMatch(/EGRESS_ALLOW_HOSTS/);
+    expect(egress[0]).toMatch(/production-checklist/);
+  });
+
+  it('does not warn about egress in development, nor when it is configured', () => {
+    expect(startupConfigWarnings({ ...valid, NODE_ENV: 'development' }).join()).not.toMatch(
+      /EGRESS/,
+    );
+    expect(startupConfigWarnings({ ...prod, EGRESS_PRIVATE_TARGETS: 'deny' }).join()).not.toMatch(
+      /EGRESS/,
+    );
+  });
+
   it('does not warn when both are explicit, nor outside production', () => {
     expect(
       startupConfigWarnings({

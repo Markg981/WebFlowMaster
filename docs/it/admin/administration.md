@@ -129,6 +129,10 @@ Un progetto riservato non si può eliminare: i suoi test perderebbero il progett
 visibili a tutta l'organizzazione. Togliete prima la riserva (registrata nel log di audit), poi
 eliminate.
 
+Le eliminazioni irreversibili chiedono una conferma forte: eliminare un progetto, eliminare un ambiente
+e revocare una chiave API restano disabilitati finché non si digita il nome esatto mostrato nella
+finestra (maiuscole e minuscole contano).
+
 ## Autenticazione a due fattori
 
 Ognuno può attivare un secondo fattore in **Impostazioni → Sicurezza**: un codice da un'app di

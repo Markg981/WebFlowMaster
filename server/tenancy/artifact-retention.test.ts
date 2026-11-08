@@ -1,4 +1,7 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+import os from 'os';
+import path from 'path';
+import fs from 'fs-extra';
 import { v4 as uuidv4 } from 'uuid';
 import { eq } from 'drizzle-orm';
 import { privilegedDb } from '../platform/db';
@@ -88,6 +91,25 @@ describe('purgeExpiredArtifacts', () => {
     const row = await rowOf(old);
     expect(row.status).toBe('completed');
     expect(row.artifactsPurgedAt).toEqual(now);
+  });
+
+  it('also removes the local copy of the runs it purges (M-05)', async () => {
+    const cwd = await fs.mkdtemp(path.join(os.tmpdir(), 'wfm-ret-'));
+    const spy = vi.spyOn(process, 'cwd').mockReturnValue(cwd);
+    try {
+      const old = await run({ completedAt: daysAgo(40) });
+      const recent = await run({ completedAt: daysAgo(1) });
+      const oldDir = path.join(cwd, 'results', planId, old);
+      const recentDir = path.join(cwd, 'results', planId, recent);
+      await fs.outputFile(path.join(oldDir, 'shot.png'), 'x');
+      await fs.outputFile(path.join(recentDir, 'shot.png'), 'x');
+      await purgeExpiredArtifacts({ now, days: 30, store });
+      expect(await fs.pathExists(oldDir)).toBe(false);
+      expect(await fs.pathExists(recentDir)).toBe(true);
+    } finally {
+      spy.mockRestore();
+      await fs.remove(cwd);
+    }
   });
 
   it('leaves recent runs, running runs, and runs already purged alone', async () => {

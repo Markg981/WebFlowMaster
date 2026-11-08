@@ -130,7 +130,7 @@ describe('GET /api/analytics/dashboard', () => {
     expect(res.body.kpis.successRate).toBe(67);
   });
 
-  it('counts a timed-out run as failed and leaves cancelled ones out of the rate', async () => {
+  it('reports a timed-out run in its own bucket and leaves cancelled ones out of the rate', async () => {
     const plan = await createPlan(userId, 'Verdicts');
     await createExecution(plan, 'completed', 1000);
     await createExecution(plan, 'timed_out', 1000);
@@ -143,9 +143,14 @@ describe('GET /api/analytics/dashboard', () => {
     expect(res.body.kpis.successRate).toBe(50);
     expect(res.body.distribution).toEqual([
       { status: 'passed', value: 1 },
-      { status: 'failed', value: 1 },
+      { status: 'failed', value: 0 },
+      { status: 'timed_out', value: 1 },
       { status: 'pending', value: 0 },
     ]);
+    // `failed` still includes timeouts in the trend and the KPI, so older clients keep working.
+    expect(res.body.kpis.timedOutRuns).toBe(1);
+    const today = res.body.trend[res.body.trend.length - 1];
+    expect(today).toMatchObject({ passed: 1, failed: 1, timedOut: 1 });
   });
 
   it('reports zero runs without inventing a success rate', async () => {
@@ -164,6 +169,7 @@ describe('GET /api/analytics/dashboard', () => {
     expect(res.body.distribution.map((slice: any) => slice.status)).toEqual([
       'passed',
       'failed',
+      'timed_out',
       'pending',
     ]);
     // Colour is the interface's decision, so that it can follow the theme; the label is the
