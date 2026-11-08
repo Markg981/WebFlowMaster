@@ -17,6 +17,20 @@
   {
     "type": "dependency",
     "from": "server/execution/plan-run/after-run.ts",
+    "to": "server/integrations/deliveries.ts",
+    "unresolvedTo": "../../integrations/deliveries",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "domain-execution"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "server/execution/plan-run/after-run.ts",
     "to": "server/http/websocket.ts",
     "unresolvedTo": "../../http/websocket",
     "dependencyTypes": [

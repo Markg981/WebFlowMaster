@@ -1,0 +1,15 @@
+{
+  "id": "INT-25",
+  "area": "INT",
+  "title": "Notifica webhook irraggiungibile: consegna ritentata e stato visibile nel run",
+  "priority": "P2",
+  "actor": "owner.a",
+  "preconditions": "Piano con notifica webhook su un URL che non risponde (host inesistente o servizio spento); notifica attiva per i run falliti o riusciti.",
+  "steps": [
+    "Eseguire il piano.",
+    "Aprire il report del run e leggere il riquadro Consegne.",
+    "Attendere qualche minuto: i tentativi proseguono con pause crescenti.",
+    "Ripristinare l'URL raggiungibile prima dell'ultimo tentativo."
+  ],
+  "expected": "Il riquadro mostra la consegna in stato 'Nuovo tentativo in corso' con host e ultimo errore (senza il token dell'URL); dopo 5 tentativi falliti passa a 'Fallita'; se l'URL torna raggiungibile prima, passa a 'Inviata'. Il run non cambia esito."
+}

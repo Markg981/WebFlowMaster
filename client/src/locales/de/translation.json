@@ -4700,6 +4700,15 @@
     "cancel": "Abbrechen",
     "mobile": "Mobil"
   },
+  "deliveries": {
+    "title": "Zustellungen",
+    "description": "Benachrichtigungen, die dieser Lauf schuldete, mit ihrem Status. Fehlgeschlagene werden bis zu 5 Mal in etwa einer Stunde wiederholt.",
+    "attempts": "{{count}} Versuch(e)",
+    "queued": "Wird wiederholt",
+    "sent": "Gesendet",
+    "failed": "Fehlgeschlagen",
+    "webhook": "Webhook"
+  },
   "publications": {
     "failed": "Der Lauf wurde nicht veröffentlicht.",
     "status": {

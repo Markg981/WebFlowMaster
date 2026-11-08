@@ -344,11 +344,28 @@ export async function sendRunNotification(
     };
   }
 
+  return postWebhook(url, JSON.stringify(buildPayload(summary, url)), deps);
+}
+
+/** What a webhook answer means for a later attempt: only a refusal of the request itself is final. */
+export interface WebhookResult extends NotificationResult {
+  retryable?: boolean;
+}
+
+/** One round of posting a prepared body: up to three tries on a network error, 429 or 5xx. */
+export async function postWebhook(
+  url: string,
+  body: string,
+  deps: SendDeps = {},
+): Promise<WebhookResult> {
   const send = deps.fetchImpl ?? fetchTarget;
   const sleep = deps.sleep ?? ((ms: number) => new Promise<void>((r) => setTimeout(r, ms)));
-  const body = JSON.stringify(buildPayload(summary, url));
   // Up to three attempts on a network error, 429 or 5xx: a webhook that blinked is not a lost one.
-  let result: NotificationResult = { delivered: false, error: 'Notification was not sent.' };
+  let result: WebhookResult = {
+    delivered: false,
+    error: 'Notification was not sent.',
+    retryable: true,
+  };
   for (let attempt = 1; attempt <= 3; attempt++) {
     if (attempt > 1) await sleep(500 * 2 ** (attempt - 2));
     const controller = new AbortController();
@@ -364,6 +381,7 @@ export async function sendRunNotification(
       result = {
         delivered: false,
         error: `Notification webhook answered ${response.status} ${response.statusText}.`,
+        retryable: response.status === 429 || response.status >= 500,
       };
       if (response.status !== 429 && response.status < 500) return result;
     } catch (error: any) {
@@ -371,7 +389,11 @@ export async function sendRunNotification(
         error?.name === 'AbortError'
           ? `no answer within ${WEBHOOK_TIMEOUT_MS / 1000}s`
           : (error?.message ?? String(error));
-      result = { delivered: false, error: `Notification webhook could not be reached: ${reason}.` };
+      result = {
+        delivered: false,
+        error: `Notification webhook could not be reached: ${reason}.`,
+        retryable: true,
+      };
     } finally {
       clearTimeout(timer);
     }

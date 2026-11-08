@@ -80,6 +80,8 @@ export const JSONB_PAYLOADS: Record<string, JsonbStrategy> = {
   'organization_mail_settings.signing_secret': 'opaque',
   'organization_mail_settings.smtp_password': 'opaque',
   'organization_sso.role_mappings': 'migration',
+  // The body a finished run owes an endpoint, built once and resent as is on every retry.
+  'outbound_deliveries.payload': 'opaque',
   'project_elements.attributes': 'opaque',
   'report_test_case_results.ai_analysis': 'versioned',
   'report_test_case_results.network_summary': 'migration',
