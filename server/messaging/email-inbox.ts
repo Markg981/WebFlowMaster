@@ -16,7 +16,7 @@
  * executor passes the browser context's request API, so a run on a local agent reads the
  * Mailpit of the agent's network, as it reaches the application of that network.
  */
-import { compileSafeRegex } from '../platform/utils/safe-regex';
+import { compileSafeRegex, safeRegexMatch } from '../platform/utils/safe-regex';
 
 export interface InboxConfig {
   url: string;
@@ -143,9 +143,15 @@ const CODE_WORDS =
  */
 export function findOtp(text: string, pattern: RegExp | null = null): string | null {
   if (pattern) {
-    const match = text.match(pattern);
+    // A pattern that exceeds the time budget counts as no match (the step then waits or times out).
+    let match: (string | undefined)[] | null;
+    try {
+      match = safeRegexMatch(pattern, text);
+    } catch {
+      return null;
+    }
     if (!match) return null;
-    return (match[1] ?? match[0]).trim();
+    return (match[1] ?? match[0] ?? '').trim();
   }
   // Not the numbers inside links: a port, an id in a path. Keycloak's reset email has only one
   // number, the port of its own address, and it was taken for the code.
