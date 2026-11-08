@@ -5521,5 +5521,11 @@
       "reject": "Ablehnen",
       "failed": "Die Entscheidung wurde nicht gespeichert."
     }
+  },
+  "testConflict": {
+    "title": "Dieser Test wurde von jemand anderem geändert",
+    "description": "Jemand hat diesen Test gespeichert, nachdem Sie ihn geöffnet haben. Bearbeiten Sie weiter, um Ihren Entwurf zu prüfen (Editor schließen und erneut öffnen, um die andere Version zu laden), oder überschreiben Sie die Änderungen mit Ihren.",
+    "overwrite": "Überschreiben",
+    "keepEditing": "Weiter bearbeiten"
   }
 }

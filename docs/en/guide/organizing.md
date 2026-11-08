@@ -62,6 +62,12 @@ suites and plans. In a run it opens no browser — it waits in the run's report 
 verdict (see [Manual results](./results#manual-results)), once per run whatever browsers and
 languages the plan has.
 
+### Concurrent edits
+
+When two people edit the same manual or BDD test, the second save is not allowed to overwrite the
+first silently: the editor asks whether to **Overwrite** the other change or **Keep editing**. Your
+draft stays as typed; to see the other person's version, close the editor and open the test again.
+
 ## History and versions {#history-and-versions}
 
 Web, API and mobile tests have their own **versions**, numbered from 1. Saving a changed

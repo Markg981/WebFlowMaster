@@ -5521,5 +5521,11 @@
       "reject": "Reject",
       "failed": "The decision was not saved."
     }
+  },
+  "testConflict": {
+    "title": "This test was changed by someone else",
+    "description": "Someone saved this test after you opened it. Keep editing to review your draft (close the editor and reopen it to load their version), or overwrite their changes with yours.",
+    "overwrite": "Overwrite",
+    "keepEditing": "Keep editing"
   }
 }

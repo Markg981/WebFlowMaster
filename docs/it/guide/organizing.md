@@ -65,6 +65,13 @@ piani. In un run non apre alcun browser: attende nel report del run l'esito di u
 [Esiti manuali](./results#esiti-manuali)), una volta per run qualunque siano i browser e le lingue
 del piano.
 
+### Modifiche concorrenti
+
+Se due persone modificano lo stesso test manuale o BDD, il secondo salvataggio non sovrascrive in
+silenzio il primo: l'editor chiede se **Sovrascrivere** la modifica dell'altro o **Continuare a
+modificare**. La bozza resta com'è; per vedere la versione dell'altro, chiudere l'editor e riaprire
+il test.
+
 ## Cronologia e versioni {#cronologia-e-versioni}
 
 I test web, API e mobile hanno **versioni** proprie, numerate da 1. Salvare una configurazione
