@@ -127,6 +127,8 @@ accettazione dei colleghi per ottenere un test positivo.
 
 Memoria: ogni file di test server avvia un proprio PGlite (Postgres su WASM), circa 0,5 GB residenti per worker. Di default la suite server usa `min(core CPU, RAM totale / 1 GB)` worker (almeno 1; su CI il default di Vitest). Se compare `WebAssembly.Memory(): could not allocate memory`, abbassalo con `VITEST_MAX_WORKERS=2 npm test` oppure `npx vitest run --maxWorkers=2`; il flag ha la precedenza sulla variabile.
 
+Test che richiedono Redis: `server/execution/scheduler-redis.integration.test.ts` prova lo scheduler BullMQ su un Redis reale (il job ripetibile scatta e crea una run, la modifica sostituisce il job, l'eliminazione lo rimuove, due istanze non accodano due volte). Viene saltato se `REDIS_URL` non e' impostata; il job server-tests della CI ha un container Redis. In locale: avvia Redis (ad esempio `docker run --rm -p 6379:6379 redis:7`) ed esegui `REDIS_URL=redis://localhost:6379 npx vitest run server/execution/scheduler-redis.integration.test.ts`.
+
 Per E2E usare database/porte Redis dedicati e prerequisiti di build della guida sviluppatore.
 Per accettazione seguire il [laboratorio](../admin/test-lab), preparando provider/agenti/dispositivi.
 La build prova il packaging; un fake HTTP prova il contratto esercitato dal test; solo il percorso

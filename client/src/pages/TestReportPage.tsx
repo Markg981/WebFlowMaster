@@ -268,6 +268,7 @@ const TestReportPage: React.FC = () => {
     network?: NetworkSummary | null;
     sessionUrl?: string | null;
     unitEvidence?: UnitEvidenceView | null;
+    resultId?: string;
     /** The attempt and dataset row to open on, when the link named them. */
     attempt?: number | null;
     row?: number | null;
@@ -320,6 +321,7 @@ const TestReportPage: React.FC = () => {
       testName: result.testName,
       browser: result.browser,
       steps: result.steps,
+      resultId: result.id,
       videoUrl: result.videoUrl,
       traceUrl: result.traceUrl,
       harUrl: result.harUrl,
@@ -1107,6 +1109,7 @@ const TestReportPage: React.FC = () => {
                                 testName: test.testName,
                                 browser: test.browser,
                                 steps: test.steps,
+                                resultId: test.id,
                                 videoUrl: test.videoUrl,
                                 traceUrl: test.traceUrl,
                                 harUrl: test.harUrl,
@@ -1356,6 +1359,7 @@ const TestReportPage: React.FC = () => {
                                                     testName: test.testName,
                                                     browser: test.browser,
                                                     steps: test.steps,
+                                                    resultId: test.id,
                                                     videoUrl: test.videoUrl,
                                                     traceUrl: test.traceUrl,
                                                     harUrl: test.harUrl,
@@ -1458,6 +1462,8 @@ const TestReportPage: React.FC = () => {
         network={openedSteps?.network}
         sessionUrl={openedSteps?.sessionUrl}
         unitEvidence={openedSteps?.unitEvidence}
+        executionId={executionId}
+        resultId={openedSteps?.resultId}
         initialAttempt={openedSteps?.attempt}
         initialRow={openedSteps?.row}
         // The server decides; this only keeps the buttons from a viewer.

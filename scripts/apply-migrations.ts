@@ -58,9 +58,21 @@ async function runMigrations() {
 // error object, and with it whatever the driver attached.
 // The open client (PGlite instance or pg pool) keeps the event loop alive, so the script never
 // exits on its own after a successful run: close it explicitly.
+function describeCloseError(error: unknown): string {
+  return (error as Error)?.message ?? String(error);
+}
+
 withBlockingAdvisoryLock(ADVISORY_KEYS.migrator, dbUrl, runMigrations)
-  .then(() => closeDb())
   .catch((error) => {
     console.error('Could not reach the database:', (error as Error)?.message ?? String(error));
+    process.exit(1);
+  })
+  .then(() => closeDb())
+  .catch((error) => {
+    // The migrations are applied by now; say so, instead of blaming the connection.
+    console.error(
+      'Migrations applied, but closing the database failed:',
+      describeCloseError(error),
+    );
     process.exit(1);
   });

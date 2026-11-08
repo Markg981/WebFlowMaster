@@ -38,6 +38,7 @@ describe('withBlockingAdvisoryLock', () => {
     vi.doMock('pg', () => ({
       Pool: class {},
       Client: class {
+        on = () => this;
         connect = async () => undefined;
         query = async (q: string) => void queries.push(q);
         end = async () => undefined;
