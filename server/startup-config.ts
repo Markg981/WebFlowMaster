@@ -1,4 +1,5 @@
 import { resolvePort } from './platform/config';
+import { resolveEventLoopLagMs } from './platform/event-loop-lag';
 import { registrationMode } from './identity/registration';
 import { trustProxySetting } from './platform/trust-proxy';
 import { s3MaxAttempts, s3TimeoutMs, localOrphanDays } from './tenancy/artifact-store';
@@ -38,6 +39,11 @@ export function startupConfigErrors(env: NodeJS.ProcessEnv = process.env): strin
     errors.push(
       'EGRESS_PRIVATE_TARGETS must be "deny" while REGISTRATION=open (anyone can create an organization): "allow" lets their tests reach this server\'s private network. Set it to "deny" and list intranet hosts in EGRESS_ALLOW_HOSTS.',
     );
+  }
+  try {
+    resolveEventLoopLagMs(env);
+  } catch (error) {
+    errors.push(error instanceof Error ? error.message : String(error));
   }
   return errors;
 }

@@ -377,7 +377,7 @@ test('the worker is given its shutdown grace and a liveness probe on the metrics
   // The worker serves only /metrics, so liveness is a TCP check on that port, behind metrics.enabled.
   assert.match(
     worker,
-    /\{\{- if \.Values\.metrics\.enabled \}\}[\s\S]*livenessProbe:\n\s+tcpSocket:\n\s+port: metrics/,
+    /\{\{- if \.Values\.metrics\.enabled \}\}[\s\S]*livenessProbe:\n\s+httpGet:\n\s+path: \/livez\n\s+port: metrics/,
   );
   assert.doesNotMatch(worker, /readinessProbe/);
 });

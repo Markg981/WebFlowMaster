@@ -74,10 +74,12 @@ spec:
             {{- toYaml . | nindent 12 }}
             {{- end }}
           {{- if .Values.metrics.enabled }}
-          # The worker serves nothing but /metrics; a listener that stops answering is what
-          # the WfmWorkerTargetDown alert fires on, and the same signal restarts the pod.
+          # /livez answers 503 when the event loop lags past WORKER_EVENT_LOOP_LAG_MS and does not
+          # answer at all when the loop is blocked: a bare TCP connect succeeds either way, since the
+          # kernel accepts it. A listener that stops answering also fires WfmWorkerTargetDown.
           livenessProbe:
-            tcpSocket:
+            httpGet:
+              path: /livez
               port: metrics
             initialDelaySeconds: {{ .Values.worker.livenessProbe.initialDelaySeconds }}
             periodSeconds: {{ .Values.worker.livenessProbe.periodSeconds }}
