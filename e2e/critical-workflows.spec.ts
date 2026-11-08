@@ -199,7 +199,9 @@ test('quota administrator saves an enforced test limit and the interface refuses
     await page.getByRole('button', { name: org.name, exact: true }).click();
     await page.getByLabel('Quota mode', { exact: true }).selectOption('enforce');
     await page.getByRole('checkbox', { name: 'Inherit Saved tests', exact: true }).uncheck();
-    await page.getByLabel('Saved tests', { exact: true }).fill(String(org.usage.tests + 1));
+    await page
+      .getByRole('spinbutton', { name: 'Saved tests', exact: true })
+      .fill(String(org.usage.tests + 1));
     const saved = page.waitForResponse(
       (response) =>
         response.url().includes('/api/admin/organization-quotas/') &&
@@ -212,7 +214,7 @@ test('quota administrator saves an enforced test limit and the interface refuses
     await page.getByLabel('Find an organization', { exact: true }).fill(org.name);
     await page.getByRole('button', { name: org.name, exact: true }).click();
     await expect(page.getByLabel('Quota mode', { exact: true })).toHaveValue('enforce');
-    await expect(page.getByLabel('Saved tests', { exact: true })).toHaveValue(
+    await expect(page.getByRole('spinbutton', { name: 'Saved tests', exact: true })).toHaveValue(
       String(org.usage.tests + 1),
     );
     await saveApiTest(tenant.page, unique('within_quota'));
