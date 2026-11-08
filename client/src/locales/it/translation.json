@@ -2837,6 +2837,8 @@
       },
       "active": "Attiva",
       "inactive": "Inattiva",
+      "lastRefusal": "L'ultima esecuzione non è partita ({{code}}), {{when}}",
+      "lastRefusalRun": "Vedi l'esecuzione",
       "deleteSchedule": "Elimina pianificazione"
     },
     "toast": {

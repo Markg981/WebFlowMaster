@@ -237,6 +237,8 @@ report, e conta comunque come passato.
 - **Retry on Failure**: riesegue l'intero piano se fallisce, una o due volte.
 - **Schedule Active**: la si spegne senza cancellarla.
 
+Quando un'occorrenza non può partire (l'ambiente indicato non esiste più, la pianificazione non ha un proprietario, una pianificazione singola è scaduta mentre il server era fermo), non viene saltata in silenzio: per lei si registra un run in `error`, con il motivo, nello storico dei run e nei report, e l'elenco delle pianificazioni mostra "L'ultima esecuzione non è partita" con il collegamento a quel run. Notifica come ogni altro run fallito e scompare quando un run successivo parte.
+
 Il modulo della pianificazione non è ancora tradotto: le sue voci compaiono in inglese.
 
 La dashboard elenca i prossimi run pianificati.

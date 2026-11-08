@@ -408,7 +408,7 @@ describe('rows that point across organizations', () => {
     // A healing proposal's test and project (0094).
     // A hub case's source and the test it was imported as (0103).
     // A hub wave's source, plan and execution, a wave result's wave, a hub job's source (0104).
-    // An outbound delivery belongs to a run of the same organization (0106).
+    // An outbound delivery belongs to a run of the same organization (0107).
     expect(rows.length).toBe(111);
     expect(rows.filter((r) => !r.convalidated)).toEqual([]);
   });

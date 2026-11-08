@@ -655,9 +655,45 @@ router.get('/api/test-plan-schedules', requireRole('viewer'), async (req, res) =
       .orderBy(desc(testPlanSchedules.createdAt)),
   );
 
+  // The latest scheduled run of each schedule, when it is a refused occurrence: what the list
+  // shows as "last run did not start". A later run that did start clears it.
+  const scheduleIds = results.map((s) => s.id);
+  const latestRuns = scheduleIds.length
+    ? await withTenantTransaction((tx) =>
+        tx
+          .selectDistinctOn([testPlanExecutions.scheduleId], {
+            scheduleId: testPlanExecutions.scheduleId,
+            executionId: testPlanExecutions.id,
+            testPlanId: testPlanExecutions.testPlanId,
+            status: testPlanExecutions.status,
+            failureCode: testPlanExecutions.failureCode,
+            failureMessage: testPlanExecutions.failureMessage,
+            queuedAt: testPlanExecutions.queuedAt,
+          })
+          .from(testPlanExecutions)
+          .where(inArray(testPlanExecutions.scheduleId, scheduleIds))
+          .orderBy(testPlanExecutions.scheduleId, desc(testPlanExecutions.queuedAt)),
+      )
+    : [];
+  const refusals = new Map(
+    latestRuns
+      .filter((r) => r.status === 'error' && r.failureCode?.startsWith('schedule_refused:'))
+      .map((r) => [
+        r.scheduleId,
+        {
+          executionId: r.executionId,
+          testPlanId: r.testPlanId,
+          code: r.failureCode!.slice('schedule_refused:'.length),
+          message: r.failureMessage,
+          at: r.queuedAt,
+        },
+      ]),
+  );
+
   // Parse JSONs
   const parsed = results.map((s) => ({
     ...s,
+    lastRefusal: refusals.get(s.id) ?? null,
     browsers: typeof s.browsers === 'string' ? JSON.parse(s.browsers) : s.browsers,
     executionParameters:
       typeof s.executionParameters === 'string'
