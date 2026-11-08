@@ -1,0 +1,14 @@
+{
+  "id": "API-75",
+  "area": "API",
+  "title": "Asserzioni: variabile nel valore atteso e campo null",
+  "priority": "P2",
+  "actor": "editor.a",
+  "preconditions": "Un test API con una variabile {{atteso}} definita nell'ambiente e una risposta JSON con un campo null (ad esempio {\"count\": null, \"token\": \"abc\"}).",
+  "steps": [
+    "Aggiungere l'asserzione body JSON path 'token' equals '{{atteso}}' con atteso = abc ed eseguire.",
+    "Aggiungere l'asserzione body JSON path 'count' equals '0' ed eseguire.",
+    "Cambiarla in 'count' less than '5' ed eseguire."
+  ],
+  "expected": "1: l'asserzione passa (la variabile è sostituita). 2: fallisce, null non è 0. 3: fallisce con 'value is null'."
+}
