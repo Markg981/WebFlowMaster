@@ -187,7 +187,7 @@
     "@typescript-eslint/parser": "^8.71.1",
     "@vitest/coverage-v8": "^5.0.5",
     "allure-commandline": "^2.46.1",
-    "cross-env": "^7.0.3",
+    "cross-env": "^10.1.0",
     "dependency-cruiser": "^18.7.1",
     "dotenv-cli": "^11.1.0",
     "drizzle-kit": "^0.31.11",
