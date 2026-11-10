@@ -379,13 +379,13 @@ reachable by others.
 
 ## Check the installation
 
-| Check                  | How                                                                                |
-| ---------------------- | ---------------------------------------------------------------------------------- |
-| The web process is up  | `GET /api/user` answers `401` when signed out (the container healthcheck uses it). |
-| Workers are running    | **Settings → Runners** lists them as _online_.                                     |
-| A run works end to end | Create a test against a public page, add it to a plan, run it.                     |
-| Evidence is served     | The run's report shows its screenshots.                                            |
-| Links work             | A notification or commit status links to the run at the public address.            |
+| Check                  | How                                                                                           |
+| ---------------------- | --------------------------------------------------------------------------------------------- |
+| The web process is up  | `GET /readyz` answers `200` (the container healthcheck uses it); `/healthz` is liveness only. |
+| Workers are running    | **Settings → Runners** lists them as _online_.                                                |
+| A run works end to end | Create a test against a public page, add it to a plan, run it.                                |
+| Evidence is served     | The run's report shows its screenshots.                                                       |
+| Links work             | A notification or commit status links to the run at the public address.                       |
 
 Next: [Operations](./operations) covers upgrades, backups, logs and troubleshooting.
 

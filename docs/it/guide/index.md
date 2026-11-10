@@ -51,8 +51,12 @@ La barra laterale contiene tutto:
 | **Tester API**        | Costruire e salvare test API. Vedi [Test API](./api-tests).                                                                                                          |
 | **Crea Test**         | Il costruttore dei test web. Vedi [Test web](./web-tests).                                                                                                           |
 | **Libreria dei test** | Ogni test salvato, con tag e cronologia. Vedi [Organizzare i test](./organizing).                                                                                    |
+| **App mobili**        | Definizioni di app native, inspector ed esecuzione su dispositivo. Vedi [App mobili](./mobile-apps).                                                                 |
+| **Test di carico**    | Molti utenti virtuali che eseguono insieme test API salvati, fuori dai piani. Vedi [Test di carico](./load-tests).                                                   |
 | **Test Manager**      | Importare casi di test da Excel, o dall'hub dei test case QA come test manuali; le wave QA e i loro risultati. Vedi [Organizzare i test](./organizing#testcase-hub). |
 | **Suite**             | Elenchi di test condivisi da più piani.                                                                                                                              |
+| **Requisiti**         | Epic e storie, e quali sono coperte da test che passano. Vedi [Organizzare i test](./organizing#requirements).                                                       |
+| **Dati di test**      | Set di dati condivisi da più test. Vedi [Organizzare i test](./organizing#test-data).                                                                                |
 | **Piani di test**     | Cosa eseguire, dove e come; il pulsante **Esegui**. Vedi [Eseguire i test](./running).                                                                               |
 | **Revisioni**         | Le modifiche in attesa di approvazione, se l'organizzazione revisiona i test prima che girino.                                                                       |
 | **Schedulazione**     | I piani che girano da soli.                                                                                                                                          |

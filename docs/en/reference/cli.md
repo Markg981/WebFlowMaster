@@ -17,15 +17,16 @@ node wfm.mjs run 12 --wait --junit junit.xml
 
 ## Commands
 
-| Command                                                                             | What it does                                                                                                                                                                |
-| ----------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `wfm run PLAN_ID`                                                                   | Starts a run of the plan. Without `--wait` or a report option, prints the run and exits.                                                                                    |
-| `wfm status RUN_ID`                                                                 | Prints a run's state.                                                                                                                                                       |
-| `wfm junit RUN_ID --junit FILE`                                                     | Writes a finished run's JUnit XML.                                                                                                                                          |
-| `wfm export RUN_ID --html FILE`                                                     | Writes a finished run's reports (`--html`, `--pdf`, `--allure`).                                                                                                            |
-| `wfm tests export [--project ID\|none] [--format yaml\|json\|gherkin] [--out FILE]` | Writes a project's web and API tests as YAML/JSON, or web tests only as a Gherkin `.feature` file — see [Tests as files](../guide/organizing#tests-as-files).               |
-| `wfm tests import FILE [--project ID] [--dry-run]`                                  | Reads such a file back: tests of the same name are updated, the others created in `--project`. `--dry-run` only says what would change. Exits `1` when tests were left out. |
-| `wfm help`                                                                          | Prints the usage.                                                                                                                                                           |
+| Command                                                                             | What it does                                                                                                                                                                       |
+| ----------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `wfm run PLAN_ID`                                                                   | Starts a run of the plan. Without `--wait` or a report option, prints the run and exits.                                                                                           |
+| `wfm status RUN_ID`                                                                 | Prints a run's state.                                                                                                                                                              |
+| `wfm junit RUN_ID --junit FILE`                                                     | Writes a finished run's JUnit XML.                                                                                                                                                 |
+| `wfm export RUN_ID --html FILE`                                                     | Writes a finished run's reports (`--html`, `--pdf`, `--allure`).                                                                                                                   |
+| `wfm units RUN_ID [UNIT_ID]`                                                        | Lists what a run expected (one unit per test, browser, language and device); given a unit, its attempts and dataset rows with links to their evidence. `--json` prints it as JSON. |
+| `wfm tests export [--project ID\|none] [--format yaml\|json\|gherkin] [--out FILE]` | Writes a project's web and API tests as YAML/JSON, or web tests only as a Gherkin `.feature` file — see [Tests as files](../guide/organizing#tests-as-files).                      |
+| `wfm tests import FILE [--project ID] [--dry-run]`                                  | Reads such a file back: tests of the same name are updated, the others created in `--project`. `--dry-run` only says what would change. Exits `1` when tests were left out.        |
+| `wfm help`                                                                          | Prints the usage.                                                                                                                                                                  |
 
 ## Options
 

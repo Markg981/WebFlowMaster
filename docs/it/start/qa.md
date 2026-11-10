@@ -32,7 +32,7 @@ raccolgono gli elementi condivisi ([Progetti e ambienti](../guide/#progetti-e-am
 
 Preferite registrare? **Registra azioni utente (auto-record)**, nella stessa pagina, apre una
 finestra del browser e trasforma clic e digitazione in passi; serve uno schermo, quindi funziona
-quando WebFlowMaster gira sulla vostra macchina. Preferite le parole? Descrivete il test a frasi
+quando WebFlowMaster gira sulla vostra macchina ([Registrare](../guide/web-tests#registrare)). Preferite le parole? Descrivete il test a frasi
 ([Descrivere un test a frasi](../guide/web-tests#descrivere-un-test-a-frasi)).
 
 ## 4. Salvarlo (30 secondi)

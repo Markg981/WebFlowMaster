@@ -15,7 +15,7 @@ Eine Pipeline darf nicht vom Konto einer einzelnen Person abhängen.
    erstellen**.
 2. In der Karte **API-Schlüssel** darüber: ein Name, **Ausgestellt für** das Dienstkonto, was der
    Schlüssel darf → _nur, was ich auswähle, über /api/v1_ mit **Ausführungen starten und
-   abbrechen** (`runs:write`) und **Ausführungen, ihren Status und ihre JUnit-Berichte lesen**
+   abbrechen** (`runs:write`) und **Ausführungen, ihren Status, ihre JUnit-Berichte, Screenshots und Videos lesen**
    (`runs:read`); fügen Sie **Testpläne auflisten** (`plans:read`) hinzu, wenn der Job Pläne
    nachschlägt. Setzen Sie **Läuft ab in (Tagen)** auf das, was Ihre Rotationsrichtlinie zulässt,
    dann **Schlüssel erstellen**.

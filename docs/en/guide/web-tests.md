@@ -493,7 +493,7 @@ run in the order listed.
   steps, failed when a call failed — data may have been left behind — and the run log names the
   call.
 
-**Run test** in the builder runs the cleanup too. The debugger does not: a session paused halfway
+**Execute Test** in the builder runs the cleanup too. The debugger does not: a session paused halfway
 would delete what you are looking at.
 
 ## Datasets
@@ -531,7 +531,7 @@ actions → New custom action**, with a name, parameters and a script. The actio
   (`code, qty?`). In the test, the step's value gives the arguments: `code=4711; qty=2`. Write
   `\;` for a semicolon inside a value. Arguments may contain <code v-pre>{{variables}}</code> and
   generated values. A missing or unknown argument, or a value without `=`, fails the test before
-  the browser opens — in the builder's **Run test** as in a plan — naming the argument.
+  the browser opens — in the builder's **Execute Test** as in a plan — naming the argument.
 - **The script** is the body of an async function that runs in the page under test. It reads
   its arguments as `args` (`args.code`) and, when the step has an element, that element as
   `element` (found with `document.querySelector`, so a CSS selector). It fails the step by

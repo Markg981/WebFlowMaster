@@ -71,6 +71,13 @@ in Suiten und Pläne. In einem Lauf öffnet er keinen Browser — er wartet im B
 Urteil eines Menschen (siehe [Manuelle Ergebnisse](./results#manual-results)), einmal pro Lauf,
 gleich welche Browser und Sprachen der Plan hat.
 
+### Gleichzeitige Änderungen
+
+Bearbeiten zwei Personen denselben manuellen oder BDD-Test, darf das zweite Speichern das erste nicht
+stillschweigend überschreiben: Der Editor fragt, ob Sie die andere Änderung **Überschreiben** oder
+**Weiter bearbeiten** möchten. Ihr Entwurf bleibt, wie er ist; um die Version der anderen Person zu
+sehen, schließen Sie den Editor und öffnen den Test erneut.
+
 ## Verlauf und Versionen {#history-and-versions}
 
 Web-, API- und mobile Tests haben eigene **Versionen**, nummeriert ab 1. Das Speichern einer

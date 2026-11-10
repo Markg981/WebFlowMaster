@@ -42,25 +42,26 @@ expiry date, and is revoked from the same page.
 A key **without scopes** is no longer accepted (keys that had none were migrated to read-only scopes). A key **with scopes**
 works only on `/api/v1`, and on each endpoint only if it holds the scope the endpoint names:
 
-| Scope                                      | Minimum role    | Allows                                                                                                        |
-| ------------------------------------------ | --------------- | ------------------------------------------------------------------------------------------------------------- |
-| `plans:read`                               | viewer          | Listing test plans.                                                                                           |
-| `projects:read` / `projects:write`         | viewer / editor | Read / create, update and delete accessible projects.                                                         |
-| `tests:read` / `tests:write`               | viewer / editor | Read / create, update and delete UI, manual and BDD tests.                                                    |
-| `api-tests:read` / `api-tests:write`       | viewer / editor | Read (literal secrets replaced by variables) / create, update and delete API tests.                           |
-| `mobile-tests:read` / `mobile-tests:write` | viewer / editor | Read / create, update and delete native mobile tests.                                                         |
-| `datasets:read` / `datasets:write`         | viewer / editor | Read / create, replace and delete datasets.                                                                   |
-| `plans:write`                              | editor          | Create, update and delete test plans.                                                                         |
-| `suites:read` / `suites:write`             | viewer / editor | Export / import portable test suites; API and mobile tests in a suite also need their own read / write scope. |
-| `runs:read`                                | viewer          | Reading runs, their status, JUnit and exported reports, and their evidence files.                             |
-| `runs:write`                               | editor          | Starting runs and cancelling them.                                                                            |
-| `schedules:read` / `schedules:write`       | viewer / editor | Read / create, update, pause, resume and delete plan schedules.                                               |
-| `environments:read` / `environments:write` | viewer / editor | Read environments and the names of their secrets / create and delete environments.                            |
-| `secrets:write`                            | editor          | Set, rotate and delete environment secrets; values are never read back.                                       |
-| `tags:read` / `tags:write`                 | viewer / editor | Read tags and their counts / create, rename and delete tags.                                                  |
-| `quarantine:read` / `quarantine:write`     | viewer / editor | List quarantined tests / quarantine and release tests.                                                        |
-| `webhooks:read` / `webhooks:write`         | editor / editor | List a plan's webhooks (token prefixes only) / create and delete them.                                        |
-| `billing:read`                             | viewer          | Read the organization's plan, subscription status, the limits in force and its usage against them.            |
+| Scope                                      | Minimum role    | Allows                                                                                                                                                             |
+| ------------------------------------------ | --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `plans:read`                               | viewer          | Listing test plans.                                                                                                                                                |
+| `projects:read` / `projects:write`         | viewer / editor | Read / create, update and delete accessible projects.                                                                                                              |
+| `tests:read` / `tests:write`               | viewer / editor | Read / create, update and delete UI, manual and BDD tests.                                                                                                         |
+| `api-tests:read` / `api-tests:write`       | viewer / editor | Read (literal secrets replaced by variables) / create, update and delete API tests.                                                                                |
+| `mobile-tests:read` / `mobile-tests:write` | viewer / editor | Read / create, update and delete native mobile tests.                                                                                                              |
+| `datasets:read` / `datasets:write`         | viewer / editor | Read / create, replace and delete datasets.                                                                                                                        |
+| `plans:write`                              | editor          | Create, update and delete test plans.                                                                                                                              |
+| `suites:read` / `suites:write`             | viewer / editor | Export / import portable test suites; API and mobile tests in a suite also need their own read / write scope.                                                      |
+| `runs:read`                                | viewer          | Reading runs, their status, JUnit and exported reports, and their recognised evidence files (screenshots, videos). Traces and HAR files also need `runs:evidence`. |
+| `runs:evidence`                            | editor          | Downloading raw evidence that may hold credentials: Playwright traces, HAR files and unrecognised files.                                                           |
+| `runs:write`                               | editor          | Starting runs and cancelling them.                                                                                                                                 |
+| `schedules:read` / `schedules:write`       | viewer / editor | Read / create, update, pause, resume and delete plan schedules.                                                                                                    |
+| `environments:read` / `environments:write` | viewer / editor | Read environments and the names of their secrets / create and delete environments.                                                                                 |
+| `secrets:write`                            | editor          | Set, rotate and delete environment secrets; values are never read back.                                                                                            |
+| `tags:read` / `tags:write`                 | viewer / editor | Read tags and their counts / create, rename and delete tags.                                                                                                       |
+| `quarantine:read` / `quarantine:write`     | viewer / editor | List quarantined tests / quarantine and release tests.                                                                                                             |
+| `webhooks:read` / `webhooks:write`         | editor / editor | List a plan's webhooks (token prefixes only) / create and delete them.                                                                                             |
+| `billing:read`                             | viewer          | Read the organization's plan, subscription status, the limits in force and its usage against them.                                                                 |
 
 Provisioning needs the write scopes for the resources it creates; add the corresponding read
 scopes to inspect them, and `suites:read` / `suites:write` for export / import. Scopes never bypass

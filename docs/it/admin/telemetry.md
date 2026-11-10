@@ -109,7 +109,7 @@ Attraversano i confini solo i campi del trace: niente baggage, payload, URL del 
 
 ## Verifica operativa
 
-Il catalogo Collaudo locale include TEL-01…TEL-12 (protocollo 25) per metriche,
+Il catalogo Collaudo locale include TEL-01…TEL-13 (protocollo 25) per metriche,
 tracing, riservatezza, aggregazione delle repliche e recupero dai guasti. Selezionare
 **Catalogo attuale** per consultare le procedure e creare un nuovo ciclo per registrare gli esiti manuali.
 

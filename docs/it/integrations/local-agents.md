@@ -43,7 +43,7 @@ Le sessioni native non richiedono browser installati; HTTP e richieste OAuth ric
 Le sessioni condividono `WFM_AGENT_MAX_SESSIONS`: il run restituisce il browser HTTP inattivo prima
 di aprire una sessione nativa, anche dopo il recupero del token OAuth. La chiusura del trasporto del run annulla la chiamata attiva.
 
-Usate l'agente **1.2.0 o successivo**: scaricate nuovamente lo script e installate i pacchetti del
+Usate l'**agente di questa release** (stessa versione del server): scaricate nuovamente lo script e installate i pacchetti del
 comando seguente, oppure ricostruite e riavviate l'immagine Docker. Gli agenti v1 precedenti continuano
 a servire browser e HTTP; se il pool non supporta i protocolli nativi, l'esecuzione fallisce con
 un invito esplicito ad aggiornarli. Le chiamate non vengono ripetute dalla rete del server.
@@ -135,7 +135,7 @@ frattempo un runner indirizzato lì riceve un rifiuto che lo nomina.
 
 ## Supporto Cucumber dedicato
 
-L'agente **1.3.0** accetta sessioni BDD firmate per i profili annunciati dall'operatore. Usare un
+L'agente di questa release accetta sessioni BDD firmate per i profili annunciati dall'operatore. Usare un
 pool dedicato dell'organizzazione: i worker SaaS condivisi non importano il supporto. Conservare
 `wfm-bdd-child.mjs` accanto a `wfm-agent.mjs`, installare le dipendenze del progetto e impostare
 `WFM_BDD_PROFILES` sul manifest dell'operatore. Esempi JS/TS con lockfile e container isolato si

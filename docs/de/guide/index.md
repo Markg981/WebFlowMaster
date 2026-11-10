@@ -52,8 +52,11 @@ Die Seitenleiste enthält alles:
 | **Mobile Apps**    | Definitionen nativer Apps, Inspector und Ausführung auf Geräten. Siehe [Mobile Apps](./mobile-apps).                                                                       |
 | **Test erstellen** | Der Testbaukasten für Webtests. Siehe [Webtests](./web-tests).                                                                                                             |
 | **Testbibliothek** | Jeder gespeicherte Test, mit Tags und Verlauf. Siehe [Tests organisieren](./organizing).                                                                                   |
+| **Lasttests**      | Viele virtuelle Nutzer durchlaufen gespeicherte API-Tests gleichzeitig, außerhalb der Pläne. Siehe [Lasttests](./load-tests).                                              |
 | **Testmanager**    | Testfälle aus Excel oder aus dem QA-Testfall-Hub als manuelle Tests importieren; die QA-Wellen und ihre Ergebnisse. Siehe [Tests organisieren](./organizing#testcase-hub). |
 | **Suiten**         | Listen von Tests, die mehrere Pläne gemeinsam nutzen.                                                                                                                      |
+| **Anforderungen**  | Epics und Stories, und welche von bestandenen Tests abgedeckt sind. Siehe [Tests organisieren](./organizing#requirements).                                                 |
+| **Testdaten**      | Datensätze, die viele Tests gemeinsam nutzen. Siehe [Tests organisieren](./organizing#test-data).                                                                          |
 | **Testpläne**      | Was wo und wie ausgeführt wird; die Schaltfläche **Ausführen**. Siehe [Tests ausführen](./running).                                                                        |
 | **Prüfungen**      | Änderungen, die auf Freigabe warten, wenn Ihre Organisation Tests vor dem Ausführen prüft.                                                                                 |
 | **Planung**        | Pläne, die von selbst laufen.                                                                                                                                              |

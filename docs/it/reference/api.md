@@ -44,25 +44,26 @@ Una chiave **senza scope** non è più accettata (quelle che non ne avevano sono
 **con scope** funziona solo su `/api/v1`, e su ogni endpoint solo se ha lo scope che l'endpoint
 richiede:
 
-| Scope                                      | Ruolo minimo    | Consente                                                                                                                          |
-| ------------------------------------------ | --------------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| `plans:read`                               | viewer          | Elencare i piani di test.                                                                                                         |
-| `projects:read` / `projects:write`         | viewer / editor | Leggere / creare, aggiornare ed eliminare i progetti accessibili.                                                                 |
-| `tests:read` / `tests:write`               | viewer / editor | Leggere / creare, aggiornare ed eliminare test UI, manuali e BDD.                                                                 |
-| `api-tests:read` / `api-tests:write`       | viewer / editor | Leggere (segreti letterali sostituiti da variabili) / creare, aggiornare ed eliminare test API.                                   |
-| `mobile-tests:read` / `mobile-tests:write` | viewer / editor | Leggere / creare, aggiornare ed eliminare test mobile nativi.                                                                     |
-| `datasets:read` / `datasets:write`         | viewer / editor | Leggere / creare, sostituire ed eliminare dataset.                                                                                |
-| `plans:write`                              | editor          | Creare, aggiornare ed eliminare i piani di test.                                                                                  |
-| `suites:read` / `suites:write`             | viewer / editor | Esportare / importare suite portabili; i test API e mobile di una suite richiedono anche il proprio scope di lettura / scrittura. |
-| `runs:read`                                | viewer          | Leggere i run, il loro stato, JUnit, i report esportati e i file di evidenza.                                                     |
-| `runs:write`                               | editor          | Avviare run e annullarli.                                                                                                         |
-| `schedules:read` / `schedules:write`       | viewer / editor | Leggere / creare, aggiornare, sospendere, riprendere ed eliminare le pianificazioni dei piani.                                    |
-| `environments:read` / `environments:write` | viewer / editor | Leggere gli ambienti e i nomi dei loro segreti / creare ed eliminare ambienti.                                                    |
-| `secrets:write`                            | editor          | Impostare, ruotare ed eliminare i segreti di un ambiente; i valori non si rileggono mai.                                          |
-| `tags:read` / `tags:write`                 | viewer / editor | Leggere i tag e i loro conteggi / creare, rinominare ed eliminare tag.                                                            |
-| `quarantine:read` / `quarantine:write`     | viewer / editor | Elencare i test in quarantena / mettere in quarantena e rilasciare test.                                                          |
-| `billing:read`                             | viewer          | Leggere il piano dell'organizzazione, lo stato dell'abbonamento, i limiti in vigore e il consumo rispetto a essi.                 |
-| `webhooks:read` / `webhooks:write`         | editor / editor | Elencare i webhook di un piano (solo prefissi dei token) / crearli ed eliminarli.                                                 |
+| Scope                                      | Ruolo minimo    | Consente                                                                                                                                                          |
+| ------------------------------------------ | --------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `plans:read`                               | viewer          | Elencare i piani di test.                                                                                                                                         |
+| `projects:read` / `projects:write`         | viewer / editor | Leggere / creare, aggiornare ed eliminare i progetti accessibili.                                                                                                 |
+| `tests:read` / `tests:write`               | viewer / editor | Leggere / creare, aggiornare ed eliminare test UI, manuali e BDD.                                                                                                 |
+| `api-tests:read` / `api-tests:write`       | viewer / editor | Leggere (segreti letterali sostituiti da variabili) / creare, aggiornare ed eliminare test API.                                                                   |
+| `mobile-tests:read` / `mobile-tests:write` | viewer / editor | Leggere / creare, aggiornare ed eliminare test mobile nativi.                                                                                                     |
+| `datasets:read` / `datasets:write`         | viewer / editor | Leggere / creare, sostituire ed eliminare dataset.                                                                                                                |
+| `plans:write`                              | editor          | Creare, aggiornare ed eliminare i piani di test.                                                                                                                  |
+| `suites:read` / `suites:write`             | viewer / editor | Esportare / importare suite portabili; i test API e mobile di una suite richiedono anche il proprio scope di lettura / scrittura.                                 |
+| `runs:read`                                | viewer          | Leggere i run, il loro stato, JUnit, i report esportati e i file di evidenza riconosciuti (screenshot, video). Trace e file HAR richiedono anche `runs:evidence`. |
+| `runs:evidence`                            | editor          | Scaricare le evidenze grezze che possono contenere credenziali: trace Playwright, file HAR e file non riconosciuti.                                               |
+| `runs:write`                               | editor          | Avviare run e annullarli.                                                                                                                                         |
+| `schedules:read` / `schedules:write`       | viewer / editor | Leggere / creare, aggiornare, sospendere, riprendere ed eliminare le pianificazioni dei piani.                                                                    |
+| `environments:read` / `environments:write` | viewer / editor | Leggere gli ambienti e i nomi dei loro segreti / creare ed eliminare ambienti.                                                                                    |
+| `secrets:write`                            | editor          | Impostare, ruotare ed eliminare i segreti di un ambiente; i valori non si rileggono mai.                                                                          |
+| `tags:read` / `tags:write`                 | viewer / editor | Leggere i tag e i loro conteggi / creare, rinominare ed eliminare tag.                                                                                            |
+| `quarantine:read` / `quarantine:write`     | viewer / editor | Elencare i test in quarantena / mettere in quarantena e rilasciare test.                                                                                          |
+| `billing:read`                             | viewer          | Leggere il piano dell'organizzazione, lo stato dell'abbonamento, i limiti in vigore e il consumo rispetto a essi.                                                 |
+| `webhooks:read` / `webhooks:write`         | editor / editor | Elencare i webhook di un piano (solo prefissi dei token) / crearli ed eliminarli.                                                                                 |
 
 Il provisioning richiede gli scope di scrittura delle risorse create; aggiungere i corrispondenti
 scope di lettura per verificarle e `suites:read` / `suites:write` per export / import. Gli scope

@@ -46,11 +46,14 @@ The sidebar has everything:
 | ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Dashboard**    | Private and shared views of runs, trends and schedules. See [Conversations and dashboards](./collaboration).                                                      |
 | **API Tester**   | Building and saving API tests. See [API tests](./api-tests).                                                                                                      |
-| **Mobile Tests** | Native app definitions, inspector and device execution. See [Mobile apps](./mobile-apps).                                                                         |
+| **Mobile apps**  | Native app definitions, inspector and device execution. See [Mobile apps](./mobile-apps).                                                                         |
 | **Create Test**  | The test builder for web tests. See [Web tests](./web-tests).                                                                                                     |
 | **Test Library** | Every saved test, with tags and history. See [Organizing tests](./organizing).                                                                                    |
+| **Load tests**   | Many virtual users going through saved API tests at once, outside plans. See [Load tests](./load-tests).                                                          |
 | **Test Manager** | Importing test cases from Excel, or from the QA test case hub as manual tests; the QA waves and their results. See [Organizing tests](./organizing#testcase-hub). |
 | **Suites**       | Lists of tests shared by several plans.                                                                                                                           |
+| **Requirements** | Epics and stories, and which of them are covered by passing tests. See [Organizing tests](./organizing#requirements).                                             |
+| **Test data**    | Data sets shared by many tests. See [Organizing tests](./organizing#test-data).                                                                                   |
 | **Test plans**   | What to run, where and how; the **Run** button. See [Running tests](./running).                                                                                   |
 | **Reviews**      | Changes waiting for approval, when your organization reviews tests before they run.                                                                               |
 | **Scheduling**   | Plans that run by themselves.                                                                                                                                     |

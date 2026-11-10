@@ -10,7 +10,7 @@ solo agli owner.
 
 ## Ruoli
 
-Ogni persona appartiene a una sola organizzazione, con un solo ruolo.
+Ogni persona ha un solo ruolo in ciascuna organizzazione a cui appartiene (vedi [più organizzazioni](#membri-e-inviti)).
 
 |                                                                 | Viewer | Editor | Owner |
 | --------------------------------------------------------------- | :----: | :----: | :---: |
@@ -386,7 +386,7 @@ Pipeline e script si autenticano con **chiavi API** (**Impostazioni → Chiavi A
 password di una persona.
 
 - Le **chiavi con scope** (il default) funzionano solo sull'API pubblica `/api/v1`, e solo per
-  ciò che è stato concesso: `plans:read`, `runs:read`, `runs:write`. Una pipeline che avvia un
+  ciò che è stato concesso, per esempio `plans:read`, `runs:read`, `runs:write` (l'elenco completo è nel modulo della chiave e nel [riferimento API](../reference/api)). Una pipeline che avvia un
   piano e ne aspetta l'esito ha bisogno di `runs:write` e `runs:read`. Trace e file HAR dei run
   richiedono anche `runs:evidence` e il ruolo editor: possono contenere password in chiaro.
 - Alla creazione servono **almeno uno scope** e una **scadenza**: la durata si sceglie alla
@@ -504,11 +504,11 @@ da più clienti dovrebbe nominare i propri operatori.
 
 In **Impostazioni → Esportazione e cancellazione**: **Scarica l'esportazione**, e **Cancella
 definitivamente** dopo aver scritto il nome esatto dell'organizzazione. Lo stesso si può fare
-tramite l'API, con la chiave ad accesso completo di un owner:
+tramite l'API, con la sessione di un owner (una chiave API è rifiutata con `403`):
 
 ```bash
 export WFM_URL=https://webflowmaster.example.com
-export KEY=wfm_...   # la chiave ad accesso completo di un owner
+# cookie jar della sessione di un owner, salvato con: curl -c cookies.txt ... (accesso)
 ```
 
 **Esportazione**: `GET /api/organization/export` restituisce l'intera organizzazione in un file
@@ -520,14 +520,14 @@ Trattate comunque il file come riservato: contiene test, dati e registro di audi
 dell'organizzazione.
 
 ```bash
-curl -s -H "Authorization: Bearer $KEY" "$WFM_URL/api/organization/export" -o export.json
+curl -s -b cookies.txt "$WFM_URL/api/organization/export" -o export.json
 ```
 
 La **cancellazione** elimina l'organizzazione e **tutti gli account dei membri**, in modo
 irreversibile. Richiede come conferma il nome esatto dell'organizzazione:
 
 ```bash
-curl -s -X DELETE -H "Authorization: Bearer $KEY" -H "Content-Type: application/json" \
+curl -s -X DELETE -b cookies.txt -H "Content-Type: application/json" \
   -d '{"confirmName":"Acme QA"}' "$WFM_URL/api/organization"
 ```
 

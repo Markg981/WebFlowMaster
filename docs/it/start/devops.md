@@ -14,7 +14,7 @@ Una pipeline non deve dipendere dall'account di una persona.
    pipeline ("ci-shop"), ruolo **editor** (avviare i run richiede almeno questo), **Crea account**.
 2. Nel riquadro **Chiavi API** sopra: un nome, **Assegnata a** l'account di servizio, **Cosa può
    fare la chiave** → _Solo ciò che scelgo, tramite /api/v1_ con **Avviare i run e annullarli**
-   (`runs:write`) e **Leggere i run, il loro stato e i report JUnit** (`runs:read`); aggiungete
+   (`runs:write`) e **Leggere i run, il loro stato, i report JUnit, gli screenshot e i video** (`runs:read`); aggiungete
    **Elencare i piani di test** (`plans:read`) se il job cerca i piani. Impostate **Scade tra
    (giorni)** secondo la vostra politica di rotazione, poi **Crea chiave**.
 3. Copiate la chiave da **Copia ora questa chiave**: è mostrata **una sola volta** e il server ne

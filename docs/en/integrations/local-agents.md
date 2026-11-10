@@ -43,7 +43,7 @@ Native sessions need no installed browser; HTTP and OAuth token requests still n
 Sessions share `WFM_AGENT_MAX_SESSIONS`; the run returns an idle HTTP browser before opening a
 native session, including after OAuth token acquisition. Closing the run transport cancels its active API call.
 
-Use agent **1.2.0 or later**: download the script again and install the packages in the setup
+Use the **agent of this release** (same version as the server): download the script again and install the packages in the setup
 command below, or rebuild and restart the Docker agent. Existing v1 agents still serve browsers
 and HTTP; a pool without native protocol support fails explicitly and asks you to update it.
 The runner never falls back to making these calls from the server's network.
@@ -135,7 +135,7 @@ gets a refusal naming it.
 
 ## Dedicated Cucumber support
 
-Agent **1.3.0** also accepts signed BDD sessions for operator-advertised profiles. Provision a
+The agent of this release also accepts signed BDD sessions for operator-advertised profiles. Provision a
 separate organization-owned pool for support code; shared SaaS workers never import it. Keep
 `wfm-bdd-child.mjs` beside `wfm-agent.mjs`, install the support project's dependencies and set
 `WFM_BDD_PROFILES` to an operator manifest. The sample, locked JS/TS projects and isolated container

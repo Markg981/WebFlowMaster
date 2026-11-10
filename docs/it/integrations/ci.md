@@ -17,7 +17,7 @@ successivo può usare direttamente la CLI.
 ## 1. Cosa serve
 
 - **L'indirizzo del server**, per esempio `https://webflowmaster.example.com`. Impostate anche
-  `APP_BASE_URL` sul server, così le esecuzioni portano il link al loro report.
+  `WEBFLOW_PUBLIC_URL` sul server, così le esecuzioni portano il link al loro report.
 - **Una chiave API** con gli scope `runs:write` e `runs:read` (Impostazioni → Chiavi API).
   - La chiave agisce per conto di chi l'ha creata, mai oltre il suo ruolo.
   - Per una pipeline conviene crearla su un **account di servizio** (Impostazioni → Account di

@@ -21,7 +21,7 @@ aktualisiert nicht den Status des ursprünglichen CI-Builds.
 ## Übersicht
 
 Die **Übersicht** zeigt, wie die letzten Läufe ausgegangen sind, die Zahl der bestandenen und
-fehlgeschlagenen Läufe der letzten 30 Tage, die neuesten Berichte und die nächsten geplanten Läufe.
+fehlgeschlagenen Läufe der letzten 30 Tage (Läufe, die ihr Zeitlimit erreichten, werden getrennt als **Zeitüberschreitung** im Statusdiagramm und seiner Legende gezählt), die neuesten Berichte und die nächsten geplanten Läufe.
 
 ## Berichte
 
@@ -61,7 +61,7 @@ dann die der angezeigten Tests, und **Filter zurücksetzen** holt den ganzen Lau
 
 Die [manuellen Tests](./organizing#manual-tests) eines Laufs erscheinen in der Karte **Manuelle
 Tests**, eine Zeile pro Test, **Wartet**, bis jemand sein Ergebnis einträgt; ein Lauf mit wartenden
-Tests endet trotzdem als abgeschlossen. Nach dem Ende des Laufs öffnet ein Bearbeiter die Zeile,
+Tests endet trotzdem als abgeschlossen. Ein Lauf, in dem jeder Test übersprungen wurde (zum Beispiel durch die Richtlinie „nur veröffentlicht“), endet mit **Fehler** und dem Grund „No test produced a verdict (all skipped)“, der im Berichtskopf steht: Früher endete er abgeschlossen und grün. Das ist eine Verhaltensänderung. Nach dem Ende des Laufs öffnet ein Bearbeiter die Zeile,
 markiert jeden Schritt als **OK**, **Fehler** oder **Nicht ausgeführt** mit einer Notiz und trägt
 das Urteil ein:
 
@@ -71,7 +71,7 @@ das Urteil ein:
 - **Blockiert** (konnte nicht durchgeführt werden) zählt zu den übersprungenen.
 
 Jedes Urteil berechnet Summen und Status des Laufs neu, sodass der Bericht manuelle und
-automatisierte Ergebnisse mischt. Ein abgebrochener oder zeitüberschrittener Lauf behält sein Ende.
+automatisierte Ergebnisse mischt. Ein abgeschlossener oder fehlgeschlagener Lauf wechselt zwischen beiden wie jedes Laufende, sodass Commit-Status, Benachrichtigungen und Testmanagement-Veröffentlichung mit dem neuen Ergebnis erneut laufen. Ein abgebrochener oder zeitüberschrittener Lauf behält sein Ende und meldet nichts.
 Ein Urteil lässt sich korrigieren, indem man es erneut einträgt; die Zeile zeigt, wer es wann
 eingetragen hat, und jede Eintragung geht ins Audit-Protokoll.
 
@@ -104,7 +104,7 @@ Kommentar. Der Titel des Laufs ist der Name des Plans und sein Ende, in UTC.
 Die Karte **Testmanagement** des Berichts zeigt, wohin der Lauf ging, mit einem Link zum
 TestRail-Run oder zum Xray-Issue, wie viele Fälle veröffentlicht wurden und wie viele Tests keinen
 Fall hatten, und warum eine Veröffentlichung scheiterte (ein falsches Token, ein vom Werkzeug
-abgelehnter Fall). **Erneut veröffentlichen** sendet den Lauf noch einmal — wenn die manuellen
+abgelehnter Fall). Ein Lauf, bei dem das Werkzeug nur einen Teil der Fälle übernahm, ist **Teilweise veröffentlicht**, einer, bei dem es keinen übernahm, ist **Fehlgeschlagen**, nie Veröffentlicht; ein TestRail-Run, der vor dem Scheitern seiner Ergebnisse angelegt wurde, bleibt verlinkt. Anfragen mit Netzwerkfehler, 429 oder 502–504 werden bis zu dreimal wiederholt. **Erneut veröffentlichen** sendet den Lauf noch einmal — wenn die manuellen
 Urteile vorliegen oder das Werkzeug nicht erreichbar war — an die Verbindung des Plans oder an eine
 andere; jedes Mal entsteht ein neuer Run im Werkzeug. Eine gescheiterte Veröffentlichung ändert nie
 das Ergebnis des Laufs.
@@ -143,8 +143,103 @@ wenn der Plan sie aufbewahrt — das **Video** und den **Playwright-Trace** des 
 Trace herunter und öffnen Sie ihn mit `npx playwright show-trace` oder auf trace.playwright.dev: Er
 spielt jede Aktion mit der Seite, wie sie war, der Konsole und dem Netzwerk erneut ab.
 
-Ein als **repariert** markierter Schritt hat sein Element erst gefunden, nachdem sein Selektor
-ersetzt wurde (siehe [Element-Repository](./web-tests#element-repository)).
+#### Wer einen Trace herunterladen darf {#who-can-download-a-trace}
+
+Ein Trace ist **Rohmaterial als Nachweis**: Er enthält den Inhalt der Seite und jede Anfrage mit ihrem
+Body, ein während des Tests getipptes Passwort steht also im Klartext darin. Nur **Bearbeiter** und
+**Eigentümer** können Traces und HAR-Dateien herunterladen; ein Betrachter sieht den Rest des Berichts
+und einen Hinweis, dass der Trace existiert. Der Server entscheidet das bei jedem Download, die
+Kenntnis der Adresse ändert daran nichts. Ein API-Schlüssel braucht außerdem den Scope `runs:evidence`.
+
+| Datei                                                       | Betrachter | Bearbeiter, Eigentümer |
+| ----------------------------------------------------------- | ---------- | ---------------------- |
+| Screenshots, visuelle Diffs, Video                          | ✓          | ✓                      |
+| Lighthouse-Bericht, von einem Test heruntergeladene Dateien | ✓          | ✓                      |
+| Playwright-Trace, HAR                                       | —          | ✓                      |
+| Jede andere Datei des Laufs (ältere oder unbekannte Namen)  | —          | ✓                      |
+
+Die Dateien eines Tests in einem **eingeschränkten Projekt** sind nur für die Personen des Projekts
+(und für Eigentümer) verfügbar. Für alle anderen existieren sie nicht: Sie erhalten dieselbe Antwort
+wie für eine Datei, die nie geschrieben wurde.
+
+Dieselbe Einschränkung gilt für den Planbericht, die Live-Ausführungsansicht und den JUnit-Export
+(auch den mit einem API-Schlüssel abgerufenen, der als Benutzer des Schlüssels handelt): Ein Test
+eines eingeschränkten Projekts, in dem Sie nicht sind, zeigt nur seinen Namen und sein Urteil, ohne
+Schritte, Protokolle, Netzwerkaufzeichnung oder KI-Analyse, und ein Lauf, der einen solchen Test
+enthält, kann nicht live verfolgt werden.
+
+Ein Test, der sichtbar mit einer Zugangsinformation umgeht — ein Wert `{{secret_…}}` oder ein Feld,
+Selektor oder Wert namens _password_ —, **zeichnet keinen Trace auf**, auch wenn der Plan einen
+verlangt; das Protokoll des Laufs sagt das. Video und Screenshots bleiben wie verlangt erhalten.
+
+::: warning Screenshots, Videos und Traces werden nicht bereinigt
+Nichts entfernt ein Geheimnis aus einem Bild oder einer Aufzeichnung. Ein Browser zeichnet ein
+Passwortfeld als Punkte, aber eine Anwendung kann ein Token, einen personenbezogenen Datensatz oder
+einen Einmalcode überall auf der Seite anzeigen, und genau das enthalten Screenshot und Video dann.
+Für Abläufe mit echten Zugangsdaten oder personenbezogenen Daten: Verwenden Sie eigene Testkonten,
+stellen Sie im Plan **Trace** auf _Nie_ und **Video** auf _Nie_ oder _Wenn der Test scheitert_ und
+halten Sie `ARTIFACT_RETENTION_DAYS` kurz.
+:::
+
+#### Reparierte Schritte {#healed-steps}
+
+Ein als **nach Reparatur bestanden** markierter Schritt ist mit einem reparierten Locator bestanden,
+nicht mit seinem eigenen (siehe
+[Runtime use, approval and publishing](/en/guide/web-tests#healing-approval), auf Englisch). Er zählt
+weiterhin als bestanden, und die Schritte danach liefen normal. Schritte, die mit ihrem eigenen
+Locator bestanden haben, tragen kein Abzeichen. Die Schrittdetails zeigen:
+
+- den **geschriebenen Locator** und den **in diesem Lauf verwendeten**;
+- was ihn gefunden hat: ein bekannter Fallback oder die KI;
+- den **Vorschlag** und seinen aktuellen Zustand: _vorgeschlagen_, _genehmigt_ (mit der Version der
+  Arbeitskopie, die daraus wurde), _abgelehnt_ oder _veraltet_ (der Schritt wurde nach dem Lauf
+  geändert und kann daher nicht mehr genehmigt werden).
+
+Bearbeiter und Eigentümer des Projekts sehen **Genehmigen** und **Ablehnen**. Das Genehmigen schreibt
+die Reparatur dorthin, wo der Schritt geschrieben ist, unter dem Fingerabdruck, den der Lauf
+festgehalten hat. Es veröffentlicht nichts: Die neue Version geht nur über den üblichen
+Veröffentlichungs- oder Prüfschritt live. Das Protokoll des Laufs enthält für jeden reparierten Schritt
+eine Warnung. Vorschläge sind auch über `GET /api/healing-proposals?testId=…` verfügbar.
+
+Vor den Genehmigungen aufgezeichnete Ergebnisse zeigen, was der Lauf damals tat (er schrieb die
+Reparatur selbst).
+
+Die rote Umrandung, die das bearbeitete Element markiert, wird nach jeder Aktion entfernt.
+Screenshots, visuelle Vergleiche und die an die KI gesendete Seite zeigen die Anwendung, wie sie ist.
+
+#### Versuche und Dataset-Zeilen {#attempts-and-rows}
+
+Jede Zeile des Berichts ist ein Test in einem Browser, in einer Sprache (und bei einem mobilen Test
+auf einem Gerät): eine **Einheit** des Laufs. Die Nachweise einer Einheit werden pro **Versuch** und,
+bei einem Test mit [Dataset](./web-tests#datasets), pro **Zeile** jedes Versuchs aufbewahrt. Eine
+Wiederholung überschreibt die Nachweise des ersten Versuchs nicht, und eine Zeile überschreibt die
+einer anderen nicht.
+
+Hat ein Ergebnis mehr als einen Versuch oder Dataset-Zeilen, öffnen seine Details mit zwei
+Auswahlfeldern:
+
+- **Versuche**: _Versuch 1 · fehlgeschlagen_, _Versuch 2 · bestanden · Ergebnis_… Die Details öffnen
+  sich beim Versuch, auf dem das Ergebnis beruht. Wählen Sie einen früheren, um die Nachweise des
+  Fehlschlags zu öffnen, den die Wiederholung ersetzt hat: Screenshot, Video, Trace und HAR sowie den
+  Grund des Fehlschlags.
+- **Datensatzzeilen**: _Alle Zeilen_ oder eine Zeile mit ihrem eigenen Ergebnis und Fehler. Wer eine
+  Zeile wählt, sieht deren Schritte und ihr eigenes Video, ihren Trace und HAR, nichts von den
+  anderen Zeilen.
+
+Der Bericht behält die Schritte des Versuchs, auf dem das Ergebnis beruht. Ein früherer Versuch zeigt
+seine Nachweise und seinen Grund und sagt, dass seine Schritte in seinem Trace stehen. Die obigen
+Regeln, wer einen Trace herunterladen darf, gelten für jeden Versuch und jede Zeile.
+
+Ein Link kann den Bericht auf einem Ausschnitt öffnen: Hängen Sie `?unit=<unit id>&attempt=<n>&row=<m>`
+an die Adresse des Berichts an (row ab 0). Die API liefert dieselbe Sicht: `GET /api/v1/runs/{runId}/units`
+listet die Einheiten eines Laufs, und `GET /api/v1/runs/{runId}/units/{unitId}` liefert jeden Versuch
+und jede Zeile mit Links zu ihren Dateien (siehe [API](/en/reference/api), auf Englisch). Aus einer
+Pipeline gibt `wfm units <runId> [<unitId>]` sie aus.
+
+Der Nachweis eines Versuchs wird nur einmal geschrieben. Ein verspäteter Upload desselben Versuchs
+(zum Beispiel von einem Worker, der seine Arbeit verloren hat) ersetzt keine Datei, auf die der
+Bericht bereits verweist. Läufe aus der Zeit vor dieser Version behalten ihre Links wie bisher. Ihre
+Versuche und Zeilen wurden nicht getrennt aufbewahrt.
 
 ### Visuelle Tests {#visual-testing}
 
@@ -153,13 +248,34 @@ Sind **Visuelle Tests** in einem Plan eingeschaltet, wird der Screenshot jedes S
 zeigt ein Schritt, dessen Screenshot abweicht, die **Referenz**, **Dieser Lauf** und die
 **Differenz**.
 
+Ein Vergleich kann auch gar nicht zustande kommen: Die gespeicherte Referenz ist kein lesbares Bild,
+der Artefaktspeicher ist nicht erreichbar oder der Screenshot des Schritts kann nicht aufgenommen
+werden. Dieser Schritt ist **nicht verifiziert**, und der Test endet als **Fehler** — nie als
+bestanden und nie als visuelle Abweichung gezählt. Der Schritt zeigt die Ursache (`baseline-corrupt`,
+`storage-unavailable`, `screenshot-unavailable`, `comparison-failed`); der Grund lautet „Visual
+comparison could not run (…)“. Die Exporte stimmen überein: Der JSON-Bericht behält die Ursache am
+Schritt, Allure zeigt Test und Schritt als _broken_ unter **Visual comparison errors**, und JUnit
+schreibt ein `<error>`. Eine beschädigte Referenz wird nie von selbst ersetzt: Starten Sie einen Lauf
+mit `updateBaselines: true` (siehe [API](/en/reference/api), auf Englisch), um die Screenshots dieses
+Laufs als neue Referenzen zu übernehmen.
+
+#### Eine neue Baseline genehmigen {#approve-baseline}
+
+Ist eine visuelle Abweichung gewollt — ein Redesign, ein neues Banner —, kann ein **Bearbeiter** oder
+**Eigentümer** sie aus dem Bericht übernehmen: Öffnen Sie die Schritte des Tests, drücken Sie beim
+Schritt mit der Abweichung **Als neue Baseline freigeben** und bestätigen Sie. Das Bild dieses Laufs
+ersetzt die gespeicherte Baseline für diesen Test, Schritt, Browser und diese Dataset-Zeile, und der
+Schritt zeigt, wer sie wann freigegeben hat. Der nächste Lauf wird mit dem neuen Bild verglichen. Die
+Freigabe wird im Audit-Protokoll festgehalten (`visual_baseline.approved`). In einem eingeschränkten
+Projekt braucht sie Bearbeitungsrechte am Projekt; Betrachter sehen die Schaltfläche nicht. Das
+Urteil des Laufs ändert sich nicht: Er bleibt fehlgeschlagen.
+
 ### Netzwerk
 
 Bewahrt der Plan das Netzwerk auf, fasst der Bericht den Verkehr jedes Tests zusammen: wie viele
 Anfragen, wie viele fehlgeschlagen, wie viel empfangen wurde und die fehlgeschlagenen und
 langsamsten Anfragen. **HAR herunterladen**, um die ganze Aufzeichnung in den Entwicklerwerkzeugen
-eines beliebigen Browsers zu öffnen. Sie enthält nie Request- oder Response-Bodys, Cookies, Tokens
-oder Passwörter.
+eines beliebigen Browsers zu öffnen. Sie enthält nie Request- oder Response-Bodys; Cookies, Authorization-Header und Query-Parameter mit zugangsdatenähnlichen Namen werden durch `[redacted]` ersetzt. Eine Zugangsinformation in anderer Form — in einem Pfad, in einem eigenen Header — wird nicht erkannt, weshalb das HAR wie der Trace Rohmaterial als Nachweis ist.
 
 ### Barrierefreiheit
 
@@ -178,6 +294,22 @@ brauchen.
 | Allure-Ergebnisse (.zip) | `allure generate` oder ein Allure-Server.                       |
 | JUnit XML                | Der Testbericht eines CI-Systems.                               |
 
+Ein Export enthält die Ergebnisse und die Screenshots fehlgeschlagener Tests und sonst keine
+Nachweise des Laufs: keinen Trace, kein HAR und kein Video, auch keinen Link darauf, wer auch immer
+exportiert. Ein Screenshot eines Tests in einem eingeschränkten Projekt, in dem die exportierende
+Person nicht ist, wird weggelassen.
+
+Versuche und Dataset-Zeilen zählen nie als eigene Tests: Ein Export hat einen Test pro Einheit, wie
+der Bericht. Der HTML-Bericht listet sie unter **Versuche und Dataset-Zeilen**. Allure hängt sie als
+_Attempts and dataset rows_ an ihren Test. JUnit behält einen `<testcase>` pro Einheit und legt sie in
+die Eigenschaft `wfm.attempts`.
+
+Ein Lauf, der mit **Fehler**, **Zeitüberschreitung** oder **Abbruch** endete, wird nie nur mit seinen
+grünen Tests exportiert. JUnit fügt einen `<error>`-Testfall mit dem Namen des Endes hinzu (zum
+Beispiel _Run cancelled_), und Allure ein _broken_-Ergebnis desselben Namens, beide mit dem Grund des
+Laufs. Der Berichtskopf zeigt den Status des Laufs, ob fertig oder nicht: dasselbe Urteil wie die API,
+der CLI-Exit-Code und jeder Export.
+
 **Abgedeckte Anforderungen** zeigt die [Anforderungen](./organizing#requirements) mit genau den
 Ergebnissen dieses Laufs und exportiert sie als Rückverfolgbarkeitsmatrix.
 
@@ -192,7 +324,9 @@ Hat ein Eigentümer Jira oder Azure DevOps verbunden, hat ein fehlgeschlagener T
 **Berichte** zeigt außerdem **Tests, die sich widersprechen**: über die letzten Tage die Tests,
 deren Urteil von einem Lauf zum nächsten wechselte, ohne dass etwas es erklärt. Ein Test, der kaputt
 war und repariert wurde, steht nicht darin, ebenso wenig einer, dessen Urteil sich änderte, weil er
-bearbeitet wurde. Mobile Tests werden pro Gerät gezählt ([mobile Apps](./mobile-apps#unstable)).
+bearbeitet wurde. Jeder Test wird für sich gezählt, nicht nach Name: Zwei verschiedene Tests mit demselben Namen bleiben getrennt, und ein umbenannter Test behält seinen Verlauf unter dem neuen Namen. Mobile Tests werden pro Gerät gezählt ([mobile Apps](./mobile-apps#unstable)).
+
+Ein Test, der **beim Wiederholen bestanden** hat, wird ebenfalls gelistet, auch wenn jeder Lauf grün endete und sich nie ein Urteil änderte: Drei Läufe, die je beim zweiten Versuch bestanden, zeigen **3× beim Wiederholen bestanden**, und ein letzter grüner Lauf nimmt den Test nicht von der Liste. Wiederholungen, Urteilswechsel, Läufe, die wegen eines Infrastrukturfehlers nie liefen, und Bearbeitungen werden getrennt gezählt und nie ineinander aufsummiert. Nur vergleichbare Läufe teilen einen Verlauf: derselbe Test mit derselben Definition (eine bloße Umbenennung trennt ihn nicht, eine Änderung seiner Schritte, Daten oder Abhängigkeiten schon), im selben Browser, in derselben Umgebung, Sprache und auf demselben Gerät. **Nachweise** listet auf, was geschah, neueste zuerst, jeder Eintrag mit Link zum Bericht des Laufs, geöffnet beim Versuch, der ihn zeigt — bei einer Wiederholung der erste fehlgeschlagene Versuch und warum. Ein Lauf, der vor der Aufbewahrung von Versuchen aufgezeichnet wurde, sagt, dass die Ursache nicht aufgezeichnet wurde, statt eine zu raten.
 
 Ein instabiler Test kann mit Begründung in **Quarantäne** gestellt werden. Er läuft weiter und seine
 Ergebnisse werden aufbewahrt, aber seine Fehlschläge lassen keine Läufe mehr scheitern, stoppen
