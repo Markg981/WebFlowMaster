@@ -67,6 +67,11 @@ updates:
           - drizzle-zod
           - drizzle-kit
           - '@replit/*'
+      # pglite-socket pins pglite and its extensions (pglite-age, ...) to exact versions: bumped
+      # one at a time, each PR stops npm ci with ERESOLVE (#614, #616). They move together, in a
+      # group of their own, still apart from the other packages.
+      pglite:
+        patterns: ['@electric-sql/*']
 
   - package-ecosystem: npm
     directory: /deployment/lighthouse

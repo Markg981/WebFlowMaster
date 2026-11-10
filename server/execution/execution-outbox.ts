@@ -178,9 +178,9 @@ export async function publishPendingSubmission(
 
   // Confirmed only while the lease is still ours: a claimer whose lease ran out and whose row was
   // published by somebody else in the meantime finds nothing to delete, and nothing is lost.
-  await withTenantTransaction((tx) =>
-    tx.delete(executionOutbox).where(ownedBy(executionId, leaseUntil)),
-  );
+  await withTenantTransaction(async (tx) => {
+    await tx.delete(executionOutbox).where(ownedBy(executionId, leaseUntil));
+  });
   return { state: 'published' };
 }
 
@@ -193,9 +193,9 @@ function ownedBy(executionId: string, leaseUntil: Date) {
 
 /** Forgets a run's pending job: the caller has given the run up. */
 export async function discardPendingSubmission(executionId: string): Promise<void> {
-  await withTenantTransaction((tx) =>
-    tx.delete(executionOutbox).where(eq(executionOutbox.executionId, executionId)),
-  );
+  await withTenantTransaction(async (tx) => {
+    await tx.delete(executionOutbox).where(eq(executionOutbox.executionId, executionId));
+  });
 }
 
 /** Ends a run whose job could not be handed to the queue, so nobody waits for it for ever. */
