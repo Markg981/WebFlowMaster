@@ -19,6 +19,14 @@ test ; réparer la référence ensuite demande une nouvelle exécution. Les requ
 d'idempotence et les relances automatiques réutilisent l'instantané d'origine. Une nouvelle
 exécution capture les données actuelles.
 
+Les tests web sont figés de la même façon, avec les groupes d'étapes, les éléments conservés et les
+actions personnalisées qu'ils appellent : une version publiée exécute ceux enregistrés lors de sa
+sauvegarde, une copie de travail ceux en vigueur au moment de la mise en file d'attente
+([Ce qu'exécute une version](/en/guide/web-tests#what-a-version-runs), en anglais). Une exécution en
+file dont la configuration enregistrée est illisible, ou écrite par une version plus récente dans un
+format que celle-ci ne connaît pas, se termine en erreur avec un message le disant ; elle n'est
+jamais exécutée à partir du plan tel qu'il est maintenant.
+
 Les exécutions anciennes sans instantané de dataset continuent de résoudre les données au démarrage
 du worker. Cette fonctionnalité fige les entrées de données, pas chaque définition de test ni chaque
 système externe : les secrets d'environnement, les variables capturées dans les réponses, les
@@ -55,22 +63,28 @@ compter sur ce comportement pendant un déploiement progressif.
 
 **Paramètres** sur la ligne d'un plan change le comportement de sa prochaine exécution :
 
-| Paramètre                                                | Ce qu'il fait                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
-| -------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Navigateurs**                                          | Chaque test s'exécute une fois par navigateur listé, chacun sur ordinateur ou en téléphone ou tablette ([appareils](#mobile-devices)). Aucun listé : le navigateur de vos propres paramètres.                                                                                                                                                                                                                                                                               |
-| **Langues**                                              | Des codes de langue comme `it-IT, en-US` (10 au plus). Chaque test s'exécute une fois par langue dans chaque navigateur ; voir [Tester en plusieurs langues](#languages). Vide : la langue propre au navigateur.                                                                                                                                                                                                                                                            |
-| **Exécuter au plus (tests simultanés)**                  | De 1 à 16 sessions de navigateur en même temps. 1 exécute le plan un test à la fois, navigateur par navigateur.                                                                                                                                                                                                                                                                                                                                                             |
-| **Workers partageant une exécution**                     | De 1 à 8 runners pour une exécution, chacun exécutant le nombre ci-dessus en même temps ; voir [Une exécution sur plusieurs runners](#shards). 1 garde l'exécution sur un seul runner.                                                                                                                                                                                                                                                                                      |
-| **Conserver un enregistrement de l'exécution**           | Une **vidéo** et une **trace** Playwright de chaque test — jamais, quand le test échoue, ou toujours — et le trafic **réseau** dans un fichier HAR. Elles répondent à ce qu'une capture d'écran ne peut pas dire, et occupent du disque à chaque exécution.                                                                                                                                                                                                                 |
-| **Tests visuels**                                        | Compare la capture d'écran de chaque étape à sa référence ; voir [Tests visuels](./results#visual-testing).                                                                                                                                                                                                                                                                                                                                                                 |
-| **Exécuter sur**                                         | Les runners de ce serveur, un pool d'[agents locaux](/en/integrations/local-agents) (en anglais) dans votre propre réseau, ou une [grille de navigateurs](#browser-grids).                                                                                                                                                                                                                                                                                                  |
-| **Signaler les échecs dans**                             | Un gestionnaire de tickets (Jira, Azure DevOps) connecté par un propriétaire. Avec **Ouvrir un ticket quand un test échoue**, chaque test et navigateur en échec reçoit un ticket ; le même échec plus tard y est ajouté en commentaire.                                                                                                                                                                                                                                    |
-| **Publier les résultats dans**                           | TestRail, Xray ou Zephyr Scale, connecté dans **Paramètres → Gestion des tests** : chaque exécution terminée y est publiée cas par cas ; voir [Publier vers TestRail, Xray ou Zephyr](./results#test-management).                                                                                                                                                                                                                                                           |
-| **Envoyer une notification lorsque** et l'URL du webhook | Un message vers un webhook entrant Slack ou Microsoft Teams, ou toute URL qui accepte un POST, quand une exécution réussit, échoue, n'est pas exécutée ou est arrêtée. Les adresses Slack et Teams reçoivent leur propre format de carte : le verdict en couleur, les nombres, et un bouton **Ouvrir le rapport** quand l'installation connaît son adresse publique. Les adresses e-mail qui y figurent reçoivent aussi un e-mail, quand l'installation envoie des e-mails. |
+| Paramètre                                                | Ce qu'il fait                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Navigateurs**                                          | Chaque test s'exécute une fois par navigateur listé, chacun sur ordinateur ou en téléphone ou tablette ([appareils](#mobile-devices)). Aucun listé : le navigateur de vos propres paramètres.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| **Langues**                                              | Des codes de langue comme `it-IT, en-US` (10 au plus). Chaque test s'exécute une fois par langue dans chaque navigateur ; voir [Tester en plusieurs langues](#languages). Vide : la langue propre au navigateur.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| **Exécuter au plus (tests simultanés)**                  | De 1 à 16 sessions de navigateur en même temps. 1 exécute le plan un test à la fois, navigateur par navigateur.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| **Workers partageant une exécution**                     | De 1 à 8 runners pour une exécution, chacun exécutant le nombre ci-dessus en même temps ; voir [Une exécution sur plusieurs runners](#shards). 1 garde l'exécution sur un seul runner.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| **Quand un runner est perdu en cours de test**           | **Marquer son résultat comme inconnu** (par défaut) : le test se termine _indéterminé_ et l'exécution _incomplète_. **Relancer le test sur un autre runner** : seulement si chaque test du plan peut être exécuté deux fois sur l'application sans risque ; voir [Un runner qui ne répond plus](#lost-runner).                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| **Conserver un enregistrement de l'exécution**           | Une **vidéo** et une **trace** Playwright de chaque test — jamais, quand le test échoue, ou toujours — et le trafic **réseau** dans un fichier HAR. Elles répondent à ce qu'une capture d'écran ne peut pas dire, et occupent du disque à chaque exécution.                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| **Tests visuels**                                        | Compare la capture d'écran de chaque étape à sa référence ; voir [Tests visuels](./results#visual-testing).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| **Exécuter sur**                                         | Les runners de ce serveur, un pool d'[agents locaux](/en/integrations/local-agents) (en anglais) dans votre propre réseau, ou une [grille de navigateurs](#browser-grids).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| **Signaler les échecs dans**                             | Un gestionnaire de tickets (Jira, Azure DevOps) connecté par un propriétaire. Avec **Ouvrir un ticket quand un test échoue**, chaque test et navigateur en échec reçoit un ticket ; le même échec plus tard y est ajouté en commentaire.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| **Publier les résultats dans**                           | TestRail, Xray ou Zephyr Scale, connecté dans **Paramètres → Gestion des tests** : chaque exécution terminée y est publiée cas par cas ; voir [Publier vers TestRail, Xray ou Zephyr](./results#test-management).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| **Envoyer une notification lorsque** et l'URL du webhook | Un message vers un webhook entrant Slack ou Microsoft Teams, ou toute URL qui accepte un POST, quand une exécution réussit, échoue, n'est pas exécutée ou est arrêtée. Les adresses Slack et Teams reçoivent leur propre format de carte : le verdict en couleur, les nombres, et un bouton **Ouvrir le rapport** quand l'installation connaît son adresse publique. Les adresses e-mail qui y figurent reçoivent aussi un e-mail, quand l'installation envoie des e-mails. Un webhook qui ne répond pas est retenté, jusqu'à 5 tentatives en une heure environ, même après un redémarrage ; l'état de chaque envoi (envoyé, nouvelle tentative, échec avec la raison) figure dans la carte **Livraisons** du rapport de l'exécution. |
 
 **Suites** sur la ligne ajoute des [suites](./organizing#suites) : elles s'exécutent après les
 tests propres au plan, dans l'ordre coché, et un test présent dans plusieurs suites ne s'exécute
 qu'une fois.
+
+Avec **Retry Step** comme réponse à une étape en échec, seules les étapes qui attendent ou vérifient
+(assertions, attentes d'un élément, d'un texte ou du réseau, vérifications d'état) sont retentées une
+seconde fois. Un clic, un envoi de fichier, une requête de base de données ou une requête en échec ont
+peut-être déjà agi : ils ne sont donc pas répétés.
 
 ### Une exécution sur plusieurs runners {#shards}
 
@@ -86,12 +100,40 @@ en prend une autre : un test lent ne bloque jamais un lot fixe.
   ensemble : chaque navigateur et chaque langue forment une part, exécutée dans l'ordre sur un seul
   runner.
 - Un runner qui s'arrête alors qu'il détient une part (un plantage, une machine perdue) cesse de
-  répondre ; au bout de deux minutes, un autre runner reprend cette part et l'exécute.
+  répondre ; voir [Un runner qui ne répond plus](#lost-runner).
 - Une politique d'arrêt (par exemple _arrêter l'exécution_ sur un échec) arrête tous les runners :
   les tests pas encore démarrés sont consignés comme ignorés, avec la raison.
 - Les aides sont des jobs ordinaires de la file d'attente : ils prennent des runners libres, et
   n'aident que s'il y en a. Sans runner libre, le premier exécute lui-même tous les tests, et le
   journal le dit.
+
+### Un runner qui ne répond plus {#lost-runner}
+
+Un runner détient chaque morceau de travail sous un bail (lease) qu'il renouvelle pendant que le test
+s'exécute. Quand il cesse de le renouveler — un plantage, une machine perdue, une coupure réseau —, le
+bail expire (deux minutes par défaut) et, dès lors, rien de ce que ce runner écrit n'est accepté : ni
+un résultat, ni une capture d'écran, ni un « réussi » qui arriverait en retard. Ce qui arrive au
+morceau dépend de son avancement :
+
+- **Rien n'avait démarré** (le runner est mort avant d'ouvrir le test) : un autre runner le prend,
+  comme si de rien n'était.
+- **Le test avait démarré** : il a peut-être déjà cliqué, créé des enregistrements ou envoyé des
+  requêtes, son résultat n'est donc pas connu. Par défaut, le test se termine **indéterminé**,
+  l'exécution se termine en erreur en disant combien de résultats ont été perdus, et rien n'est
+  exécuté deux fois. Avec **Relancer le test sur un autre runner**, un autre runner le relance comme
+  nouvelle tentative ; ne le choisissez que pour des plans dont les tests peuvent être répétés sans
+  risque.
+- **Les tests API qui transmettent des valeurs aux suivants** ne sont jamais repris à mi-chemin, quel
+  que soit le réglage : les valeurs qu'ils avaient capturées ont été perdues avec le runner. Les
+  résultats déjà enregistrés pour les tests précédents de la séquence restent dans le rapport.
+
+Un runner qui ne peut pas confirmer son bail à temps arrête son test de lui-même, avant que le bail
+n'expire sous lui, et la console de l'exécution le dit. Une exécution sur un seul runner qui perd son
+runner se termine avec `worker_lost` ; elle n'est relancée qu'avec le même réglage.
+
+Une exécution n'est **terminée** que lorsque chaque test attendu a son unique résultat. Le rapport
+distingue les tests perdus (indéterminés), jamais exécutés ou qui n'ont pas pu démarrer, des tests
+ignorés volontairement et des tests manuels en attente d'une personne.
 
 ### Grilles de navigateurs {#browser-grids}
 
@@ -181,7 +223,9 @@ limite le permet, ou quand aucun runner n'est en ligne : **Paramètres → Utili
 exécutions** dit lequel des deux.
 
 Pour arrêter une exécution, **Annuler l’exécution** sur son rapport. Les tests qui n'ont pas démarré
-sont rapportés comme ignorés ; un test en cours s'arrête à son étape suivante.
+sont rapportés comme ignorés. Un test en cours est arrêté là où il en est, même au milieu d'un script qui ne finit jamais : son navigateur est fermé en quelques secondes et l'étape affiche **Arrêtée**. Le runner remarque une annulation à sa vérification suivante, toutes les 15 secondes par défaut. Une seule étape qui dépasse son délai (5 minutes par défaut) est arrêtée de la même façon et échoue pour dépassement de délai.
+
+Une exécution qui ne peut pas enregistrer le résultat d'un test se termine en **erreur** (`run_incomplete`), jamais réussie : son message nomme le test dont le résultat a été perdu. Ce n'est pas la même chose qu'un test en échec — un test en échec apparaît dans le rapport avec son échec, et l'exécution est **en échec**.
 
 ### Relancer les échecs
 
@@ -201,9 +245,11 @@ même comme réussi.
 - **Fuseau horaire** : la planification s'exécute à cette heure locale toute l'année, heure d'été
   comprise.
 - **Environnement** dont l'exécution utilise les secrets, et les **navigateurs** dans lesquels
-  s'exécuter (headless : personne ne regarde).
+  s'exécuter (headless : personne ne regarde). Un environnement encore nommé par une planification active ne peut pas être supprimé (la requête est refusée avec 409 et liste les planifications) ; si le nom ne correspond plus à aucun environnement, l'exécution n'est pas lancée plutôt que d'être exécutée sans variables ni secrets.
 - **Réessayer en cas d'échec** : réexécuter tout le plan s'il échoue, une ou deux fois.
 - **Planification active** : la désactiver sans la supprimer.
+
+Quand une occurrence ne peut pas démarrer (l'environnement nommé n'existe plus, la planification n'a pas de propriétaire, une planification unique est arrivée à échéance pendant que le serveur était arrêté), elle n'est pas ignorée en silence : une exécution en `error` est consignée pour elle, avec la raison, dans l'historique des exécutions et les rapports, et la liste des planifications affiche « La dernière exécution n'a pas démarré » avec un lien vers cette exécution. Elle notifie comme toute autre exécution en échec et disparaît quand une exécution ultérieure démarre.
 
 Le tableau de bord liste les prochaines exécutions planifiées.
 

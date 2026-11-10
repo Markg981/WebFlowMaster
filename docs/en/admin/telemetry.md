@@ -108,7 +108,7 @@ Only trace fields cross boundaries: no baggage, payloads, target URLs, exception
 
 ## Verify
 
-The local Collaudo catalog includes TEL-01–TEL-12 (protocol 25) for metrics,
+The local Collaudo catalog includes TEL-01–TEL-13 (protocol 25) for metrics,
 tracing, privacy, replica aggregation and failure recovery. Select **Catalogo attuale**
 to consult the procedures and create a new cycle to record manual results.
 

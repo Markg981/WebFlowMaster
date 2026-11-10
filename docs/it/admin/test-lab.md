@@ -36,7 +36,7 @@ su un'altra macchina: i backup locali non proteggono da guasti del disco.
 I test automatici provano il codice; l'ambiente di collaudo prova il _prodotto come lo incontra una persona_: le
 immagini vere, TLS, cookie, single sign-on, e-mail, agenti in un'altra rete, un emulatore vero. Il protocollo è
 un elenco di casi numerati (aree ACC, MFA, SSO, MEM, ENV, WEB, API, LIB, PLN, SCH, REP, INT, AGT, ADM, SEC, OPS,
-UX, TMG, TRC, MOB) conservato localmente in `collaudo/casi/`; ogni esito registrato è legato all'id del
+UX, TMG, TRC, MOB, AUT, BDD, COL, QUO, TEL) conservato localmente in `collaudo/casi/`; ogni esito registrato è legato all'id del
 caso, quindi gli id non si rinominano mai.
 
 ## Topologia

@@ -199,7 +199,7 @@ tickets contiennent des noms de capacités. Les valeurs d'environnement et le co
 masqués dans les erreurs de transport et l'historique des requêtes.
 
 Les plans qui utilisent des agents locaux exécutent tous ces protocoles depuis le réseau de
-l'agent. Passez à l'**agent 1.2.0** en téléchargeant le nouveau script et ses dépendances ou en
+l'agent. Passez à l'**agent de cette version** (même version que le serveur) en téléchargeant le nouveau script et ses dépendances ou en
 reconstruisant et redémarrant l'agent Docker ([Local agents](/en/integrations/local-agents), en
 anglais). Les agents natifs plus anciens peuvent encore exécuter les appels unaires et WebSocket
 historiques, mais les tickets avancés exigent `native-protocol-v2` ; un pool non compatible échoue
@@ -238,7 +238,7 @@ pour <code v-pre>{{baseUrl}}</code> : définissez-les dans un
 [environnement](./web-tests#variables-and-environments) avant d'exécuter. Ce qui n'a pas pu être
 repris est indiqué pour chaque test : corps multipart, scripts Postman au-delà du contrôle de
 statut, scripts de pré-requête, flux OAuth (le test envoie alors <code v-pre>{{token}}</code>). Au
-plus 500 tests par import, 12 Mo par fichier ; le journal d'audit consigne chaque import.
+plus 500 tests par import, 10 Mio par fichier ; le journal d'audit consigne chaque import.
 
 ### Lots WSDL/XSD hors ligne
 

@@ -87,7 +87,7 @@ flowchart LR
 | Dati           | Drizzle ORM su `pg` (PostgreSQL) o PGlite; migrazioni SQL scritte a mano                                                                  |
 | Job            | BullMQ 5 su ioredis; node-cron o job scheduler BullMQ per le schedulazioni                                                                |
 | Browser        | Playwright (Chromium, Firefox, WebKit, canali Chrome ed Edge), axe-core per l'accessibilità                                               |
-| Client         | React 18, Vite 5, wouter (routing), TanStack Query, UI Radix/shadcn, Tailwind CSS, React Flow (builder visuale), i18next (en, it, fr, de) |
+| Client         | React 18, Vite 6, wouter (routing), TanStack Query, UI Radix/shadcn, Tailwind CSS, React Flow (builder visuale), i18next (en, it, fr, de) |
 | AI (opzionale) | Google Gemini, per la correzione dei selettori e per trasformare frasi in step; il prodotto funziona anche senza                          |
 | Test           | Vitest (server su PGlite, client con Testing Library), supertest, browser reali dove serve                                                |
 | Build          | esbuild impacchetta i punti di ingresso del server, il migrator, la CLI e l'agente; Vite compila il client                                |
@@ -100,13 +100,13 @@ client/            applicazione React (con package.json e configurazione Vitest 
   src/components/  componenti per funzionalità, con i test accanto
   src/locales/     traduzioni: en, it, fr, de
 server/            il processo web e il worker
-  routes/          rotte HTTP, un modulo per area; routes.ts le monta
-  middleware/      tenancy, ruoli, scope, chiavi API, CSRF, MFA, correlation id
-  agents/          il relay degli agenti locali e le sue credenziali
-  api-v1/          il documento OpenAPI dell'API pubblica
-  observability/   cattura degli incidenti per i fallimenti non gestiti (sviluppo)
+  http/            routes/ (rotte HTTP, un modulo per area; server/routes.ts le monta), middleware/
+                   (ruoli, scope, chiavi API, CSRF, MFA), api-v1/ (l'API pubblica e il suo documento OpenAPI)
+  platform/        middleware di tenancy, database, coda, crittografia, configurazione, log, observability/
+  runtime/         esecuzione nei browser, agents/ (il relay degli agenti locali e le sue credenziali), grid
+  identity/ tenancy/ authoring/ execution/ reporting/ integrations/ ...
+                   moduli di dominio (vedi scripts/server-domains.mjs)
   tests/           setup dei test, factory, test trasversali di architettura e isolamento
-  *.ts             moduli di dominio: esecuzione, report, schedulazioni, issue, ...
 shared/            codice importato da server e client: schema, enum, logica pura
 scripts/           CLI, agente, migrator, schema doctor, importer
 migrations/        migrazioni SQL e il loro journal (migrations/meta/_journal.json)

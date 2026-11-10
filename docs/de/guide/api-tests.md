@@ -200,7 +200,7 @@ Agenten-Relay; Tickets enthalten Namen von Fähigkeiten. Umgebungswerte und PEM-
 Transportfehlern und im Anfrageverlauf geschwärzt.
 
 Pläne mit lokalen Agenten führen all diese Protokolle aus dem Netzwerk des Agenten aus.
-Aktualisieren Sie auf **Agent 1.2.0**, indem Sie das neue Skript und seine Abhängigkeiten
+Aktualisieren Sie auf den **Agenten dieses Releases** (gleiche Version wie der Server), indem Sie das neue Skript und seine Abhängigkeiten
 herunterladen oder den Docker-Agenten neu bauen und neu starten
 ([Local agents](/en/integrations/local-agents), auf Englisch). Ältere native Agenten können
 weiterhin die bisherigen Unary- und WebSocket-Aufrufe ausführen, aber fortgeschrittene Tickets
@@ -241,7 +241,7 @@ Die Vorschau listet die Variablen, die die Tests brauchen, mit der Serveradresse
 [Umgebung](./web-tests#variables-and-environments) an. Was nicht übernommen werden konnte, wird pro
 Test genannt: Multipart-Bodys, Postman-Skripte über die Statusprüfung hinaus,
 Pre-Request-Skripte, OAuth-Abläufe (der Test sendet dann <code v-pre>{{token}}</code>). Höchstens
-500 Tests pro Import, 12 MB pro Datei; das Audit-Protokoll hält jeden Import fest.
+500 Tests pro Import, 10 MiB pro Datei; das Audit-Protokoll hält jeden Import fest.
 
 ### Offline-WSDL-/XSD-Pakete
 

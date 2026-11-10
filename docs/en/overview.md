@@ -99,7 +99,7 @@ The five rules that explain most of the code:
 ## Technology
 
 TypeScript throughout. Node.js 24, Express, `ws`, Passport; Drizzle ORM on PostgreSQL 15+ with hand-written
-SQL migrations (83 journal entries through `0082` at this revision); BullMQ on Redis/Valkey; Playwright for browsers and axe-core for accessibility;
+SQL migrations (110 journal entries through `0109` at this revision); BullMQ on Redis/Valkey; Playwright for browsers and axe-core for accessibility;
 Appium for mobile apps; React 18, Vite, TanStack Query, Radix/shadcn, Tailwind, React Flow; optional Google
 Gemini for AI features; Vitest, Testing Library and supertest for tests; Docker for packaging.
 
@@ -110,7 +110,7 @@ Gemini for AI features; Vitest, Testing Library and supertest for tests; Docker 
 | `client/`        | The React application                                                                                                    |
 | `server/`        | The web process and the worker: routes, middleware, domain modules                                                       |
 | `shared/`        | Schema and types used by both client and server                                                                          |
-| `migrations/`    | The SQL migrations (`0000` … `0082`; see the migration journal)                                                          |
+| `migrations/`    | The SQL migrations (`0000` … `0109`; see the migration journal)                                                          |
 | `scripts/`       | CLI (`wfm`), local agent, migrator, schema doctor, importers                                                             |
 | `integrations/`  | GitHub Action, GitLab template, Jenkins shared library, Azure Pipelines template, Bitbucket Pipelines step, CircleCI orb |
 | `collaudo/`      | The acceptance test lab: HTTPS, Keycloak, simulators, Jenkins, Android emulator                                          |

@@ -35,7 +35,7 @@ copy too: local backups do not protect against disk failure.
 The automated tests prove the code; the lab proves the _product as a person meets it_: the real images,
 TLS, cookies, single sign-on, e-mail, agents in another network, a real emulator. The protocol is a
 list of numbered cases (areas ACC, MFA, SSO, MEM, ENV, WEB, API, LIB, PLN, SCH, REP, INT, AGT, ADM, SEC,
-OPS, UX, TMG, TRC, MOB) kept locally in `collaudo/casi/`; each recorded result is keyed by
+OPS, UX, TMG, TRC, MOB, AUT, BDD, COL, QUO, TEL) kept locally in `collaudo/casi/`; each recorded result is keyed by
 the case id, so ids are never renamed.
 
 ## Topology

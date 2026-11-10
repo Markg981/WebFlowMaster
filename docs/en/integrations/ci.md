@@ -8,7 +8,7 @@ anything else that runs Node 18 or later can use the CLI directly.
 
 ## 1. What you need
 
-- **The server's address**, e.g. `https://webflowmaster.example.com`. Set `APP_BASE_URL` on the
+- **The server's address**, e.g. `https://webflowmaster.example.com`. Set `WEBFLOW_PUBLIC_URL` on the
   server as well, so runs carry a link to their report.
 - **An API key** with the scopes `runs:write` and `runs:read` (Settings → API keys). A key acts
   for whoever created it, and never beyond that person's role. For a pipeline, create it on a

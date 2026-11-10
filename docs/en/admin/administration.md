@@ -8,7 +8,7 @@ Most of what follows is in **Settings**. Sections marked _owners_ are only shown
 
 ## Roles
 
-Each person belongs to exactly one organization, with one role.
+Each person holds one role in each organization they belong to (see [several organizations](#members-and-invitations)).
 
 |                                                                 | Viewer | Editor | Owner |
 | --------------------------------------------------------------- | :----: | :----: | :---: |
@@ -371,7 +371,7 @@ Pipelines and scripts authenticate with **API keys** (**Settings → API keys**)
 person's password.
 
 - **Scoped keys** (the default) work only on the public API `/api/v1`, and only for what they
-  were given: `plans:read`, `runs:read`, `runs:write`. A pipeline that starts a plan and waits
+  were given, for example `plans:read`, `runs:read`, `runs:write` (the full list is in the key form and in the [API reference](../reference/api)). A pipeline that starts a plan and waits
   for it needs `runs:write` and `runs:read`. Traces and HAR files of runs also need
   `runs:evidence`, and the editor role: they can hold passwords in clear.
 - **At least one scope is required** when a key is created, and so is an **expiry**: the lifetime
@@ -482,11 +482,11 @@ several customers should name its operators.
 
 In **Settings → Export and erasure**: **Download the export**, and **Erase permanently** after
 typing the organization's exact name. The same is available through the API, with an owner's
-full-access key:
+signed-in session (an API key is refused with `403`):
 
 ```bash
 export WFM_URL=https://webflowmaster.example.com
-export KEY=wfm_...   # an owner's full-access key
+# cookie jar of an owner's session, saved with: curl -c cookies.txt ... (sign in)
 ```
 
 **Export**: `GET /api/organization/export` returns the whole organization as one JSON file:
@@ -497,14 +497,14 @@ is recorded in the audit log as `organization.exported`. The organization's own 
 confidential all the same: it holds the organization's tests, data and audit trail.
 
 ```bash
-curl -s -H "Authorization: Bearer $KEY" "$WFM_URL/api/organization/export" -o export.json
+curl -s -b cookies.txt "$WFM_URL/api/organization/export" -o export.json
 ```
 
 **Erasure** deletes the organization and **every member account**, irreversibly. It requires
 the organization's exact name as confirmation:
 
 ```bash
-curl -s -X DELETE -H "Authorization: Bearer $KEY" -H "Content-Type: application/json" \
+curl -s -X DELETE -b cookies.txt -H "Content-Type: application/json" \
   -d '{"confirmName":"Acme QA"}' "$WFM_URL/api/organization"
 ```
 

@@ -168,6 +168,32 @@ Les mots de passe saisis pendant l'enregistrement ne sont pas stockés dans le t
 des placeholders <code v-pre>{{secret&#95;…}}</code>, que vous définissez comme secrets d'un
 environnement.
 
+Cocher une case à cocher ou un bouton radio enregistre le clic et une étape **Mettre dans l’état**
+avec l'état dans lequel le contrôle s'est retrouvé (`checked` ou `unchecked`), pour que rejouer le
+test deux fois ne le décoche pas.
+
+### Composants web et frames {#recording-web-components}
+
+Les champs et boutons à l'intérieur d'un composant web (un shadow root **ouvert**, y compris imbriqué
+ou déclaratif, et les composants que la page ajoute plus tard) sont enregistrés comme les autres :
+chaque action une seule fois, sur l'élément utilisé, avec un sélecteur que le runner résout vers cet
+élément seul. Le sélecteur nomme d'abord le composant puis l'élément qu'il contient, par exemple
+`body > x-login input[name="q"]`. La relecture le retrouve dans Chromium, Firefox et WebKit sans
+modification.
+
+Un élément dans un iframe est enregistré avec le frame où il se trouve : l'élément de l'étape porte la
+chaîne de frames séparément de son sélecteur. Le frame peut lui-même se trouver dans un composant web.
+
+Deux cas ne peuvent pas être rejoués, et l'enregistreur le dit au lieu de deviner :
+
+- un élément dans un shadow root **fermé**, que le runner ne peut pas voir ;
+- un élément dans un frame d'**une autre origine**, que la page ne peut pas adresser.
+
+Ces interactions apparaissent dans la liste d'enregistrement marquées **Non rejouable**, un avis le
+signale quand vous arrêtez l'enregistrement, et elles ne deviennent pas des étapes : ajoutez ces
+étapes à la main, par exemple sur un élément que le composant expose. L'enregistreur n'envoie jamais
+la valeur saisie dans un composant fermé.
+
 ## Décrire un test en phrases
 
 ![La fenêtre Décrire avec un test écrit en phrases](/screenshots/builder-describe.webp)
@@ -514,8 +540,10 @@ propres à ce test** retransforme le lien en lignes propres.
 
 Une séquence utilisée par de nombreux tests — se connecter, choisir un client — peut être
 enregistrée avec **Enregistrer comme groupe**. Elle apparaît alors sous **Groupes d'étapes** dans la
-palette, et n'importe quel test peut l'inclure. Un test exécute le groupe tel qu'il est au moment de
-l'exécution : modifier le groupe modifie donc chaque test qui l'utilise.
+palette, et n'importe quel test peut l'inclure. Un test non publié exécute le groupe tel qu'il est quand l'exécution est mise en file : modifier le
+groupe modifie donc chaque test de ce genre dès sa prochaine exécution. Une version publiée exécute
+le groupe tel qu'il était quand cette version a été enregistrée (voir
+[Ce qu'une version exécute](#what-a-version-runs)).
 
 La roue dentée à côté de **Groupes d'étapes** dans la palette ouvre leur gestion : **Où il est
 utilisé** nomme les tests qui appellent un groupe, **Modifier** change son nom et sa description —
@@ -549,8 +577,9 @@ row.querySelector('button.open').click();
 
 Une action personnalisée a les pouvoirs d'une étape **Exécuter du JavaScript**, et aucun autre :
 elle s'exécute dans la page du navigateur, jamais sur le serveur ni sur le runner. Les tests font
-référence à l'action plutôt que de la copier : la modifier change donc chaque test qui l'utilise à
-sa prochaine exécution ; une action encore utilisée par un test ou un groupe d'étapes ne peut pas
+référence à l'action plutôt que de la copier : la modifier change donc chaque test non publié qui
+l'utilise à sa prochaine exécution (une version publiée garde l'action avec laquelle elle a été
+enregistrée) ; une action encore utilisée par un test ou un groupe d'étapes ne peut pas
 être supprimée, et le message nomme ce qui l'utilise. Sa création, sa modification et sa
 suppression sont consignées dans le journal d'audit, sans le script.
 
@@ -561,10 +590,55 @@ détecté l'enregistre dans un projet avec un nom. Les tests qui l'utilisent lis
 dans le projet : quand l'application change, corriger une seule fois le sélecteur dans
 **Paramètres → Référentiel d'éléments** répare tous les tests.
 
-Quand une étape ne trouve pas son élément et que l'installation dispose d'une clé d'IA, l'exécution
-peut le **réparer** : elle demande un nouveau sélecteur, réessaie et marque l'étape _réparé_ dans
-le rapport. Un élément conservé réparé montre l'ancien et le nouveau sélecteur dans le référentiel,
-pour que vous confirmiez.
+Quand un clic, une saisie ou une sélection ne trouve pas son élément, l'exécution peut **réparer**
+l'étape : elle essaie un autre localisateur et, s'il fonctionne, l'étape réussit et le test continue.
+Les assertions qui suivent s'exécutent quand même. L'exécution essaie, dans cet ordre :
+
+1. **Les solutions de repli connues** : l'identifiant de test enregistré de l'élément
+   (`data-testid`, `data-test`, `data-qa`, `data-cy`), `id`, `name` ou `aria-label`. Une valeur avec
+   une `{{variable}}` est ignorée.
+2. **La suggestion de l'IA**, seulement si l'installation dispose d'une clé d'IA (`GEMINI_API_KEY`).
+   Le modèle voit la page sans ses scripts, styles, valeurs de formulaire, jetons cachés ni contenus
+   meta.
+
+L'un ou l'autre n'est utilisé que s'il s'agit d'un localisateur valide qui correspond à **exactement
+un** élément de la page. La confiance du modèle n'est jamais utilisée.
+
+### Utilisation à l'exécution, approbation et publication {#healing-approval}
+
+La réparation comporte trois étapes distinctes, et seule la première a lieu pendant une exécution :
+
+| Étape                         | Qui         | Ce qui change                                                                                                                                |
+| ----------------------------- | ----------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Utilisation à l'exécution** | l'exécution | Rien de durable. L'étape réussit avec le localisateur réparé pour cette exécution, et une **proposition** est enregistrée.                   |
+| **Approbation**               | un éditeur  | La source où l'étape est écrite : la copie de travail du test (comme nouvelle version), le groupe d'étapes ou l'élément conservé.            |
+| **Publication**               | comme avant | Seule l'étape de publication (ou de relecture) existante met la nouvelle version en ligne. Les plans exécutent la version publiée jusque-là. |
+
+Une proposition enregistre l'exécution, l'unité et la tentative, où l'étape est écrite, une empreinte
+de l'étape telle que l'exécution l'a lue, le localisateur avant (tel qu'écrit, avec les
+`{{variables}}` non résolues) et après, et si une solution de repli ou l'IA l'a trouvé. Approuver et
+rejeter se font dans les détails d'étape du rapport (voir [Résultats](./results#healed-steps)) et
+demandent le rôle d'éditeur sur le projet du test.
+
+Où va une réparation approuvée est décidé par l'endroit où l'étape est écrite, jamais par l'IA :
+
+| L'étape réparée                 | L'approbation écrit dans                                           |
+| ------------------------------- | ------------------------------------------------------------------ |
+| nomme un élément conservé       | l'élément du référentiel, pour tous les tests qui l'utilisent      |
+| appartient à un groupe d'étapes | cette étape du groupe, pour tous les tests qui l'appellent         |
+| est une étape propre au test    | cette étape du test, comme nouvelle version de la copie de travail |
+
+Une étape après un groupe, ou un groupe appelé deux fois, n'est jamais confondu. Une approbation
+n'écrit que si l'étape (ou l'élément) est encore exactement ce que l'exécution a lu. S'il a été
+modifié entre-temps, ou si une autre proposition le concernant a été approuvée d'abord, la
+proposition devient **périmée** : rien n'est écrit, et elle ne peut plus être approuvée. Approuver
+deux fois vaut une approbation. Chaque décision figure dans le journal d'audit de l'organisation,
+avec son auteur.
+
+Pour annuler une réparation approuvée d'une étape de test, restaurez la version précédente dans
+l'historique du test (voir [Historique et versions](./organizing#history-and-versions)). Pour un
+groupe d'étapes ou un élément conservé, remettez le sélecteur à la main : la proposition garde le
+sélecteur qu'elle a remplacé.
 
 ## Enregistrer
 
@@ -572,3 +646,23 @@ pour que vous confirmiez.
 endroit). Enregistrer de nouveau sous le même nom propose d'écraser. Chaque enregistrement est une
 nouvelle **version** dans l'historique du test (voir
 [Historique et versions](./organizing#history-and-versions)).
+
+### Ce qu'une version exécute {#what-a-version-runs}
+
+Une version enregistre, en plus des étapes, les groupes d'étapes, éléments conservés et actions
+personnalisées que le test appelle, tels qu'ils sont au moment de l'enregistrement, y compris ceux
+qu'un groupe utilise. Ce qu'une relecture approuve et ce qu'un plan exécute, c'est cette version avec
+ces dépendances : modifier ou supprimer un groupe après la relecture, ou pendant qu'une exécution
+attend dans la file, ne change pas ce que fait la version publiée.
+
+Pour adopter un groupe, un élément ou une action modifié, enregistrez de nouveau le test :
+l'enregistrement crée une nouvelle version même si les étapes sont les mêmes, avec un résumé comme
+_Groupe d'étapes « Login » modifié_, et cette version est relue et publiée comme n'importe quelle
+autre. Une version enregistrée avant cette fonction enregistre ses dépendances à l'enregistrement
+suivant ; d'ici là, un plan utilise celles qui sont courantes quand l'exécution est mise en file.
+
+Une exécution lancée depuis un test non publié utilise les dépendances telles qu'elles sont à ce
+moment-là, et les garde pendant qu'elle attend. Exécuter le test depuis le constructeur utilise
+toujours les dépendances courantes. Les variables d'environnement et secrets, le navigateur et
+l'application elle-même sont toujours courants : une version fixe ce que fait le test, pas le monde
+contre lequel il s'exécute.

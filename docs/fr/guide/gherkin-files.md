@@ -33,7 +33,7 @@ matrice navigateurs/langues. Les étapes et hooks non définis, ambigus, en atte
 échec ne comptent jamais comme réussis.
 
 Un opérateur installe Cucumber.js **12.9.0**, les fichiers de support et les dépendances, puis
-démarre l'agent **1.3.0** avec `WFM_BDD_PROFILES` pointant vers son manifeste. Seuls les
+démarre l'**agent de cette version** (même version que le serveur) avec `WFM_BDD_PROFILES` pointant vers son manifeste. Seuls les
 identifiants publics des profils, leurs libellés, révisions et limites sont annoncés. Un
 propriétaire d'organisation associe un profil annoncé et un pool à l'organisation ou à un projet.
 Les chemins des exécutables, les commandes et les loaders restent de la configuration

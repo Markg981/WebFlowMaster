@@ -15,7 +15,7 @@ Un pipeline ne doit pas dépendre du compte d'une personne.
    compte**.
 2. Dans la carte **Clés API** au-dessus : un nom, **Attribuée à** le compte de service, ce que la
    clé peut faire → _uniquement ce que je choisis, via /api/v1_ avec **Lancer des exécutions et les
-   annuler** (`runs:write`) et **Lire les exécutions, leur statut et leurs rapports JUnit**
+   annuler** (`runs:write`) et **Lire les exécutions, leur statut, leurs rapports JUnit, leurs captures et leurs vidéos**
    (`runs:read`) ; ajoutez **Lister les plans de test** (`plans:read`) si le job recherche des
    plans. Réglez **Expire dans (jours)** sur ce qu'accepte votre politique de rotation, puis
    **Créer une clé**.

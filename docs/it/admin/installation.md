@@ -395,13 +395,13 @@ possano raggiungerla.
 
 ## Verificare l'installazione
 
-| Verifica                        | Come                                                                               |
-| ------------------------------- | ---------------------------------------------------------------------------------- |
-| Il processo web è attivo        | `GET /api/user` risponde `401` senza accesso (lo usa l'healthcheck del container). |
-| I worker sono attivi            | **Impostazioni → Runner** li mostra _online_.                                      |
-| Un run funziona da capo a fondo | Create un test su una pagina pubblica, aggiungetelo a un piano, eseguitelo.        |
-| Le evidenze vengono servite     | Il report del run mostra i suoi screenshot.                                        |
-| I link funzionano               | Una notifica o uno stato del commit rimanda al run all'indirizzo pubblico.         |
+| Verifica                        | Come                                                                                           |
+| ------------------------------- | ---------------------------------------------------------------------------------------------- |
+| Il processo web è attivo        | `GET /readyz` risponde `200` (lo usa l'healthcheck del container); `/healthz` è solo liveness. |
+| I worker sono attivi            | **Impostazioni → Runner** li mostra _online_.                                                  |
+| Un run funziona da capo a fondo | Create un test su una pagina pubblica, aggiungetelo a un piano, eseguitelo.                    |
+| Le evidenze vengono servite     | Il report del run mostra i suoi screenshot.                                                    |
+| I link funzionano               | Una notifica o uno stato del commit rimanda al run all'indirizzo pubblico.                     |
 
 Prossimo passo: [Operatività](./operations) tratta aggiornamenti, backup, log e risoluzione dei
 problemi.

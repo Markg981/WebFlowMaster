@@ -255,6 +255,10 @@ Gemini**. Quando sono attive, lascia l'installazione verso l'API di Google:
 | Test da una story, quando un editor li chiede                                                                     | Chiave e titolo del requisito, e la sua descrizione e i criteri di accettazione come li ha il tracker (fino a 12.000 caratteri).                                                                                                                                 |
 | Analisi del fallimento, quando un editor la chiede su un risultato fallito                                        | Il nome del test, il motivo dato dal runner, gli step intorno al fallimento con selettori, errori e valori (i valori che sembrano password, codici o chiavi sono sostituiti da `[hidden]`), le richieste fallite e le più lente, e lo screenshot del fallimento. |
 
+Il consenso di un'organizzazione (disattivato per impostazione predefinita) condiziona tutte queste
+funzioni, inclusa la riparazione del selettore durante i run, e ogni organizzazione ha un limite di
+`AI_DAILY_CALL_LIMIT` chiamate al giorno.
+
 L'HTML di una pagina può contenere dati personali dell'applicazione sotto test. Impostate la
 chiave solo dove inviarlo a Google è accettabile; tutto il resto funziona anche senza.
 

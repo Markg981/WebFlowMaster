@@ -160,7 +160,7 @@ In the selected organization's environment, create encrypted secret values conta
 
 Use the actual secret variable names. CA is optional when system trust is sufficient; client certificate and key must be supplied together, and passphrase is only for an encrypted key. Each resolved PEM field is bounded to 256 KiB. Plaintext certificates/keys in saved configuration are rejected. The resolved address must use `grpcs://`, including when supplied through an environment variable. Certificate/key matching, trust and destination hostname are verified; there is no insecure fallback. Rotate credentials by changing environment secret values, then rerun the test; versions keep references, not PEM material. Only necessary resolved TLS fields travel on the authenticated agent relay; tickets contain capability names. Environment values and PEM material are redacted from transport errors and request history.
 
-Plans using local agents execute all these protocols from the agent's network. Upgrade to **agent 1.2.0** by downloading the new script/dependencies or rebuilding/restarting the Docker agent ([Local agents](../integrations/local-agents)). Older native agents can still run legacy unary/WebSocket calls, but advanced tickets require `native-protocol-v2`; an unsupported pool fails explicitly. The editor's **Send** preview executes from the server. Existing mandatory proxy and destination restrictions still apply.
+Plans using local agents execute all these protocols from the agent's network. Upgrade to the **agent of this release** (same version as the server) by downloading the new script/dependencies or rebuilding/restarting the Docker agent ([Local agents](../integrations/local-agents)). Older native agents can still run legacy unary/WebSocket calls, but advanced tickets require `native-protocol-v2`; an unsupported pool fails explicitly. The editor's **Send** preview executes from the server. Existing mandatory proxy and destination restrictions still apply.
 
 ## Importing from OpenAPI, Postman or WSDL {#import}
 
@@ -189,7 +189,7 @@ The preview lists the variables the tests need, with the server address as a sug
 <code v-pre>{{baseUrl}}</code>: set them in an [environment](./web-tests#variables-and-environments)
 before running. What could not be carried over is said for each test: multipart bodies, Postman
 scripts beyond the status check, pre-request scripts, OAuth flows (the test then sends
-<code v-pre>{{token}}</code>). At most 500 tests per import, 12 MB per file; the audit log records
+<code v-pre>{{token}}</code>). At most 500 tests per import, 10 MiB per file; the audit log records
 each import.
 
 ### Offline WSDL/XSD bundles

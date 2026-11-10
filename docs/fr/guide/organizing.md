@@ -72,6 +72,13 @@ attend dans le rapport de l'exécution le verdict de quelqu'un (voir
 [Résultats manuels](./results#manual-results)), une fois par exécution quels que soient les
 navigateurs et les langues du plan.
 
+### Modifications simultanées
+
+Quand deux personnes modifient le même test manuel ou BDD, le deuxième enregistrement ne peut pas
+écraser silencieusement le premier : l'éditeur demande s'il faut **Écraser** l'autre modification ou
+**Continuer à modifier**. Votre brouillon reste tel que saisi ; pour voir la version de l'autre
+personne, fermez l'éditeur et rouvrez le test.
+
 ## Historique et versions {#history-and-versions}
 
 Les tests web, API et mobiles ont leurs propres **versions**, numérotées à partir de 1. Enregistrer

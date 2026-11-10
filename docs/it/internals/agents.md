@@ -98,7 +98,7 @@ richieste.
 
 ## Sessioni API native
 
-L'agente 1.1.0 dichiara `apiProtocols: ["grpc", "websocket"]` nell'hello v1. Il ticket firmato
+L'agente dichiara `apiProtocols: ["grpc", "websocket"]` nell'hello v1. Il ticket firmato
 aggiunge `apiProtocol`; il relay filtra per organizzazione, pool, capacità, stato di drenaggio
 e capacità condivisa delle sessioni. Le sessioni native non richiedono browser installati né
 la stessa versione di Playwright. Il relay apre il consueto canale in uscita e inoltra una

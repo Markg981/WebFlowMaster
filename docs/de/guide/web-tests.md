@@ -167,6 +167,33 @@ Schritte ziehen oder sie beschreiben.
 Beim Aufzeichnen eingegebene Passwörter werden nicht im Test gespeichert: Sie werden zu
 Platzhaltern <code v-pre>{{secret&#95;…}}</code>, die Sie als Secrets einer Umgebung anlegen.
 
+Das Anhaken einer Checkbox oder eines Radio-Buttons zeichnet den Klick und einen Schritt
+**Zustand herstellen** mit dem Zustand auf, in dem das Steuerelement endete (`checked` oder
+`unchecked`), damit ein zweimaliges Abspielen des Tests es nicht wieder abhakt.
+
+### Webkomponenten und Frames {#recording-web-components}
+
+Felder und Schaltflächen in einer Webkomponente (ein **offener** Shadow Root, auch verschachtelte und
+deklarative sowie Komponenten, die die Seite später hinzufügt) werden wie alle anderen
+aufgezeichnet: jede Aktion einmal, auf dem verwendeten Element, mit einem Selektor, den der Runner
+auf genau dieses Element auflöst. Der Selektor nennt zuerst die Komponente und dann das Element
+darin, zum Beispiel `body > x-login input[name="q"]`. Das Abspielen findet es in Chromium, Firefox
+und WebKit ohne Änderung.
+
+Ein Element in einem iframe wird mit dem Frame aufgezeichnet, in dem es liegt: Das Element des
+Schritts trägt die Kette der Frames getrennt von seinem Selektor. Der Frame kann selbst in einer
+Webkomponente liegen.
+
+Zwei Fälle lassen sich nicht abspielen, und der Rekorder sagt das, statt zu raten:
+
+- ein Element in einem **geschlossenen** Shadow Root, in das der Runner nicht hineinsehen kann;
+- ein Element in einem Frame von **einem anderen Ursprung**, den die Seite nicht ansprechen kann.
+
+Diese Interaktionen erscheinen in der Aufzeichnungsliste als **Nicht abspielbar**, beim Beenden der
+Aufzeichnung weist ein Hinweis darauf hin, und sie werden nicht zu Schritten: Fügen Sie diese Schritte
+von Hand hinzu, zum Beispiel auf einem Element, das die Komponente nach außen gibt. Der Rekorder
+sendet nie den in eine geschlossene Komponente eingegebenen Wert.
+
 ## Einen Test in Sätzen beschreiben
 
 ![Der Dialog Beschreiben mit einem in Sätzen geschriebenen Test](/screenshots/builder-describe.webp)
@@ -512,8 +539,10 @@ Kopie als eigene Zeilen dieses Tests verwenden** macht aus der Verknüpfung wied
 
 Eine Folge, die viele Tests verwenden — anmelden, einen Kunden wählen —, kann mit **Als Gruppe
 speichern** gespeichert werden. Sie erscheint dann unter **Schrittgruppen** in der Palette, und
-jeder Test kann sie einbinden. Ein Test führt die Gruppe so aus, wie sie zum Zeitpunkt des Laufs
-ist; eine Änderung an der Gruppe ändert also jeden Test, der sie verwendet.
+jeder Test kann sie einbinden. Ein nicht veröffentlichter Test führt die Gruppe so aus, wie sie beim Einreihen des Laufs ist; eine
+Änderung an der Gruppe ändert also jeden solchen Test ab seinem nächsten Lauf. Eine veröffentlichte
+Version führt die Gruppe so aus, wie sie beim Speichern dieser Version war (siehe
+[Was eine Version ausführt](#what-a-version-runs)).
 
 Das Zahnrad neben **Schrittgruppen** in der Palette öffnet ihre Verwaltung: **Wo verwendet** nennt
 die Tests, die eine Gruppe aufrufen, **Bearbeiten** ändert ihren Namen und ihre Beschreibung — und
@@ -548,8 +577,9 @@ row.querySelector('button.open').click();
 
 Eine eigene Aktion hat die Möglichkeiten eines Schritts **JavaScript ausführen** und keine anderen:
 Sie läuft in der Browserseite, nie auf dem Server oder dem Runner. Tests verweisen auf die Aktion,
-statt sie zu kopieren, sodass eine Änderung jeden Test, der sie verwendet, bei seinem nächsten Lauf
-ändert; eine Aktion, die noch ein Test oder eine Schrittgruppe verwendet, kann nicht gelöscht
+statt sie zu kopieren, sodass eine Änderung jeden unveröffentlichten Test, der sie verwendet, bei
+seinem nächsten Lauf ändert (eine veröffentlichte Version behält die Aktion, mit der sie gespeichert
+wurde); eine Aktion, die noch ein Test oder eine Schrittgruppe verwendet, kann nicht gelöscht
 werden, und die Meldung nennt, was sie verwendet. Anlegen, Ändern und Löschen werden im
 Audit-Protokoll festgehalten, ohne das Skript.
 
@@ -560,10 +590,56 @@ Element speichert es mit einem Namen in einem Projekt. Tests, die es verwenden, 
 Selektor aus dem Projekt, sodass bei einer Änderung der Anwendung eine einzige Korrektur des
 Selektors unter **Einstellungen → Element-Repository** jeden Test repariert.
 
-Findet ein Schritt sein Element nicht und hat die Installation einen KI-Schlüssel, kann der Lauf es
-**reparieren**: Er fragt nach einem neuen Selektor, versucht es erneut und markiert den Schritt im
-Bericht als _repariert_. Ein repariertes behaltenes Element zeigt im Repository den alten und den
-neuen Selektor, damit Sie bestätigen.
+Findet ein Klick, eine Eingabe oder eine Auswahl ihr Element nicht, kann der Lauf den Schritt
+**reparieren**: Er probiert einen anderen Locator, und wenn dieser funktioniert, gilt der Schritt als
+bestanden und der Test läuft weiter. Die Prüfungen danach laufen trotzdem. Der Lauf probiert in
+dieser Reihenfolge:
+
+1. **Bekannte Ausweichwerte**: die aufgezeichnete Test-ID des Elements (`data-testid`, `data-test`,
+   `data-qa`, `data-cy`), `id`, `name` oder `aria-label`. Ein Wert mit einer `{{variable}}` wird
+   übersprungen.
+2. **Der Vorschlag der KI**, nur wenn die Installation einen KI-Schlüssel hat (`GEMINI_API_KEY`).
+   Das Modell sieht die Seite ohne ihre Skripte, Stile, Formularwerte, versteckten Token oder
+   Meta-Inhalte.
+
+Beides wird nur verwendet, wenn es ein gültiger Locator ist, der **genau ein** Element der Seite
+trifft. Die Zuversicht des Modells wird nie verwendet.
+
+### Verwendung im Lauf, Freigabe und Veröffentlichung {#healing-approval}
+
+Die Reparatur hat drei getrennte Stufen, und nur die erste geschieht während eines Laufs:
+
+| Stufe                  | Wer        | Was sich ändert                                                                                                                                    |
+| ---------------------- | ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Verwendung im Lauf** | der Lauf   | Nichts Dauerhaftes. Der Schritt besteht mit dem reparierten Locator für diesen Lauf, und ein **Vorschlag** wird erfasst.                           |
+| **Freigabe**           | ein Editor | Die Quelle, in der der Schritt geschrieben ist: die Arbeitskopie des Tests (als neue Version), die Schrittgruppe oder das Element.                 |
+| **Veröffentlichung**   | wie bisher | Nur der bestehende Veröffentlichungs- (oder Prüfungs-)Schritt setzt die neue Version live. Pläne führen bis dahin die veröffentlichte Version aus. |
+
+Ein Vorschlag erfasst den Lauf, die Einheit und den Versuch, wo der Schritt geschrieben ist, einen
+Fingerabdruck des Schritts, wie der Lauf ihn gelesen hat, den Locator davor (wie geschrieben, mit
+nicht aufgelösten `{{variablen}}`) und danach sowie ob ein Ausweichwert oder die KI ihn gefunden hat.
+Freigeben und Ablehnen geschehen in den Schrittdetails des Berichts (siehe
+[Ergebnisse](./results#healed-steps)) und erfordern die Editor-Rolle im Projekt des Tests.
+
+Wohin eine freigegebene Reparatur geht, entscheidet, wo der Schritt geschrieben ist, nie die KI:
+
+| Der reparierte Schritt            | Die Freigabe schreibt in                                    |
+| --------------------------------- | ----------------------------------------------------------- |
+| nennt ein behaltenes Element      | das Element im Repository, für jeden Test, der es verwendet |
+| gehört zu einer Schrittgruppe     | diesen Schritt der Gruppe, für jeden Test, der sie aufruft  |
+| ist ein eigener Schritt des Tests | diesen Schritt des Tests, als neue Version der Arbeitskopie |
+
+Ein Schritt nach einer Gruppe oder eine zweimal aufgerufene Gruppe wird nie verwechselt. Eine
+Freigabe schreibt nur, wenn der Schritt (oder das Element) noch genau dem entspricht, was der Lauf
+gelesen hat. Wurde er inzwischen bearbeitet oder ein anderer Vorschlag dafür zuerst freigegeben,
+wird der Vorschlag **veraltet**: Nichts wird geschrieben, und er lässt sich nicht mehr freigeben.
+Zweimal freigeben ist eine Freigabe. Jede Entscheidung steht mit ihrem Urheber im Audit-Protokoll der
+Organisation.
+
+Um eine freigegebene Reparatur eines Testschritts zurückzunehmen, stellen Sie die Version davor im
+Verlauf des Tests wieder her (siehe [Verlauf und Versionen](./organizing#history-and-versions)). Bei
+einer Schrittgruppe oder einem behaltenen Element setzen Sie den Selektor von Hand zurück: Der
+Vorschlag behält den Selektor, den er ersetzt hat.
 
 ## Speichern
 
@@ -571,3 +647,23 @@ neuen Selektor, damit Sie bestätigen.
 anlegen). Erneutes Speichern unter demselben Namen bietet das Überschreiben an. Jede Speicherung ist
 eine neue **Version** im Verlauf des Tests (siehe
 [Verlauf und Versionen](./organizing#history-and-versions)).
+
+### Was eine Version ausführt {#what-a-version-runs}
+
+Eine Version erfasst außer den Schritten die Schrittgruppen, behaltenen Elemente und eigenen
+Aktionen, die der Test aufruft, so wie sie beim Speichern sind, einschließlich der von einer Gruppe
+verwendeten. Was eine Prüfung freigibt und was ein Plan ausführt, ist diese Version mit diesen
+Abhängigkeiten: Das Bearbeiten oder Löschen einer Gruppe nach der Prüfung oder während ein Lauf in
+der Warteschlange steht, ändert nicht, was die veröffentlichte Version tut.
+
+Um eine geänderte Gruppe, ein geändertes Element oder eine geänderte Aktion zu übernehmen, speichern
+Sie den Test erneut: Das Speichern erzeugt auch bei gleichen Schritten eine neue Version, mit einer
+Zusammenfassung wie _Schrittgruppe „Login“ geändert_, und diese Version wird wie jede andere geprüft
+und veröffentlicht. Eine Version, die vor dieser Funktion gespeichert wurde, erfasst ihre
+Abhängigkeiten beim nächsten Speichern; bis dahin verwendet ein Plan die, die beim Einreihen des
+Laufs aktuell sind.
+
+Ein Lauf eines nicht veröffentlichten Tests verwendet die Abhängigkeiten, wie sie in diesem Moment
+sind, und behält sie, solange er wartet. Der Lauf aus dem Testbaukasten verwendet immer die aktuellen.
+Umgebungsvariablen und Secrets, der Browser und die Anwendung selbst sind immer aktuell: Eine Version
+legt fest, was der Test tut, nicht die Welt, gegen die er läuft.

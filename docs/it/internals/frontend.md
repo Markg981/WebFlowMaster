@@ -23,7 +23,7 @@ client/src/
 ## Rotte
 
 Le rotte sono dichiarate in `client/src/App.tsx` con **wouter**; le pagine si caricano in modo lazy.
-Tutte le rotte tranne `/auth` sono avvolte in `ProtectedRoute`, che manda un visitatore anonimo alla
+Tutte le rotte tranne `/`, `/auth` e la pagina 404 sono avvolte in `ProtectedRoute`, che manda un visitatore anonimo alla
 pagina di accesso.
 
 | Percorso                                             | Pagina                  | Cos'è                                                                                                                                                      |
@@ -37,6 +37,11 @@ pagina di accesso.
 | `/suites`                                            | `SuitesPage`            | Suite, statiche e dinamiche.                                                                                                                               |
 | `/scheduling`                                        | `SchedulingPage`        | Schedulazioni.                                                                                                                                             |
 | `/test-manager`                                      | `TestManager`           | Import da Excel collegato a sequenze salvate.                                                                                                              |
+| `/requirements`                                      | `RequirementsPage`      | Requisiti e loro copertura da parte dei test.                                                                                                              |
+| `/test-data`                                         | `TestDataPage`          | Dataset per le esecuzioni guidate dai dati.                                                                                                                |
+| `/mobile-tests`                                      | `MobileTestsPage`       | Test mobile, dispositivi e griglie.                                                                                                                        |
+| `/load-tests`                                        | `LoadTestsPage`         | Test di carico e relative esecuzioni.                                                                                                                      |
+| `/whats-new`                                         | `WhatsNewPage`          | Note di rilascio.                                                                                                                                          |
 | `/reports`                                           | `GeneralReportsPage`    | L'elenco dei run con filtri, test instabili e quarantena.                                                                                                  |
 | `/test-plan/:planId/run`                             | `TestPlanExecutionPage` | Un run mentre accade, con la console in diretta.                                                                                                           |
 | `/test-plans/:planId/executions/:executionId/report` | `TestReportPage`        | Il report di un run.                                                                                                                                       |

@@ -95,7 +95,7 @@ agent change was needed: any agent that can lend a browser can send requests.
 
 ## Native API sessions
 
-Agent 1.1.0 advertises `apiProtocols: ["grpc", "websocket"]` in its v1 hello. A signed ticket
+The agent advertises `apiProtocols: ["grpc", "websocket"]` in its v1 hello. A signed ticket
 adds `apiProtocol`; the relay filters by organization, pool, capability, drain state and shared
 session capacity. Native sessions do not require an installed browser or matching Playwright.
 The relay opens the same outbound session pipe and forwards one request/reply, including the

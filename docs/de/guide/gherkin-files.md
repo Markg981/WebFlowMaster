@@ -32,7 +32,7 @@ von der Browser-/Sprachmatrix. Undefinierte, mehrdeutige, ausstehende, überspru
 fehlgeschlagene Schritte und Hooks zählen nie als bestanden.
 
 Ein Betreiber installiert Cucumber.js **12.9.0**, Support-Dateien und Abhängigkeiten und startet
-dann den Agenten **1.3.0** mit `WFM_BDD_PROFILES`, das auf sein Manifest zeigt. Angekündigt werden
+dann den **Agenten dieses Releases** (gleiche Version wie der Server) mit `WFM_BDD_PROFILES`, das auf sein Manifest zeigt. Angekündigt werden
 nur öffentliche Profil-IDs, Bezeichnungen, Revisionen und Grenzen. Ein Eigentümer der
 Organisation verknüpft ein angekündigtes Profil und einen Pool mit der Organisation oder einem
 Projekt. Pfade zu ausführbaren Dateien, Befehle und Loader bleiben Betreiberkonfiguration. Siehe

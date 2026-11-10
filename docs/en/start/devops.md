@@ -13,7 +13,7 @@ A pipeline must not depend on one person's account.
    role **editor** (starting runs needs at least that), **Create account**.
 2. In the **API keys** card above: a name, **Issued to** the service account, **What the key may
    do** → _Only what I choose, through /api/v1_ with **Start runs and cancel them** (`runs:write`)
-   and **Read runs, their status and their JUnit reports** (`runs:read`); add **List test plans**
+   and **Read runs, their status, their JUnit reports and their screenshots and videos** (`runs:read`); add **List test plans**
    (`plans:read`) if the job looks plans up. Set **Expires in (days)** to what your rotation policy
    accepts, then **Create key**.
 3. Copy the key from **Copy this key now**: it is shown **once** and stored only as a hash.

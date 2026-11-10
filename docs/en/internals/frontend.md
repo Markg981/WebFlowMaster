@@ -24,7 +24,7 @@ client/src/
 ## Routes
 
 Routes are declared in `client/src/App.tsx` with **wouter**; pages are loaded lazily. Every route but
-`/auth` is wrapped in `ProtectedRoute`, which sends an anonymous visitor to the sign-in page.
+`/`, `/auth` and the 404 page is wrapped in `ProtectedRoute`, which sends an anonymous visitor to the sign-in page.
 
 | Path                                                 | Page                    | What it is                                                                                                                                        |
 | ---------------------------------------------------- | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -37,6 +37,11 @@ Routes are declared in `client/src/App.tsx` with **wouter**; pages are loaded la
 | `/suites`                                            | `SuitesPage`            | Suites, static and dynamic.                                                                                                                       |
 | `/scheduling`                                        | `SchedulingPage`        | Schedules.                                                                                                                                        |
 | `/test-manager`                                      | `TestManager`           | Excel import mapped to saved sequences.                                                                                                           |
+| `/requirements`                                      | `RequirementsPage`      | Requirements and their coverage by tests.                                                                                                         |
+| `/test-data`                                         | `TestDataPage`          | Datasets for data-driven runs.                                                                                                                    |
+| `/mobile-tests`                                      | `MobileTestsPage`       | Mobile tests, devices and grids.                                                                                                                  |
+| `/load-tests`                                        | `LoadTestsPage`         | Load tests and their runs.                                                                                                                        |
+| `/whats-new`                                         | `WhatsNewPage`          | Release notes.                                                                                                                                    |
 | `/reports`                                           | `GeneralReportsPage`    | The list of runs with filters, flaky tests and the quarantine.                                                                                    |
 | `/test-plan/:planId/run`                             | `TestPlanExecutionPage` | A run as it happens, with the live console.                                                                                                       |
 | `/test-plans/:planId/executions/:executionId/report` | `TestReportPage`        | The report of one run.                                                                                                                            |
