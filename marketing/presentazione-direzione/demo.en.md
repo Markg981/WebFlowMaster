@@ -173,13 +173,13 @@ environment behind a VPN or in a customer’s network.”
 
 ## If something goes wrong
 
-| Problem                        | What to do                                                                      |
-| ------------------------------ | ------------------------------------------------------------------------------- |
-| The page doesn’t open          | `prepara-demo.ps1 -SoloVerifica`; if the stack is down, switch to the plan B video |
-| Recording doesn’t start        | Build the test from actions (block B’s plan B)                                  |
-| The run stays queued           | Show a finished run from the history: the report is identical                   |
-| The `wfm` command returns 2    | Credentials or network: show the output and move on, the exit code is the point |
-| The DMO agent doesn’t connect  | Skip block H and show the video of the 8 October demo                           |
+| Problem                       | What to do                                                                         |
+| ----------------------------- | ---------------------------------------------------------------------------------- |
+| The page doesn’t open         | `prepara-demo.ps1 -SoloVerifica`; if the stack is down, switch to the plan B video |
+| Recording doesn’t start       | Build the test from actions (block B’s plan B)                                     |
+| The run stays queued          | Show a finished run from the history: the report is identical                      |
+| The `wfm` command returns 2   | Credentials or network: show the output and move on, the exit code is the point    |
+| The DMO agent doesn’t connect | Skip block H and show the video of the 8 October demo                              |
 
 General rule: don’t debug in front of your manager. Say “let’s look at it afterwards” and move on to
 the next block or to the recording.

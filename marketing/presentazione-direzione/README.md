@@ -4,12 +4,12 @@ Materiale per presentare WebFlowMaster alla direzione (novembre 2026): deck, dem
 domande, in italiano e in inglese. Sostituisce, per questo pubblico, il deck di ottobre in
 [../demo-presentazione/](../demo-presentazione/).
 
-| Cosa                    | Italiano                                                         | English                                                           |
-| ----------------------- | ---------------------------------------------------------------- | ----------------------------------------------------------------- |
-| Deck (15 slide)         | [artifact](https://claude.ai/artifact/PooJLVzzB945h3sSkaEkQc), sorgenti in [deck/](deck/) | [artifact](https://claude.ai/artifact/ToCa4FuyD8tLzhRn7XfPS4), sources in [deck-en/](deck-en/) |
-| Copione della demo      | [demo.md](demo.md)                                               | [demo.en.md](demo.en.md)                                          |
-| Discorso e domande      | [discorso.md](discorso.md)                                       | [speech.en.md](speech.en.md)                                      |
-| Preparazione ambiente   | [prepara-demo.ps1](prepara-demo.ps1)                             | same script                                                       |
+| Cosa                  | Italiano                                                                                  | English                                                                                        |
+| --------------------- | ----------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| Deck (15 slide)       | [artifact](https://claude.ai/artifact/PooJLVzzB945h3sSkaEkQc), sorgenti in [deck/](deck/) | [artifact](https://claude.ai/artifact/ToCa4FuyD8tLzhRn7XfPS4), sources in [deck-en/](deck-en/) |
+| Copione della demo    | [demo.md](demo.md)                                                                        | [demo.en.md](demo.en.md)                                                                       |
+| Discorso e domande    | [discorso.md](discorso.md)                                                                | [speech.en.md](speech.en.md)                                                                   |
+| Preparazione ambiente | [prepara-demo.ps1](prepara-demo.ps1)                                                      | same script                                                                                    |
 
 I deck sono privati: vanno condivisi dal menu _Share_ prima di mandare il link. Si esportano in
 PPTX o PDF dallo stesso menu.

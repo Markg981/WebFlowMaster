@@ -6,14 +6,14 @@ answers to the most likely questions. Italian version: [discorso.md](discorso.md
 
 ## Timing
 
-| Part                              | Slides | Minutes |
-| --------------------------------- | ------ | ------- |
-| Opening and the ask               | 1–2    | 2       |
-| Problem, what it is, workflow     | 3–6    | 5       |
-| Live demo ([demo.en.md](demo.en.md)) | 7   | 15      |
-| Maintenance → numbers             | 8–12   | 4       |
-| Pilot and next steps              | 13–14  | 2       |
-| Questions                         | 15     | rest    |
+| Part                                 | Slides | Minutes |
+| ------------------------------------ | ------ | ------- |
+| Opening and the ask                  | 1–2    | 2       |
+| Problem, what it is, workflow        | 3–6    | 5       |
+| Live demo ([demo.en.md](demo.en.md)) | 7      | 15      |
+| Maintenance → numbers                | 8–12   | 4       |
+| Pilot and next steps                 | 13–14  | 2       |
+| Questions                            | 15     | rest    |
 
 If time is short: in the demo skip G and H; of slides 8–12 keep only 9 (maintenance) and 12
 (numbers).

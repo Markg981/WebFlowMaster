@@ -6,14 +6,14 @@ risposte alle domande più probabili. Versione inglese: [speech.en.md](speech.en
 
 ## Tempi
 
-| Parte                          | Slide   | Minuti |
-| ------------------------------ | ------- | ------ |
-| Apertura e richiesta           | 1–2     | 2      |
-| Problema, cos'è, ciclo         | 3–6     | 5      |
-| Demo live ([demo.md](demo.md)) | 7       | 15     |
-| Manutenzione → numeri          | 8–12    | 4      |
-| Pilot e prossimi passi         | 13–14   | 2      |
-| Domande                        | 15      | resto  |
+| Parte                          | Slide | Minuti |
+| ------------------------------ | ----- | ------ |
+| Apertura e richiesta           | 1–2   | 2      |
+| Problema, cos'è, ciclo         | 3–6   | 5      |
+| Demo live ([demo.md](demo.md)) | 7     | 15     |
+| Manutenzione → numeri          | 8–12  | 4      |
+| Pilot e prossimi passi         | 13–14 | 2      |
+| Domande                        | 15    | resto  |
 
 Se il tempo stringe: nella demo salta G e H; delle slide 8–12 tieni solo 9 (manutenzione) e 12
 (numeri).

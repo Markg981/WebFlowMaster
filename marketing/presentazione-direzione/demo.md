@@ -171,13 +171,13 @@ VPN o in una rete del cliente.»
 
 ## Se qualcosa va storto
 
-| Problema                               | Cosa fare                                                                         |
-| -------------------------------------- | --------------------------------------------------------------------------------- |
-| La pagina non si apre                  | `prepara-demo.ps1 -SoloVerifica`; se lo stack è giù, passa al video del piano B   |
-| La registrazione non parte             | Costruisci il test dalle azioni (piano B del blocco B)                            |
-| Il run resta in coda                   | Mostra un run già finito dello storico: il report è identico                      |
-| Il comando `wfm` restituisce 2         | Credenziali o rete: mostra l'output e passa oltre, il codice d'uscita è il punto  |
-| L'agente DMO non si collega            | Salta il blocco H e mostra il video della demo dell'8 ottobre                     |
+| Problema                       | Cosa fare                                                                        |
+| ------------------------------ | -------------------------------------------------------------------------------- |
+| La pagina non si apre          | `prepara-demo.ps1 -SoloVerifica`; se lo stack è giù, passa al video del piano B  |
+| La registrazione non parte     | Costruisci il test dalle azioni (piano B del blocco B)                           |
+| Il run resta in coda           | Mostra un run già finito dello storico: il report è identico                     |
+| Il comando `wfm` restituisce 2 | Credenziali o rete: mostra l'output e passa oltre, il codice d'uscita è il punto |
+| L'agente DMO non si collega    | Salta il blocco H e mostra il video della demo dell'8 ottobre                    |
 
 Regola generale: non fare debug davanti al capo. Si dice «lo vediamo dopo», si passa al blocco
 successivo o alla registrazione.
