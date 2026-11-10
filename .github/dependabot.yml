@@ -43,6 +43,15 @@ updates:
       # build, tsc -b and the editor tooling by hand.
       - dependency-name: typescript
         update-types: [version-update:semver-major]
+      # Vite 8 swaps esbuild and Rollup for Rolldown and Oxc: the monacoDompurify plugin
+      # (optimizeDeps.esbuildOptions, Rollup hooks), the root "vite" override that vitepress 1.x
+      # inherits and the @replit plugins all need rework. @vitejs/plugin-react 6 needs Vite 8
+      # (#609 failed the build on vite/internal); 5.x still accepts Vite 6 and keeps arriving.
+      # Upgrade both by hand, through Vite 7 first.
+      - dependency-name: vite
+        update-types: [version-update:semver-major]
+      - dependency-name: '@vitejs/plugin-react'
+        versions: ['>= 6']
     groups:
       minor-and-patch:
         update-types: [minor, patch]
