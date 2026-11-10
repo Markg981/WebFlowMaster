@@ -1,0 +1,41 @@
+{
+  "v": 4,
+  "createdOnFiles": { "v": 1, "at": "2026-11-10T19:00:00Z" },
+  "lists": "css",
+  "title": "WebFlowMaster – Management briefing",
+  "cover": "cover",
+  "order": [
+    "cover",
+    "ask",
+    "problem",
+    "what-it-is",
+    "cycle",
+    "dashboard",
+    "demo",
+    "failure",
+    "maintenance",
+    "integrations",
+    "security",
+    "numbers",
+    "pilot",
+    "next-steps",
+    "closing"
+  ],
+  "sections": {
+    "s1": { "description": "Opening, with the ask stated up front", "start": "cover" },
+    "s2": { "description": "The problem and what WebFlowMaster is", "start": "problem" },
+    "s3": { "description": "Live demo of the features", "start": "demo" },
+    "s4": { "description": "Integrations, security and product maturity", "start": "integrations" },
+    "s5": { "description": "The pilot, next steps and questions", "start": "pilot" }
+  },
+  "faces": {
+    "dm-sans": {
+      "family": "DM Sans",
+      "href": "https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap"
+    },
+    "jetbrains-mono": {
+      "family": "JetBrains Mono",
+      "href": "https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap"
+    }
+  }
+}

@@ -1,0 +1,41 @@
+{
+  "v": 4,
+  "createdOnFiles": { "v": 1, "at": "2026-11-10T18:00:00Z" },
+  "lists": "css",
+  "title": "WebFlowMaster – Presentazione alla direzione",
+  "cover": "cover",
+  "order": [
+    "cover",
+    "richiesta",
+    "problema",
+    "cosa-e",
+    "ciclo",
+    "dashboard",
+    "demo",
+    "fallimento",
+    "manutenzione",
+    "integrazioni",
+    "sicurezza",
+    "numeri",
+    "pilot",
+    "prossimi-passi",
+    "chiusura"
+  ],
+  "sections": {
+    "s1": { "description": "Apertura e la richiesta, detta subito", "start": "cover" },
+    "s2": { "description": "Il problema e cos'è WebFlowMaster", "start": "problema" },
+    "s3": { "description": "Demo live delle funzionalità", "start": "demo" },
+    "s4": { "description": "Integrazioni, sicurezza e maturità del prodotto", "start": "integrazioni" },
+    "s5": { "description": "Il pilot, i prossimi passi e le domande", "start": "pilot" }
+  },
+  "faces": {
+    "dm-sans": {
+      "family": "DM Sans",
+      "href": "https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap"
+    },
+    "jetbrains-mono": {
+      "family": "JetBrains Mono",
+      "href": "https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap"
+    }
+  }
+}
