@@ -107,7 +107,7 @@
     "@cucumber/cucumber": "12.9.0",
     "@cucumber/gherkin": "42.0.1",
     "@cucumber/messages": "34.2.1",
-    "@electric-sql/pglite": "^0.4.5",
+    "@electric-sql/pglite": "^0.5.15",
     "@google/generative-ai": "^0.24.1",
     "@grpc/grpc-js": "^1.14.7",
     "@grpc/proto-loader": "^0.8.1",
