@@ -140,8 +140,8 @@ export async function fileFailure(
     const created = await createIssue(config, issueDraftFor(input.failure), deps);
 
     try {
-      await withTenantTransaction((tx) =>
-        tx.insert(issueLinks).values({
+      await withTenantTransaction(async (tx) => {
+        await tx.insert(issueLinks).values({
           organizationId: input.organizationId,
           trackerId: input.tracker.id,
           dedupeKey,
@@ -153,8 +153,8 @@ export async function fileFailure(
           issueUrl: created.url,
           firstExecutionId: input.failure.executionId,
           lastExecutionId: input.failure.executionId,
-        }),
-      );
+        });
+      });
     } catch (error: any) {
       if (!isUniqueViolation(error)) {
         // The issue exists in the tracker but nothing links to it. Say where it is, so the

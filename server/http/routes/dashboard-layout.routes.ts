@@ -57,16 +57,16 @@ router.put('/api/dashboard/layout', async (req, res) => {
 });
 router.delete('/api/dashboard/layout', async (req, res) => {
   try {
-    await withTenantTransaction((tx) =>
-      tx
+    await withTenantTransaction(async (tx) => {
+      await tx
         .delete(userDashboardLayouts)
         .where(
           and(
             eq(userDashboardLayouts.organizationId, getTenantOrgId()!),
             eq(userDashboardLayouts.userId, req.user!.id),
           ),
-        ),
-    );
+        );
+    });
     res.json(DEFAULT_DASHBOARD_LAYOUT);
   } catch {
     res.status(500).json({ error: 'Failed to reset dashboard layout' });
