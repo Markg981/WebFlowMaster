@@ -29,5 +29,8 @@ PPTX o PDF dallo stesso menu.
 3. Chiave API per il blocco F, in una variabile d'ambiente del terminale.
 4. Registrazione di riserva della demo (piano B).
 5. Deck condiviso con il destinatario e segnaposto compilati.
-6. Un'ora prima: `prepara-demo.ps1 -SoloVerifica` e lingua dell'interfaccia allineata a quella
+6. CA del collaudo tra le radici attendibili di Windows (`Import-Certificate -FilePath
+collaudo\collaudo-root.crt -CertStoreLocation Cert:\CurrentUser\Root`), altrimenti il browser
+   mostra l'avviso di certificato.
+7. Un'ora prima: `prepara-demo.ps1 -SoloVerifica` e lingua dell'interfaccia allineata a quella
    della presentazione (_Impostazioni → Lingua_).
