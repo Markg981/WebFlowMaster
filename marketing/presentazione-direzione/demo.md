@@ -37,6 +37,13 @@ stringe; i tempi tra parentesi sono indicativi.
    stesso qualcosa non parte. In alternativa si usano il video promozionale
    (`marketing/promo-video/`) e le schermate della brochure (`marketing/brochure/assets/it/`).
 
+5. Installa una volta la CA del collaudo tra le radici attendibili di Windows, altrimenti il
+   browser mostra l'avviso di certificato davanti al capo (Windows chiede conferma):
+
+   ```powershell
+   Import-Certificate -FilePath collaudo\collaudo-root.crt -CertStoreLocation Cert:\CurrentUser\Root
+   ```
+
 ## Un'ora prima
 
 ```powershell
@@ -47,7 +54,7 @@ pwsh marketing/presentazione-direzione/prepara-demo.ps1 -SoloVerifica
   Windows silenziate, schede inutili chiuse.
 - Schede aperte nell'ordine della demo:
   1. `https://wfm.collaudo.test` con login fatto come **maya** (`Demo.Video.2026!`), sulla Dashboard;
-  2. `http://localhost:6080` (lo schermo virtuale, dove si apre il browser della registrazione);
+  2. `http://127.0.0.1:6080` (lo schermo virtuale, dove si apre il browser della registrazione);
   3. il terminale PowerShell con le variabili del punto 3 già impostate.
 - Lancia una volta il piano «Checkout smoke», così il primo run della giornata non paga
   l'avvio a freddo dei browser.
@@ -64,9 +71,12 @@ regressione.»
 
 ## B. Creare un test senza scrivere codice — Crea Test (3 min)
 
-**Fai:** _Crea Test_ → URL `http://shop.northwind.test/login/` → **Registra**. Passa alla scheda
-`localhost:6080`: inserisci utente e password, premi Accedi, poi aggiungi una verifica sul testo
-di benvenuto. Torna al builder: gli step sono comparsi da soli. Salva con il nome «Demo – login».
+**Fai:** _Crea Test_ → _Modalità di Creazione Test_ → **Registra azioni utente (auto-record)** →
+URL `http://shop.northwind.test/login/` → **Inizia registrazione**. Passa alla scheda
+`127.0.0.1:6080` (il browser compare con la barra REC in circa 15 secondi): inserisci utente e
+password, premi Accedi, poi con **Add assert** aggiungi una verifica sul testo di benvenuto e premi
+**Termina registrazione**. Torna al builder: gli step sono comparsi da soli. Salva con il nome
+«Demo – login». _(La barra del registratore è ancora in inglese: «Add assert».)_
 
 **Di':** «Chi conosce l'applicazione registra il flusso usandola, come farebbe a mano. Ogni clic
 diventa uno step leggibile; le verifiche si aggiungono con un clic. Non serve uno sviluppatore.»
@@ -93,8 +103,10 @@ in parallelo, e quando finisce avvisa per email, Slack o Teams.»
 
 ## D. Capire un fallimento in un minuto — Report (3 min)
 
-**Fai:** apri il report del run. Su un test passato: step, durata, screenshot. Poi apri il test
-che fallisce di proposito (il banner promozionale) e mostra in ordine:
+**Fai:** _Piani di test_ → **«Catalog checks»** → storico → apri un run **fallito** → _Report_. Su
+un test passato: step, durata, screenshot. Poi, nella tabella **Test falliti**, apri il test che
+fallisce di proposito («Promo banner», su chromium e firefox: _Element "#promo" did not contain…_)
+e mostra in ordine, dalle icone della riga:
 
 1. lo **screenshot** del momento del fallimento e il messaggio d'errore;
 2. il **video** del run;
@@ -113,7 +125,8 @@ PDF è l'evidenza da allegare al rilascio o all'audit.»
 **Fai:** in _Report_ apri **Test che si contraddicono**: i test il cui esito cambia senza motivo,
 con le evidenze di ogni tentativo. Mostra la **quarantena**: il test continua a girare ma non
 blocca più i rilasci. Se un run ha uno step con il badge **superato dopo riparazione**, aprilo:
-locator scritto, locator usato, **Approva** / **Rifiuta**.
+locator scritto, locator usato, **Approva** / **Rifiuta**. _(Nella prova del 11/11 non c'erano
+proposte di riparazione: in quel caso il concetto si racconta con la slide 9.)_
 
 **Di':** «Il costo nascosto dell'automazione è la manutenzione: test che falliscono a caso e
 locator che si rompono a ogni restyling. Qui i test instabili vengono isolati con le prove, e le
@@ -171,13 +184,15 @@ VPN o in una rete del cliente.»
 
 ## Se qualcosa va storto
 
-| Problema                       | Cosa fare                                                                        |
-| ------------------------------ | -------------------------------------------------------------------------------- |
-| La pagina non si apre          | `prepara-demo.ps1 -SoloVerifica`; se lo stack è giù, passa al video del piano B  |
-| La registrazione non parte     | Costruisci il test dalle azioni (piano B del blocco B)                           |
-| Il run resta in coda           | Mostra un run già finito dello storico: il report è identico                     |
-| Il comando `wfm` restituisce 2 | Credenziali o rete: mostra l'output e passa oltre, il codice d'uscita è il punto |
-| L'agente DMO non si collega    | Salta il blocco H e mostra il video della demo dell'8 ottobre                    |
+| Problema                                    | Cosa fare                                                                                            |
+| ------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| La pagina non si apre                       | `prepara-demo.ps1 -SoloVerifica`; se lo stack è giù, passa al video del piano B                      |
+| La registrazione non parte                  | Costruisci il test dalle azioni (piano B del blocco B)                                               |
+| Il run resta in coda                        | Mostra un run già finito dello storico: il report è identico                                         |
+| Il comando `wfm` restituisce 2              | Credenziali o rete: mostra l'output e passa oltre, il codice d'uscita è il punto                     |
+| L'agente DMO non si collega                 | Salta il blocco H e mostra il video della demo dell'8 ottobre                                        |
+| Avviso di certificato                       | Manca la CA del collaudo: punto 5 del giorno prima                                                   |
+| Nel report «Non applicato come configurato» | Il piano chiede un sistema operativo diverso da quello del worker: il run gira comunque, è un avviso |
 
 Regola generale: non fare debug davanti al capo. Si dice «lo vediamo dopo», si passa al blocco
 successivo o alla registrazione.

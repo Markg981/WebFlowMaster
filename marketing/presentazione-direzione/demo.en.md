@@ -38,6 +38,13 @@ times in brackets are indicative. The Italian version is [demo.md](demo.md).
    start on the day. Otherwise use the promo video (`marketing/promo-video/`) and the brochure
    screenshots (`marketing/brochure/assets/en/`).
 
+5. Install the collaudo CA once among Windows’ trusted roots, otherwise the browser shows a
+   certificate warning in front of your manager (Windows asks for confirmation):
+
+   ```powershell
+   Import-Certificate -FilePath collaudo\collaudo-root.crt -CertStoreLocation Cert:\CurrentUser\Root
+   ```
+
 ## One hour before
 
 ```powershell
@@ -48,7 +55,7 @@ pwsh marketing/presentazione-direzione/prepara-demo.ps1 -SoloVerifica
   muted, unneeded tabs closed.
 - Tabs open in demo order:
   1. `https://wfm.collaudo.test`, signed in as **maya** (`Demo.Video.2026!`), on the Dashboard;
-  2. `http://localhost:6080` (the virtual screen where the recording browser opens);
+  2. `http://127.0.0.1:6080` (the virtual screen where the recording browser opens);
   3. the PowerShell terminal with the variables from step 3 already set.
 - Run the «Checkout smoke» plan once, so the first run of the day doesn't pay for the browsers'
   cold start.
@@ -65,9 +72,11 @@ stands.”
 
 ## B. Creating a test without writing code — Create Test (3 min)
 
-**Do:** _Create Test_ → URL `http://shop.northwind.test/login/` → **Record**. Switch to the
-`localhost:6080` tab: enter username and password, press Sign In, then add a check on the welcome
-text. Back in the builder the steps have appeared by themselves. Save it as “Demo – login”.
+**Do:** _Create Test_ → _Test Creation Mode_ → **Record user actions (auto-record)** → URL
+`http://shop.northwind.test/login/` → **Start recording**. Switch to the `127.0.0.1:6080` tab (the
+browser appears with the REC bar in about 15 seconds): enter username and password, press Sign In,
+then use **Add assert** to add a check on the welcome text and press **Stop recording**. Back in the
+builder the steps have appeared by themselves. Save it as “Demo – login”.
 
 **Say:** “Whoever knows the application records the flow by using it, as they would by hand. Every
 click becomes a readable step; checks are added with one click. No developer needed.”
@@ -94,8 +103,10 @@ browsers in parallel, and when it finishes it notifies by email, Slack or Teams.
 
 ## D. Understanding a failure in a minute — Reports (3 min)
 
-**Do:** open the run’s report. On a passed test: steps, duration, screenshot. Then open the test
-that fails on purpose (the promo banner) and show, in order:
+**Do:** _Test Plans_ → **“Catalog checks”** → history → open a **failed** run → _Report_. On a
+passed test: steps, duration, screenshot. Then, in the **Failed tests** table, open the test that
+fails on purpose (“Promo banner”, on chromium and firefox: _Element "#promo" did not contain…_) and
+show, in order, from the row’s icons:
 
 1. the **screenshot** at the moment of failure and the error message;
 2. the run’s **video**;
@@ -114,7 +125,8 @@ the evidence to attach to the release or the audit.”
 **Do:** in _Reports_ open **Tests that disagree with themselves**: tests whose outcome changes for
 no reason, with the evidence of every attempt. Show **Quarantine**: the test keeps running but no
 longer blocks releases (**Release** takes it out). If a run has a step with the **passed after
-healing** badge, open it: written locator, locator used, **Approve** / **Reject**.
+healing** badge, open it: written locator, locator used, **Approve** / **Reject**. _(The 11 November
+rehearsal had no healing proposals: in that case tell the story with slide 9.)_
 
 **Say:** “The hidden cost of automation is maintenance: tests that fail at random and locators that
 break with every redesign. Here flaky tests are isolated with the evidence, and locator repairs are
@@ -173,13 +185,15 @@ environment behind a VPN or in a customer’s network.”
 
 ## If something goes wrong
 
-| Problem                       | What to do                                                                         |
-| ----------------------------- | ---------------------------------------------------------------------------------- |
-| The page doesn’t open         | `prepara-demo.ps1 -SoloVerifica`; if the stack is down, switch to the plan B video |
-| Recording doesn’t start       | Build the test from actions (block B’s plan B)                                     |
-| The run stays queued          | Show a finished run from the history: the report is identical                      |
-| The `wfm` command returns 2   | Credentials or network: show the output and move on, the exit code is the point    |
-| The DMO agent doesn’t connect | Skip block H and show the video of the 8 October demo                              |
+| Problem                                   | What to do                                                                                     |
+| ----------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| The page doesn’t open                     | `prepara-demo.ps1 -SoloVerifica`; if the stack is down, switch to the plan B video             |
+| Recording doesn’t start                   | Build the test from actions (block B’s plan B)                                                 |
+| The run stays queued                      | Show a finished run from the history: the report is identical                                  |
+| The `wfm` command returns 2               | Credentials or network: show the output and move on, the exit code is the point                |
+| The DMO agent doesn’t connect             | Skip block H and show the video of the 8 October demo                                          |
+| Certificate warning                       | The collaudo CA is missing: step 5 of the day before                                           |
+| “Not applied as configured” in the report | The plan asks for a different OS than the worker’s: the run still executes, it’s only a notice |
 
 General rule: don’t debug in front of your manager. Say “let’s look at it afterwards” and move on to
 the next block or to the recording.
