@@ -1,13 +1,19 @@
+import { randomUUID } from 'node:crypto';
 import type { Request, Response } from 'express';
 import { and, asc, count, desc, eq, getTableColumns, inArray, sql, type SQL } from 'drizzle-orm';
 import { z } from 'zod';
 import {
   AUDIT_ACTIONS,
+  apiTests,
+  comparisonKnownDifferences,
   comparisonResults,
   comparisonRuns,
+  projects,
   reportTestCaseResults,
   testPlanExecutions,
   testPlans,
+  tests,
+  type ComparisonKnownDifference,
   type ComparisonResult,
   type ComparisonRun,
 } from '@shared/schema';
@@ -16,6 +22,9 @@ import {
   COMPARISON_REVIEW_STATUSES,
   COMPARISON_STATUSES,
   CreateComparisonSchema,
+  CreateKnownDifferenceSchema,
+  MAX_KNOWN_DIFFERENCES_PER_REVIEW,
+  ReviewComparisonResultSchema,
   type ComparisonDifference,
 } from '@shared/comparison';
 import { asyncRouter } from '../../platform/middleware/async-router';
@@ -462,6 +471,396 @@ router.post(
       case 'cancelled':
         return res.json({ status: 'cancelled', comparison: view(result.comparison) });
     }
+  },
+);
+
+/** A write the row-level security of a restricted project refused (migration 0111). */
+function refusedByProject(error: unknown): boolean {
+  const e = error as { code?: unknown; cause?: { code?: unknown } } | null;
+  return e?.code === '42501' || e?.cause?.code === '42501';
+}
+
+function projectRefusal(res: Response) {
+  return res.status(403).json({
+    error: 'Only an editor of the project can change its known differences.',
+    code: 'project_not_editable',
+  });
+}
+
+/** The project of the result's test; null when the test has none or is gone. */
+async function projectOfResult(
+  tx: TenantTx,
+  result: Pick<ComparisonResult, 'uiTestId' | 'apiTestId'>,
+): Promise<number | null> {
+  if (result.uiTestId) {
+    const [row] = await tx
+      .select({ projectId: tests.projectId })
+      .from(tests)
+      .where(eq(tests.id, result.uiTestId))
+      .limit(1);
+    return row?.projectId ?? null;
+  }
+  if (result.apiTestId) {
+    const [row] = await tx
+      .select({ projectId: apiTests.projectId })
+      .from(apiTests)
+      .where(eq(apiTests.id, result.apiTestId))
+      .limit(1);
+    return row?.projectId ?? null;
+  }
+  return null;
+}
+
+function knownDifferenceView(
+  row: ComparisonKnownDifference,
+  names: { projectName?: string | null; testName?: string | null } = {},
+) {
+  return {
+    id: row.id,
+    projectId: row.projectId,
+    projectName: names.projectName ?? null,
+    uiTestId: row.uiTestId,
+    testName: names.testName ?? null,
+    checkpointName: row.checkpointName,
+    kind: row.kind,
+    pathPattern: row.pathPattern,
+    reason: row.reason,
+    reference: row.reference,
+    approvedByUserId: row.approvedByUserId,
+    createdAt: row.createdAt,
+    expiresAt: row.expiresAt,
+  };
+}
+
+type ReviewOutcome =
+  | { outcome: 'not_found' }
+  | { outcome: 'refused'; status: number; error: string; code: string }
+  | {
+      outcome: 'reviewed';
+      result: ComparisonResult;
+      knownDifferences: ComparisonKnownDifference[];
+    };
+
+// POST /api/comparisons/:id/results/:resultId/review { status, note?, saveAsKnownDifference? }
+router.post(
+  '/api/comparisons/:id/results/:resultId/review',
+  comparisonsLimit,
+  requireRole('editor'),
+  async (req, res) => {
+    if (!req.isAuthenticated() || !req.user) return res.status(401).json({ error: 'Unauthorized' });
+    const { id, resultId } = req.params;
+    if (!ID_PATTERN.test(id) || !ID_PATTERN.test(resultId))
+      return res.status(404).json({ error: 'Result not found.', code: 'result_not_found' });
+    const parsed = ReviewComparisonResultSchema.safeParse(req.body ?? {});
+    if (!parsed.success) return invalid(res, parsed.error);
+    const input = parsed.data;
+    const userId = req.user.id;
+    const refused = (status: number, code: string, error: string): ReviewOutcome => ({
+      outcome: 'refused',
+      status,
+      code,
+      error,
+    });
+
+    let outcome: ReviewOutcome;
+    try {
+      outcome = await withTenantTransaction(async (tx): Promise<ReviewOutcome> => {
+        const row = await readComparison(tx, id);
+        if (!row) return { outcome: 'not_found' };
+        const [result] = await tx
+          .select()
+          .from(comparisonResults)
+          .where(and(eq(comparisonResults.id, resultId), eq(comparisonResults.comparisonRunId, id)))
+          .limit(1);
+        if (!result) return { outcome: 'not_found' };
+        // A test the caller cannot see is not theirs to review: as if it did not exist.
+        const access = await accessOf(tx, req, row.comparison);
+        if (access.baseline?.hiddenResult(result) || access.candidate?.hiddenResult(result))
+          return { outcome: 'not_found' };
+
+        let knownDifferences: ComparisonKnownDifference[] = [];
+        const save = input.saveAsKnownDifference;
+        if (save) {
+          const chosen = save.differences
+            ? save.differences.map((i) => result.differences[i])
+            : result.differences.filter((d) => d.severity === 'blocking' && !d.knownDifferenceId);
+          if (chosen.some((d) => !d))
+            return refused(400, 'difference_not_found', 'The result has no such difference.');
+          if (chosen.length === 0)
+            return refused(409, 'nothing_to_save', 'The result has no open blocking difference.');
+          if (chosen.length > MAX_KNOWN_DIFFERENCES_PER_REVIEW)
+            return refused(
+              422,
+              'too_many_differences',
+              `At most ${MAX_KNOWN_DIFFERENCES_PER_REVIEW} differences can be saved at once: choose them.`,
+            );
+          if (save.scope === 'test' && !result.uiTestId)
+            return refused(422, 'no_test', 'Only a UI test can have its own known differences.');
+          const projectId =
+            save.scope === 'organization' ? null : await projectOfResult(tx, result);
+          if (save.scope === 'project' && projectId === null)
+            return refused(422, 'no_project', 'The test belongs to no project.');
+          // One entry per place: the same path twice in the result is one known difference.
+          const unique = new Map(chosen.map((d) => [`${d.kind}|${d.checkpoint}|${d.path}`, d]));
+          knownDifferences = await tx
+            .insert(comparisonKnownDifferences)
+            .values(
+              [...unique.values()].map((d) => ({
+                id: randomUUID(),
+                organizationId: row.comparison.organizationId,
+                projectId,
+                uiTestId: save.scope === 'test' ? result.uiTestId : null,
+                checkpointName: d.checkpoint,
+                kind: d.kind,
+                pathPattern: d.path || null,
+                reason: input.note ?? '',
+                reference: save.reference || null,
+                approvedByUserId: userId,
+                expiresAt: save.expiresAt ? new Date(save.expiresAt) : null,
+              })),
+            )
+            .returning();
+          for (const known of knownDifferences)
+            await recordAudit(tx, {
+              action: AUDIT_ACTIONS.COMPARISON_KNOWN_DIFFERENCE_CREATED,
+              actor: auditActor(req),
+              targetType: 'comparison_known_difference',
+              targetId: known.id,
+              metadata: {
+                comparisonId: id,
+                resultId,
+                scope: save.scope,
+                projectId: known.projectId,
+                uiTestId: known.uiTestId,
+                kind: known.kind,
+                checkpointName: known.checkpointName,
+                pathPattern: known.pathPattern,
+              },
+            });
+        }
+
+        const [reviewed] = await tx
+          .update(comparisonResults)
+          .set({
+            reviewStatus: input.status,
+            reviewNote: input.note || null,
+            reviewedByUserId: input.status === 'open' ? null : userId,
+            reviewedAt: input.status === 'open' ? null : new Date(),
+          })
+          .where(eq(comparisonResults.id, resultId))
+          .returning();
+        await recordAudit(tx, {
+          action: AUDIT_ACTIONS.COMPARISON_DIFFERENCE_REVIEWED,
+          actor: auditActor(req),
+          targetType: 'comparison_result',
+          targetId: resultId,
+          metadata: {
+            comparisonId: id,
+            testName: result.testName,
+            from: result.reviewStatus,
+            to: input.status,
+            knownDifferences: knownDifferences.length,
+          },
+        });
+        return { outcome: 'reviewed', result: reviewed, knownDifferences };
+      });
+    } catch (error) {
+      if (refusedByProject(error)) return projectRefusal(res);
+      throw error;
+    }
+
+    switch (outcome.outcome) {
+      case 'not_found':
+        return res.status(404).json({ error: 'Result not found.', code: 'result_not_found' });
+      case 'refused':
+        return res.status(outcome.status).json({ error: outcome.error, code: outcome.code });
+      case 'reviewed':
+        return res.json({
+          result: resultView(outcome.result, outcome.result.differences.length),
+          knownDifferences: outcome.knownDifferences.map((k) => knownDifferenceView(k)),
+        });
+    }
+  },
+);
+
+const knownDifferencesQuery = z.object({
+  projectId: z.coerce.number().int().positive().optional(),
+  uiTestId: z.coerce.number().int().positive().optional(),
+  ...page,
+});
+
+// GET /api/comparison-known-differences?projectId=&uiTestId=&page=&pageSize=
+router.get(
+  '/api/comparison-known-differences',
+  comparisonsLimit,
+  requireRole('viewer'),
+  async (req, res) => {
+    if (!req.isAuthenticated()) return res.status(401).json({ error: 'Unauthorized' });
+    const parsed = knownDifferencesQuery.safeParse(req.query);
+    if (!parsed.success) return invalid(res, parsed.error);
+    const query = parsed.data;
+    const conditions: SQL[] = [];
+    if (query.projectId) conditions.push(eq(comparisonKnownDifferences.projectId, query.projectId));
+    if (query.uiTestId) conditions.push(eq(comparisonKnownDifferences.uiTestId, query.uiTestId));
+    const where = conditions.length ? and(...conditions) : undefined;
+    // Row-level security leaves out a restricted project's entries the caller is not on.
+    const { rows, total } = await withTenantTransaction(async (tx) => {
+      const found = await tx
+        .select({
+          known: comparisonKnownDifferences,
+          projectName: projects.name,
+          testName: tests.name,
+        })
+        .from(comparisonKnownDifferences)
+        .leftJoin(projects, eq(projects.id, comparisonKnownDifferences.projectId))
+        .leftJoin(tests, eq(tests.id, comparisonKnownDifferences.uiTestId))
+        .where(where)
+        .orderBy(desc(comparisonKnownDifferences.createdAt), desc(comparisonKnownDifferences.id))
+        .limit(query.pageSize)
+        .offset((query.page - 1) * query.pageSize);
+      const [{ value }] = await tx
+        .select({ value: count() })
+        .from(comparisonKnownDifferences)
+        .where(where);
+      return { rows: found, total: value };
+    });
+    res.json({
+      rows: rows.map((r) => knownDifferenceView(r.known, r)),
+      total,
+      page: query.page,
+      pageSize: query.pageSize,
+    });
+  },
+);
+
+// POST /api/comparison-known-differences { projectId?, uiTestId?, checkpointName?, kind, pathPattern?, reason, reference?, expiresAt? }
+router.post(
+  '/api/comparison-known-differences',
+  comparisonsLimit,
+  requireRole('editor'),
+  async (req, res) => {
+    if (!req.isAuthenticated() || !req.user) return res.status(401).json({ error: 'Unauthorized' });
+    const parsed = CreateKnownDifferenceSchema.safeParse(req.body ?? {});
+    if (!parsed.success) return invalid(res, parsed.error);
+    const input = parsed.data;
+    const organizationId = req.user.organizationId;
+    const userId = req.user.id;
+    type Created =
+      | { outcome: 'refused'; code: string; error: string }
+      | { outcome: 'created'; known: ComparisonKnownDifference };
+    let created: Created;
+    try {
+      created = await withTenantTransaction(async (tx): Promise<Created> => {
+        let projectId = input.projectId ?? null;
+        if (input.uiTestId) {
+          // A test's entry belongs to the test's project, whatever the body says.
+          const [test] = await tx
+            .select({ projectId: tests.projectId })
+            .from(tests)
+            .where(eq(tests.id, input.uiTestId))
+            .limit(1);
+          if (!test) return { outcome: 'refused', code: 'test_not_found', error: 'No such test.' };
+          if (input.projectId && input.projectId !== test.projectId)
+            return {
+              outcome: 'refused',
+              code: 'project_mismatch',
+              error: 'The test belongs to another project.',
+            };
+          projectId = test.projectId;
+        } else if (projectId) {
+          const [project] = await tx
+            .select({ id: projects.id })
+            .from(projects)
+            .where(eq(projects.id, projectId))
+            .limit(1);
+          if (!project)
+            return { outcome: 'refused', code: 'project_not_found', error: 'No such project.' };
+        }
+        const [known] = await tx
+          .insert(comparisonKnownDifferences)
+          .values({
+            id: randomUUID(),
+            organizationId,
+            projectId,
+            uiTestId: input.uiTestId ?? null,
+            checkpointName: input.checkpointName ?? null,
+            kind: input.kind,
+            pathPattern: input.pathPattern ?? null,
+            reason: input.reason,
+            reference: input.reference || null,
+            approvedByUserId: userId,
+            expiresAt: input.expiresAt ? new Date(input.expiresAt) : null,
+          })
+          .returning();
+        await recordAudit(tx, {
+          action: AUDIT_ACTIONS.COMPARISON_KNOWN_DIFFERENCE_CREATED,
+          actor: auditActor(req),
+          targetType: 'comparison_known_difference',
+          targetId: known.id,
+          metadata: {
+            projectId: known.projectId,
+            uiTestId: known.uiTestId,
+            kind: known.kind,
+            checkpointName: known.checkpointName,
+            pathPattern: known.pathPattern,
+          },
+        });
+        return { outcome: 'created', known };
+      });
+    } catch (error) {
+      if (refusedByProject(error)) return projectRefusal(res);
+      throw error;
+    }
+    if (created.outcome === 'refused')
+      return res.status(422).json({ error: created.error, code: created.code });
+    res.status(201).json(knownDifferenceView(created.known));
+  },
+);
+
+// DELETE /api/comparison-known-differences/:id — later comparisons report the difference again.
+router.delete(
+  '/api/comparison-known-differences/:id',
+  comparisonsLimit,
+  requireRole('editor'),
+  async (req, res) => {
+    if (!req.isAuthenticated()) return res.status(401).json({ error: 'Unauthorized' });
+    const missing = () =>
+      res
+        .status(404)
+        .json({ error: 'Known difference not found.', code: 'known_difference_not_found' });
+    if (!ID_PATTERN.test(req.params.id)) return missing();
+    const found = await withTenantTransaction(async (tx) => {
+      const [visible] = await tx
+        .select()
+        .from(comparisonKnownDifferences)
+        .where(eq(comparisonKnownDifferences.id, req.params.id))
+        .limit(1);
+      if (!visible) return 'not_found' as const;
+      // Row-level security keeps the row when the caller may see the project but not edit it.
+      const [deleted] = await tx
+        .delete(comparisonKnownDifferences)
+        .where(eq(comparisonKnownDifferences.id, req.params.id))
+        .returning();
+      if (!deleted) return 'not_editable' as const;
+      await recordAudit(tx, {
+        action: AUDIT_ACTIONS.COMPARISON_KNOWN_DIFFERENCE_DELETED,
+        actor: auditActor(req),
+        targetType: 'comparison_known_difference',
+        targetId: deleted.id,
+        metadata: {
+          projectId: deleted.projectId,
+          uiTestId: deleted.uiTestId,
+          kind: deleted.kind,
+          checkpointName: deleted.checkpointName,
+          pathPattern: deleted.pathPattern,
+          reason: deleted.reason,
+        },
+      });
+      return 'deleted' as const;
+    });
+    if (found === 'not_found') return missing();
+    if (found === 'not_editable') return projectRefusal(res);
+    res.status(204).end();
   },
 );
 

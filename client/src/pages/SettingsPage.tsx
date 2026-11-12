@@ -29,6 +29,7 @@ import {
   Cloud,
   ClipboardList,
   GitBranch,
+  GitCompare,
   MessageSquareText,
   Tag,
   CreditCard,
@@ -68,6 +69,7 @@ import ElementRepositoryCard from '@/components/settings/ElementRepositoryCard';
 import CustomActionsCard from '@/components/settings/CustomActionsCard';
 import TagsCard from '@/components/settings/TagsCard';
 import ImpactMapCard from '@/components/settings/ImpactMapCard';
+import KnownDifferencesCard from '@/components/settings/KnownDifferencesCard';
 import SmsInboxCard from '@/components/settings/SmsInboxCard';
 import IssueTrackersCard from '@/components/settings/IssueTrackersCard';
 import TestCaseHubCard from '@/components/settings/TestCaseHubCard';
@@ -202,6 +204,17 @@ export default function SettingsPage() {
       ),
       icon: GitBranch,
       content: <ImpactMapCard />,
+    },
+    // Everyone sees what an environment comparison expects; editors and owners change it.
+    {
+      id: 'knownDifferences',
+      label: t('settings.sections.knownDifferences', 'Known differences'),
+      description: t(
+        'settings.sections.knownDifferencesDescription',
+        'Differences environment comparisons expect, so a test that only shows them stays at parity.',
+      ),
+      icon: GitCompare,
+      content: <KnownDifferencesCard canEdit={user?.role !== 'viewer'} />,
     },
     ...(user?.role !== 'viewer'
       ? [

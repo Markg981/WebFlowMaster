@@ -57,7 +57,7 @@ Documentation
 - [ ] `server/web/checkpoints/chart-adapters.ts`: `__wfmChartModel` hook, DevExtreme jQuery widgets, ECharts; tests against stub pages.
 - [ ] `server/web/checkpoints/network-journal.ts`: attach when the test has a network checkpoint; hashes only, no bodies; tests.
 - [ ] Engine: `diff-table.ts`, `diff-chart.ts`, `diff-network.ts`, `diff-performance.ts`, `known-differences.ts`; numeric tolerance and replace rules from the policy.
-- [ ] Routes: review of a result, known differences (list, create, delete); audit actions `comparison_difference.reviewed`, `comparison_known_difference.created`, `comparison_known_difference.deleted`.
+- [ ] Routes: review of a result, known differences (list, create, delete); audit actions `comparison.difference_reviewed`, `comparison.known_difference_created`, `comparison.known_difference_deleted`.
 - [ ] Interface: policy editor in the "Compare environments" dialog; side-by-side detail with `DiffTable`, `DiffChart` (recharts overlay) and `DiffImage`; `ReviewDialog`; known differences in Settings.
 - [ ] Documentation EN and IT; Collaudo cases: create, review, known difference recognised on the next comparison, viewer, second organization.
 

@@ -31,8 +31,26 @@ import {
   type SmsQuery,
 } from '../messaging/sms-inbox';
 import { inspectDownload } from '../runtime/download-check';
-import { textCheckpoint } from '../runtime/checkpoint';
-import type { CheckpointCapture } from '@shared/comparison';
+import {
+  chartCheckpoint,
+  networkCheckpoint,
+  parseTableCheckpointValue,
+  tableCheckpoint,
+  textCheckpoint,
+} from '../runtime/checkpoint';
+import { readChartModel } from './checkpoints/chart-adapters';
+import {
+  attachNetworkJournal,
+  networkJournalOf,
+  parseNetworkCheckpointValue,
+} from './checkpoints/network-journal';
+import {
+  MAX_TABLE_ROWS,
+  type ChartCheckpointData,
+  type CheckpointCapture,
+  type NetworkCheckpointData,
+  type TableCheckpointData,
+} from '@shared/comparison';
 import {
   parseDownloadChecks,
   parseGeolocation,
@@ -1347,6 +1365,104 @@ const HANDLERS: Record<AdhocActionId, StepHandler> = {
       detail:
         `Checkpoint "${name}": ${kept} text${kept === 1 ? '' : 's'}` +
         (checkpoint.truncated ? ` (cut from ${texts.length} matches).` : '.'),
+    };
+  },
+
+  // The cell texts of a table, row by row: the first match of the target is the table, its rows
+  // and their cells are read with the selectors the value names (tr and th, td by default).
+  checkpointTable: async (rt) => {
+    const target = requireSelector(rt, 'checkpointTable');
+    if ('error' in target) return failed(target.error);
+    const value = parseTableCheckpointValue(typeof rt.raw === 'string' ? rt.raw : '');
+    if ('error' in value)
+      return failed(`Value not valid for checkpointTable action: ${value.error}.`);
+
+    const table = rt.locator(target.selector).first();
+    await table.waitFor({ state: 'attached', timeout: rt.timeoutMs });
+    const rows = await table.evaluate(
+      (root, { rowSelector, cellSelector, maxRows }) =>
+        Array.from(root.querySelectorAll(rowSelector))
+          .slice(0, maxRows + 1)
+          .map((row) =>
+            Array.from(row.querySelectorAll(cellSelector)).map(
+              (cell) => (cell as HTMLElement).innerText ?? cell.textContent ?? '',
+            ),
+          ),
+      { rowSelector: value.rows, cellSelector: value.cells, maxRows: MAX_TABLE_ROWS },
+    );
+    const checkpoint = tableCheckpoint(value.name, rows);
+    const kept = (checkpoint.data as TableCheckpointData).rows.length;
+    return {
+      status: 'passed',
+      checkpoint,
+      detail:
+        `Checkpoint "${value.name}": ${kept} row${kept === 1 ? '' : 's'}` +
+        (checkpoint.truncated ? ' (cut).' : '.'),
+    };
+  },
+
+  // The requests since the previous network checkpoint (network-journal.ts), which the runner
+  // attaches when the test has one; no target.
+  checkpointNetwork: async (rt) => {
+    const value = parseNetworkCheckpointValue(typeof rt.raw === 'string' ? rt.raw : '');
+    if ('error' in value)
+      return failed(`Value not valid for checkpointNetwork action: ${value.error}.`);
+    // A step run on its own, as the builder's preview does, finds no journal: it starts one, and
+    // the next network checkpoint sees what follows.
+    const context = rt.page.context();
+    const attached = networkJournalOf(context);
+    if (!attached) attachNetworkJournal(context);
+    const { entries, dropped } = attached
+      ? await attached.take(value.patterns)
+      : { entries: [], dropped: 0 };
+    const checkpoint = networkCheckpoint(value.name, entries, dropped);
+    const kept = (checkpoint.data as NetworkCheckpointData).entries.length;
+    return {
+      status: 'passed',
+      checkpoint,
+      detail:
+        `Checkpoint "${value.name}": ${kept} request${kept === 1 ? '' : 's'}` +
+        (value.patterns.length > 0
+          ? ` matching ${value.patterns.join(', ')}`
+          : ' (fetch and XHR)') +
+        (checkpoint.truncated ? ' (cut).' : '.') +
+        (attached ? '' : ' The journal started at this step; nothing before it was recorded.'),
+    };
+  },
+
+  // The numbers behind a chart, read from the library that drew it (chart-adapters.ts).
+  checkpointChart: async (rt) => {
+    const target = requireSelector(rt, 'checkpointChart');
+    if ('error' in target) return failed(target.error);
+    const name = typeof rt.raw === 'string' ? rt.raw.trim() : '';
+    if (name === '')
+      return failed('Value missing for checkpointChart action: the name of the checkpoint.');
+
+    const chart = rt.locator(target.selector).first();
+    await chart.waitFor({ state: 'attached', timeout: rt.timeoutMs });
+    let read: Awaited<ReturnType<typeof readChartModel>>;
+    try {
+      read = await readChartModel(chart);
+    } catch (error) {
+      return failed(
+        `The chart model could not be read: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
+    if (read.adapter === null)
+      return failed(
+        'No chart model found on the target: expose element.__wfmChartModel(), or point the ' +
+          'step at a DevExtreme or ECharts chart.',
+      );
+    const checkpoint = chartCheckpoint(name, read.model);
+    const series = (checkpoint.data as ChartCheckpointData).series;
+    const points = series.reduce((sum, s) => sum + s.points.length, 0);
+    return {
+      status: 'passed',
+      checkpoint,
+      detail:
+        `Checkpoint "${name}" (${read.adapter}): ${series.length} series, ${points} point` +
+        `${points === 1 ? '' : 's'}` +
+        (checkpoint.truncated ? ' (cut).' : '.'),
     };
   },
 

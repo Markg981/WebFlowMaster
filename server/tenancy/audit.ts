@@ -31,6 +31,8 @@ export interface AuditEntry {
     | 'project'
     | 'run'
     | 'comparison'
+    | 'comparison_result'
+    | 'comparison_known_difference'
     | 'environment'
     | 'secret'
     | 'system_settings'

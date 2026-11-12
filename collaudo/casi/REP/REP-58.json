@@ -1,0 +1,15 @@
+{
+  "id": "REP-58",
+  "area": "REP",
+  "title": "Confronto tra ambienti: tolleranze e differenze di tabella, grafico e rete",
+  "priority": "P2",
+  "actor": "editor.a",
+  "preconditions": "Due ambienti \"prod\" e \"staging\" in cui la stessa pagina mostra una tabella con una cella diversa (\"10,00\" contro \"10,02\"), un grafico con un punto diverso e una chiamata a /api/orders con stato diverso; un piano con un test web che ha gli step \"Checkpoint di tabella\" \"ordini\", \"Checkpoint di grafico\" \"vendite\" e \"Checkpoint di rete\" \"api-ordini\".",
+  "steps": [
+    "In Piani di test fare clic su \"Confronta ambienti\", scegliere \"prod\" come baseline e \"staging\" come candidato.",
+    "Aprire \"Tolleranze\": verificare i valori predefiniti (più spazi come uno solo attivo, URL confrontati **/api/**, screenshot informativo con 1%, durate informativo con 20%).",
+    "Impostare la tolleranza assoluta a 0,05 e avviare il confronto.",
+    "Attendere \"Completato\" e aprire il test nell'elenco."
+  ],
+  "expected": "La cella \"10,00\"/\"10,02\" non è una differenza perché è entro la tolleranza. La differenza del grafico è mostrata con le due serie sovrapposte (baseline continua, candidato tratteggiato), quella della chiamata riporta lo stato di ciascun lato. Gli screenshot si possono vedere affiancati o sovrapposti con l'opacità regolabile."
+}

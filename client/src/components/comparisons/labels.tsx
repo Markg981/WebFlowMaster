@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Badge } from '@/components/ui/badge';
 import type {
   ComparisonResultVerdict,
+  ComparisonReviewStatus,
   ComparisonStatus,
   ComparisonVerdict,
 } from '@shared/comparison';
@@ -67,6 +68,27 @@ export function VerdictBadge({ verdict }: { verdict: ComparisonVerdict | null })
   return (
     <Badge variant={VERDICT_VARIANT[verdict] ?? 'outline'}>
       {t(`comparisons.verdicts.${verdict}`, VERDICT_FALLBACK[verdict] ?? verdict)}
+    </Badge>
+  );
+}
+
+const REVIEW_FALLBACK: Record<ComparisonReviewStatus, string> = {
+  open: 'To review',
+  accepted: 'Accepted',
+  defect: 'Defect',
+};
+
+const REVIEW_VARIANT: Record<ComparisonReviewStatus, Variant> = {
+  open: 'outline',
+  accepted: 'secondary',
+  defect: 'destructive',
+};
+
+export function ReviewStatusBadge({ status }: { status: ComparisonReviewStatus }) {
+  const { t } = useTranslation();
+  return (
+    <Badge variant={REVIEW_VARIANT[status] ?? 'outline'}>
+      {t(`comparisons.reviewStatuses.${status}`, REVIEW_FALLBACK[status] ?? status)}
     </Badge>
   );
 }

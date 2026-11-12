@@ -1,0 +1,14 @@
+{
+  "id": "REP-61",
+  "area": "REP",
+  "title": "Confronto tra ambienti: un viewer legge revisioni e differenze note ma non le modifica",
+  "priority": "P2",
+  "actor": "viewer.a",
+  "preconditions": "Il confronto e la revisione di REP-59; almeno una differenza nota in Impostazioni.",
+  "steps": [
+    "Accedere come viewer.a e aprire il report del confronto, poi il test.",
+    "Aprire Impostazioni → Differenze note.",
+    "Con le API (cookie di viewer.a) chiamare POST /api/comparisons/<id>/results/<resultId>/review con {\"status\":\"defect\"} e DELETE /api/comparison-known-differences/<id>."
+  ],
+  "expected": "Il viewer vede lo stato \"Accettato\" e la nota, ma non il pulsante \"Rivedi\". Vede l'elenco delle differenze note senza \"Nuova\" né il pulsante di eliminazione. Le due chiamate API rispondono 403 e nulla cambia."
+}

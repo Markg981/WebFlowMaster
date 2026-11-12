@@ -1,0 +1,15 @@
+{
+  "id": "REP-59",
+  "area": "REP",
+  "title": "Confronto tra ambienti: rivedere un test e salvare una differenza nota",
+  "priority": "P2",
+  "actor": "editor.a",
+  "preconditions": "Un confronto completato (come REP-58, senza tolleranza) con il test \"Diverso\" per una differenza bloccante sul checkpoint di tabella \"ordini\".",
+  "steps": [
+    "Aprire il test nel report del confronto e fare clic su \"Rivedi\".",
+    "Lasciare \"Accettato\" con il motivo vuoto: verificare che \"Salva revisione\" resti disabilitato.",
+    "Scrivere il motivo \"nuovo arrotondamento\", attivare \"Aspettati queste differenze nei confronti successivi\", lasciare scelta la differenza, ambito \"Questo test\", riferimento \"ticket 1234\", e salvare.",
+    "Aprire Impostazioni → Differenze note."
+  ],
+  "expected": "La colonna Revisione del test mostra \"Accettato\" con la nota \"nuovo arrotondamento\". In Differenze note compare una riga per il test, tipo Tabella, checkpoint \"ordini\", motivo \"nuovo arrotondamento (ticket 1234)\", scadenza \"Mai\". Il registro di audit riporta la revisione e la creazione della differenza nota."
+}

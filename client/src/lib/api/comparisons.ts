@@ -2,11 +2,15 @@ import type {
   CheckpointCapture,
   ComparisonDifference,
   ComparisonMode,
+  ComparisonPolicy,
   ComparisonResultVerdict,
   ComparisonReviewStatus,
   ComparisonStatus,
   ComparisonSummary,
   ComparisonVerdict,
+  CreateKnownDifferenceInput,
+  DifferenceKind,
+  KnownDifferenceScope,
 } from '@shared/comparison';
 
 /**
@@ -75,6 +79,9 @@ export interface ComparedStepView {
 
 export interface ComparisonResultDetail extends ComparisonResultRow {
   hidden: boolean;
+  uiTestId: number | null;
+  reviewNote: string | null;
+  reviewedAt: string | null;
   differences: ComparisonDifference[];
   steps: { baseline: ComparedStepView[]; candidate: ComparedStepView[] } | null;
 }
@@ -136,6 +143,7 @@ export const startComparison = (
     candidateEnvironmentId: number;
     mode: ComparisonMode;
     name?: string;
+    policy?: ComparisonPolicy;
   },
   idempotencyKey: string,
 ) =>
@@ -147,6 +155,68 @@ export const startComparison = (
 
 export const cancelComparison = (id: string) =>
   post<{ status: ComparisonStatus }>(`/api/comparisons/${id}/cancel`, {});
+
+/** A recorded known difference: later comparisons mark the differences it covers as expected. */
+export interface KnownDifferenceView {
+  id: string;
+  projectId: number | null;
+  projectName: string | null;
+  uiTestId: number | null;
+  testName: string | null;
+  checkpointName: string | null;
+  kind: DifferenceKind;
+  pathPattern: string | null;
+  reason: string;
+  reference: string | null;
+  approvedByUserId: number | null;
+  createdAt: string;
+  expiresAt: string | null;
+}
+
+export interface ReviewedResult extends ComparisonResultRow {
+  reviewNote: string | null;
+  reviewedAt: string | null;
+}
+
+export const reviewComparisonResult = (
+  id: string,
+  resultId: string,
+  body: {
+    status: ComparisonReviewStatus;
+    note?: string;
+    saveAsKnownDifference?: {
+      scope?: KnownDifferenceScope;
+      reference?: string;
+      expiresAt?: string;
+      differences?: number[];
+    };
+  },
+) =>
+  post<{ result: ReviewedResult; knownDifferences: KnownDifferenceView[] }>(
+    `/api/comparisons/${id}/results/${resultId}/review`,
+    body,
+  );
+
+export const listKnownDifferences = (params: {
+  projectId?: number;
+  uiTestId?: number;
+  page?: number;
+  pageSize?: number;
+}) => read<Page<KnownDifferenceView>>(`/api/comparison-known-differences${query(params)}`);
+
+export const createKnownDifference = (body: CreateKnownDifferenceInput) =>
+  post<KnownDifferenceView>('/api/comparison-known-differences', body);
+
+export async function deleteKnownDifference(id: string): Promise<void> {
+  const response = await fetch(`/api/comparison-known-differences/${id}`, {
+    method: 'DELETE',
+    credentials: 'include',
+  });
+  if (!response.ok) {
+    const body = await response.json().catch(() => ({}));
+    throw new Error(body.error ?? `${response.status}`);
+  }
+}
 
 /** A fresh key per attempt: retrying the same click does not start a second comparison. */
 export function newIdempotencyKey(): string {

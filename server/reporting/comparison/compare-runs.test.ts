@@ -4,6 +4,7 @@ import { eq } from 'drizzle-orm';
 import { PNG } from 'pngjs';
 import { privilegedDb } from '../../platform/db';
 import {
+  comparisonKnownDifferences,
   comparisonResults,
   comparisonRuns,
   executionUnits,
@@ -242,6 +243,66 @@ describe('createCompareRuns', () => {
       .from(comparisonResults)
       .where(eq(comparisonResults.comparisonRunId, row.id));
     expect(stored).toHaveLength(1);
+  });
+
+  it('compares tables and calls, and recognises the known differences on the next comparison', async () => {
+    const steps = (total: string, status: number) =>
+      JSON.stringify([
+        {
+          stepId: 'grid',
+          status: 'passed',
+          checkpoint: {
+            name: 'orders',
+            kind: 'table',
+            data: { rows: [['ORD-1', total]] },
+            hash: total,
+          },
+        },
+        {
+          stepId: 'calls',
+          status: 'passed',
+          checkpoint: {
+            name: 'api',
+            kind: 'network',
+            data: {
+              entries: [
+                { method: 'GET', path: '/api/orders', query: [], requestBodyHash: null, status },
+              ],
+            },
+            hash: String(status),
+          },
+        },
+      ]);
+    const unit = { id: unitId(1), coordinates: coordinates(1), position: 0 };
+    await seedResult(baselineId, unit, { detailedLog: steps('10.00', 200) });
+    await seedResult(candidateId, { ...unit, id: unitId(2) }, { detailedLog: steps('10.01', 204) });
+
+    const first = await compute(await comparison());
+    expect(first.summary.byVerdict).toMatchObject({ different: 1 });
+
+    const [cell, status] = [uuidv4(), uuidv4()];
+    await privilegedDb.insert(comparisonKnownDifferences).values([
+      { id: cell, organizationId, kind: 'table', pathPattern: 'rows[*][1]', reason: 'rounding' },
+      {
+        id: status,
+        organizationId,
+        kind: 'network',
+        checkpointName: 'api',
+        pathPattern: 'requests[*].status',
+        reason: 'No content now',
+      },
+    ]);
+    const row = await comparison();
+    const second = await compute(row);
+    expect(second.summary.byVerdict).toMatchObject({ equivalent: 1 });
+    const [stored] = await privilegedDb
+      .select()
+      .from(comparisonResults)
+      .where(eq(comparisonResults.comparisonRunId, row.id));
+    expect(stored.differences.map((d) => [d.path, d.knownDifferenceId])).toEqual([
+      ['rows[0][1]', cell],
+      ['requests[GET /api/orders].status', status],
+    ]);
   });
 });
 

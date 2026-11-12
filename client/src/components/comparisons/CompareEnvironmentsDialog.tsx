@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLocation } from 'wouter';
-import { Loader2 } from 'lucide-react';
+import { ChevronDown, ChevronRight, Loader2 } from 'lucide-react';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import PolicyEditor, { defaultPolicy } from '@/components/comparisons/PolicyEditor';
 import {
   Dialog,
   DialogContent,
@@ -22,7 +24,7 @@ import {
 } from '@/components/ui/select';
 import { useEnvironments } from '@/hooks/use-environments';
 import { newIdempotencyKey, startComparison } from '@/lib/api/comparisons';
-import type { ComparisonMode } from '@shared/comparison';
+import type { ComparisonMode, ComparisonPolicy } from '@shared/comparison';
 
 /**
  * Starts a comparison of one plan on two environments: the plan runs on the baseline, then the
@@ -44,6 +46,8 @@ export default function CompareEnvironmentsDialog({
   const [candidate, setCandidate] = useState('');
   const [mode, setMode] = useState<ComparisonMode>('sequential');
   const [name, setName] = useState('');
+  const [policy, setPolicy] = useState<ComparisonPolicy>(defaultPolicy);
+  const [showPolicy, setShowPolicy] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   // One key per opening: a double click or a retry after a timeout starts one comparison.
@@ -55,6 +59,8 @@ export default function CompareEnvironmentsDialog({
     setCandidate('');
     setMode('sequential');
     setName('');
+    setPolicy(defaultPolicy());
+    setShowPolicy(false);
     setError('');
     setKey(newIdempotencyKey());
   }, [plan]);
@@ -74,6 +80,7 @@ export default function CompareEnvironmentsDialog({
           candidateEnvironmentId: Number(candidate),
           mode,
           name: name.trim() || undefined,
+          policy,
         },
         key,
       );
@@ -106,7 +113,7 @@ export default function CompareEnvironmentsDialog({
 
   return (
     <Dialog open={plan !== null} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
             {t('comparisons.dialog.title', 'Compare environments: {{name}}', {
@@ -178,6 +185,21 @@ export default function CompareEnvironmentsDialog({
                   placeholder={t('comparisons.dialog.namePlaceholder', 'e.g. Angular 22 upgrade')}
                 />
               </div>
+              <Collapsible open={showPolicy} onOpenChange={setShowPolicy}>
+                <CollapsibleTrigger asChild>
+                  <Button variant="ghost" size="sm" className="px-0">
+                    {showPolicy ? (
+                      <ChevronDown className="h-4 w-4 mr-1" />
+                    ) : (
+                      <ChevronRight className="h-4 w-4 mr-1" />
+                    )}
+                    {t('comparisons.dialog.tolerances', 'Tolerances')}
+                  </Button>
+                </CollapsibleTrigger>
+                <CollapsibleContent className="pt-2">
+                  <PolicyEditor value={policy} onChange={setPolicy} />
+                </CollapsibleContent>
+              </Collapsible>
             </>
           )}
           {error && <p className="text-sm text-destructive">{error}</p>}

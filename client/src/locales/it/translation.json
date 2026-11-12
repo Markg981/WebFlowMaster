@@ -195,7 +195,9 @@
       "smsInbox": "Casella SMS",
       "smsInboxDescription": "Gli SMS ricevuti dai vostri numeri di test, per gli step che attendono un codice via SMS.",
       "tags": "Tag",
-      "tagsDescription": "Le parole con cui si classificano i test. Rinominarne uno aggiorna ogni test; eliminarne uno lo toglie da ogni test."
+      "tagsDescription": "Le parole con cui si classificano i test. Rinominarne uno aggiorna ogni test; eliminarne uno lo toglie da ogni test.",
+      "knownDifferences": "Differenze note",
+      "knownDifferencesDescription": "Le differenze che i confronti fra ambienti si aspettano: un test che mostra solo quelle resta in parità."
     },
     "tags": {
       "title": "Tag",
@@ -483,6 +485,37 @@
       "revokeDescription": "Il browser o il dispositivo viene disconnesso subito.",
       "revokeOthersTitle": "Terminare tutte le altre sessioni?",
       "revokeOthersDescription": "Ogni altro browser e dispositivo viene disconnesso subito. Questa sessione resta attiva."
+    },
+    "knownDifferences": {
+      "title": "Differenze note",
+      "description": "Le differenze che un confronto fra ambienti si aspetta. Una differenza coperta è segnata come nota e il test resta in parità.",
+      "new": "Nuova",
+      "add": "Aggiungi",
+      "reach": "Si applica a",
+      "reachTest": "Il test “{{name}}”",
+      "reachProject": "Progetto “{{name}}”",
+      "reachOrganization": "Tutta l'organizzazione",
+      "kind": "Tipo",
+      "checkpoint": "Checkpoint (vuoto: qualsiasi)",
+      "path": "Percorso (vuoto: qualsiasi)",
+      "reason": "Perché è attesa",
+      "reference": "Riferimento (facoltativo)",
+      "expires": "Scadenza (facoltativa)",
+      "expiresColumn": "Scadenza",
+      "expired": "Scaduta",
+      "never": "Mai",
+      "what": "Cosa",
+      "error": "Non è stato possibile caricare le differenze note.",
+      "empty": "Ancora nessuna. Accetta una differenza nel report di un confronto e scegli di aspettartela.",
+      "created": "Differenza nota aggiunta",
+      "createFailed": "La differenza nota non è stata aggiunta",
+      "delete": "Elimina differenza nota",
+      "deleted": "Differenza nota eliminata",
+      "deleteFailed": "La differenza nota non è stata eliminata",
+      "deleteDialog": {
+        "title": "Eliminare questa differenza nota?",
+        "description": "I confronti successivi segnaleranno di nuovo le differenze che copriva. I confronti già fatti mantengono il loro esito."
+      }
     }
   },
   "dashboard": {
@@ -1500,6 +1533,21 @@
         "name": "Checkpoint di testo",
         "description": "Registra con un nome il testo di ogni elemento trovato, perché un confronto di run lo metta a fianco dello stesso checkpoint su un altro ambiente. Non fa mai fallire il test per ciò che il testo dice.",
         "valueHint": "il nome del checkpoint, unico nel test — es. totale-ordine"
+      },
+      "checkpointTable": {
+        "name": "Checkpoint di tabella",
+        "description": "Registra con un nome i testi delle celle di una tabella, riga per riga, perché un confronto di run li metta a fianco dello stesso checkpoint su un altro ambiente. Non fa mai fallire il test per ciò che la tabella dice.",
+        "valueHint": "il nome del checkpoint, poi a scelta ; rows=<css>; cells=<css> — es. ordini; rows=tbody tr"
+      },
+      "checkpointChart": {
+        "name": "Checkpoint di grafico",
+        "description": "Registra con un nome le serie, gli assi e le linee di riferimento di un grafico, lette dalla libreria che lo ha disegnato (DevExtreme, ECharts o element.__wfmChartModel() dell'applicazione), perché un confronto di run le metta a fianco dello stesso checkpoint su un altro ambiente. Non fa mai fallire il test per ciò che il grafico mostra.",
+        "valueHint": "il nome del checkpoint, unico nel test — es. vendite-per-mese"
+      },
+      "checkpointNetwork": {
+        "name": "Checkpoint di rete",
+        "description": "Registra con un nome le richieste fatte dalle pagine del test dopo il checkpoint di rete precedente: metodo, percorso, query ordinata, stato e hash dei corpi, mai i corpi. Senza pattern tiene le chiamate fetch e XHR. Un confronto di run le mette a fianco dello stesso checkpoint su un altro ambiente. Non fa mai fallire il test per le richieste fatte.",
+        "valueHint": "il nome del checkpoint, poi facoltativi | e pattern di URL — es. api-ordini | **/api/orders**"
       },
       "mockRequest": {
         "name": "Simula richiesta",
@@ -3249,6 +3297,9 @@
       "run_cancelled": "Run annullato",
       "comparison_created": "Confronto avviato",
       "comparison_cancelled": "Confronto annullato",
+      "comparison_difference_reviewed": "Risultato del confronto revisionato",
+      "comparison_known_difference_created": "Differenza nota salvata",
+      "comparison_known_difference_deleted": "Differenza nota eliminata",
       "environment_created": "Ambiente creato",
       "environment_deleted": "Ambiente eliminato",
       "secret_set": "Segreto impostato",
@@ -5610,7 +5661,8 @@
       "differing": "Diversi",
       "test": "Test",
       "browser": "Browser",
-      "differences": "Differenze"
+      "differences": "Differenze",
+      "review": "Revisione"
     },
     "dialog": {
       "title": "Confronta ambienti: {{name}}",
@@ -5621,7 +5673,8 @@
       "mode": "Ordine",
       "name": "Nome (facoltativo)",
       "namePlaceholder": "es. Aggiornamento ad Angular 22",
-      "start": "Avvia confronto"
+      "start": "Avvia confronto",
+      "tolerances": "Tolleranze"
     },
     "modes": {
       "sequential": "Prima il riferimento, poi il candidato",
@@ -5683,7 +5736,72 @@
       "noScreenshot": "Nessuno screenshot che puoi aprire.",
       "partOf": "Confronto",
       "asBaseline": "questa esecuzione è il riferimento",
-      "asCandidate": "questa esecuzione è il candidato"
+      "asCandidate": "questa esecuzione è il candidato",
+      "known": "differenza nota"
+    },
+    "reviewStatuses": {
+      "open": "Da rivedere",
+      "accepted": "Accettato",
+      "defect": "Difetto"
+    },
+    "policy": {
+      "text": "Testi e celle",
+      "collapseWhitespace": "Considera più spazi come uno solo",
+      "ignoreCase": "Ignora maiuscole e minuscole",
+      "replace": "Sostituisci prima di confrontare (una per riga)",
+      "replacePlaceholder": "ORD-\\d+ => ORD-#",
+      "numeric": "Numeri",
+      "absTolerance": "Tolleranza assoluta",
+      "relTolerance": "Tolleranza relativa (%)",
+      "network": "Chiamate",
+      "include": "Confronta le chiamate il cui URL corrisponde (una per riga)",
+      "ignoreQueryParams": "Parametri di query da ignorare (uno per riga)",
+      "compareResponseHash": "Confronta anche il corpo delle risposte",
+      "visualAndTime": "Screenshot e durate",
+      "visualMode": "Screenshot",
+      "visualThreshold": "Pixel cambiati ammessi (%)",
+      "performanceMode": "Durate",
+      "maxSlowdownPct": "Rallentamento ammesso (%)",
+      "modes": {
+        "off": "Non confrontati",
+        "informative": "Informativo",
+        "blocking": "Bloccante"
+      }
+    },
+    "diff": {
+      "baselineOnly": "(solo baseline)",
+      "candidateOnly": "(solo candidato)",
+      "moreRows": "Altre {{n}} righe non sono mostrate.",
+      "noPoints": "Nessuno dei due lati ha punti da disegnare.",
+      "imageView": "Come mostrare gli screenshot",
+      "sideBySide": "Affiancati",
+      "overlay": "Sovrapposti",
+      "mix": "Dissolvenza dalla baseline al candidato"
+    },
+    "review": {
+      "open": "Rivedi",
+      "title": "Revisione di “{{name}}”",
+      "description": "Indica se le differenze sono attese. Un test accettato può insegnare ai confronti successivi ad aspettarsele.",
+      "status": "Revisione",
+      "statuses": {
+        "open": "Da rivedere",
+        "accepted": "Accettato: la differenza è attesa",
+        "defect": "Difetto: il candidato è sbagliato"
+      },
+      "reason": "Perché è attesa",
+      "note": "Nota (facoltativa)",
+      "reasonRequired": "Per accettare una differenza serve un motivo.",
+      "saveAsKnown": "Aspettati queste differenze nei confronti successivi",
+      "scope": "Dove aspettarsele",
+      "reference": "Riferimento (facoltativo)",
+      "referencePlaceholder": "es. ticket 1234",
+      "expires": "Scadenza (facoltativa)",
+      "save": "Salva revisione"
+    },
+    "scopes": {
+      "test": "Questo test",
+      "project": "Tutti i test del suo progetto",
+      "organization": "Tutti i test dell'organizzazione"
     }
   }
 }

@@ -20,17 +20,25 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
 import {
   RESULT_VERDICT_FALLBACK,
   ResultVerdictBadge,
+  ReviewStatusBadge,
   StatusBadge,
   VerdictBadge,
 } from '@/components/comparisons/labels';
+import DiffChart from '@/components/comparisons/DiffChart';
+import DiffImage from '@/components/comparisons/DiffImage';
+import DiffTable from '@/components/comparisons/DiffTable';
+import ReviewDialog from '@/components/comparisons/ReviewDialog';
 import {
   cancelComparison,
   getComparison,
   getComparisonResult,
   listComparisonResults,
+  type ComparedStepView,
+  type ComparisonResultDetail,
   type ComparisonResultRow,
   type ComparisonSide,
 } from '@/lib/api/comparisons';
@@ -78,6 +86,10 @@ function RunLink({ planId, side, label }: { planId: string; side: ComparisonSide
   );
 }
 
+/** A visual difference carries `{ screenshot }` on each side, a URL the browser can open. */
+const screenshotOf = (value: unknown): string | null =>
+  (value as { screenshot?: string | null } | null)?.screenshot ?? null;
+
 function SideValue({
   difference,
   side,
@@ -85,26 +97,7 @@ function SideValue({
   difference: ComparisonDifference;
   side: 'baseline' | 'candidate';
 }) {
-  const { t } = useTranslation();
   const value = difference[side];
-  if (difference.kind === 'visual') {
-    const screenshot = (value as { screenshot?: string | null } | null)?.screenshot;
-    return screenshot ? (
-      <a href={screenshot} target="_blank" rel="noreferrer">
-        <img
-          src={screenshot}
-          alt={t('comparisons.report.screenshotOf', 'Screenshot on {{side}}', {
-            side: t(`comparisons.${side}`, side),
-          })}
-          className="max-h-64 border rounded"
-        />
-      </a>
-    ) : (
-      <p className="text-xs text-muted-foreground">
-        {t('comparisons.report.noScreenshot', 'No screenshot you can open.')}
-      </p>
-    );
-  }
   return (
     <pre className="text-xs bg-muted rounded p-2 whitespace-pre-wrap break-words max-h-64 overflow-auto">
       {value === undefined || value === null
@@ -116,8 +109,68 @@ function SideValue({
   );
 }
 
-function ResultDetail({ comparisonId, resultId }: { comparisonId: string; resultId: string }) {
+/** The checkpoint a step of one side captured under this name, as the grids draw it. */
+function checkpointData(
+  steps: ComparedStepView[] | undefined,
+  name: string,
+  kind: 'table' | 'chart',
+): unknown {
+  const step = steps?.find((s) => s.checkpoint?.name === name && s.checkpoint.kind === kind);
+  return step?.checkpoint?.data ?? null;
+}
+
+/** One grid or chart per table and chart checkpoint that differs, both sides drawn together. */
+function CheckpointViews({ data }: { data: ComparisonResultDetail }) {
   const { t } = useTranslation();
+  const seen = new Map<string, { kind: 'table' | 'chart'; name: string }>();
+  for (const difference of data.differences)
+    if ((difference.kind === 'table' || difference.kind === 'chart') && difference.checkpoint)
+      seen.set(`${difference.kind}:${difference.checkpoint}`, {
+        kind: difference.kind,
+        name: difference.checkpoint,
+      });
+  if (seen.size === 0 || !data.steps) return null;
+  return (
+    <div className="space-y-4">
+      {[...seen.entries()].map(([key, { kind, name }]) => {
+        const baseline = checkpointData(data.steps?.baseline, name, kind);
+        const candidate = checkpointData(data.steps?.candidate, name, kind);
+        return (
+          <section key={key} className="space-y-1">
+            <h4 className="text-sm font-medium">
+              {t(`comparisons.kinds.${kind}`, kind)}{' '}
+              {t('comparisons.report.checkpoint', 'checkpoint “{{name}}”', { name })}
+            </h4>
+            {kind === 'table' ? (
+              <DiffTable
+                baseline={baseline}
+                candidate={candidate}
+                differences={data.differences.filter(
+                  (d) => d.kind === 'table' && d.checkpoint === name,
+                )}
+              />
+            ) : (
+              <DiffChart baseline={baseline} candidate={candidate} />
+            )}
+          </section>
+        );
+      })}
+    </div>
+  );
+}
+
+function ResultDetail({
+  comparisonId,
+  resultId,
+  canEdit,
+}: {
+  comparisonId: string;
+  resultId: string;
+  canEdit: boolean;
+}) {
+  const { t } = useTranslation();
+  const queryClient = useQueryClient();
+  const [reviewing, setReviewing] = useState<ComparisonResultDetail | null>(null);
   const { data, isLoading, isError } = useQuery({
     queryKey: ['comparisonResult', comparisonId, resultId],
     queryFn: () => getComparisonResult(comparisonId, resultId),
@@ -136,68 +189,116 @@ function ResultDetail({ comparisonId, resultId }: { comparisonId: string; result
         {t('comparisons.report.hidden', 'You may not see the details of this test.')}
       </p>
     );
+  const review = (
+    <div className="flex flex-wrap items-center gap-2 text-sm" data-testid="review">
+      <ReviewStatusBadge status={data.reviewStatus} />
+      {data.reviewNote && <span className="text-xs text-muted-foreground">{data.reviewNote}</span>}
+      {canEdit && (
+        <Button variant="outline" size="sm" onClick={() => setReviewing(data)}>
+          {t('comparisons.review.open', 'Review')}
+        </Button>
+      )}
+      <ReviewDialog
+        comparisonId={comparisonId}
+        result={reviewing}
+        onClose={() => setReviewing(null)}
+        onReviewed={() => {
+          queryClient.invalidateQueries({ queryKey: ['comparisonResult', comparisonId, resultId] });
+          queryClient.invalidateQueries({ queryKey: ['comparisonResults', comparisonId] });
+          queryClient.invalidateQueries({ queryKey: ['comparisonKnownDifferences'] });
+        }}
+      />
+    </div>
+  );
   if (data.differences.length === 0)
     return (
-      <p className="text-sm text-muted-foreground">
-        {t('comparisons.report.noDifferences', 'No difference between the two runs.')}
-      </p>
+      <div className="space-y-3">
+        {review}
+        <p className="text-sm text-muted-foreground">
+          {t('comparisons.report.noDifferences', 'No difference between the two runs.')}
+        </p>
+      </div>
     );
   return (
-    <ul className="space-y-3" data-testid="differences">
-      {data.differences.map((difference, index) => (
-        <li key={index} className="border rounded p-3 space-y-2">
-          <div className="flex flex-wrap items-center gap-2 text-sm">
-            <span className="font-medium">
-              {t(`comparisons.kinds.${difference.kind}`, difference.kind)}
-            </span>
-            {difference.stepIndex >= 0 && (
-              <span className="text-xs text-muted-foreground">
-                {t('comparisons.report.step', 'step {{n}}', { n: difference.stepIndex + 1 })}
+    <div className="space-y-4">
+      {review}
+      <CheckpointViews data={data} />
+      <ul className="space-y-3" data-testid="differences">
+        {data.differences.map((difference, index) => (
+          <li key={index} className="border rounded p-3 space-y-2">
+            <div className="flex flex-wrap items-center gap-2 text-sm">
+              <span className="font-medium">
+                {t(`comparisons.kinds.${difference.kind}`, difference.kind)}
               </span>
-            )}
-            {difference.checkpoint && (
-              <span className="text-xs">
-                {t('comparisons.report.checkpoint', 'checkpoint “{{name}}”', {
-                  name: difference.checkpoint,
-                })}
+              {difference.stepIndex >= 0 && (
+                <span className="text-xs text-muted-foreground">
+                  {t('comparisons.report.step', 'step {{n}}', { n: difference.stepIndex + 1 })}
+                </span>
+              )}
+              {difference.checkpoint && (
+                <span className="text-xs">
+                  {t('comparisons.report.checkpoint', 'checkpoint “{{name}}”', {
+                    name: difference.checkpoint,
+                  })}
+                </span>
+              )}
+              {difference.path && (
+                <code className="text-xs text-muted-foreground">{difference.path}</code>
+              )}
+              <span
+                className={
+                  difference.severity === 'blocking'
+                    ? 'text-xs text-destructive'
+                    : 'text-xs text-muted-foreground'
+                }
+              >
+                {difference.severity === 'blocking'
+                  ? t('comparisons.report.blocking', 'blocking')
+                  : t('comparisons.report.informative', 'informative')}
               </span>
-            )}
-            {difference.path && (
-              <code className="text-xs text-muted-foreground">{difference.path}</code>
-            )}
-            <span
-              className={
-                difference.severity === 'blocking'
-                  ? 'text-xs text-destructive'
-                  : 'text-xs text-muted-foreground'
-              }
-            >
-              {difference.severity === 'blocking'
-                ? t('comparisons.report.blocking', 'blocking')
-                : t('comparisons.report.informative', 'informative')}
-            </span>
-          </div>
-          <div className="grid gap-2 md:grid-cols-2">
-            <div className="space-y-1">
-              <div className="text-xs text-muted-foreground">
-                {t('comparisons.baseline', 'Baseline')}
-              </div>
-              <SideValue difference={difference} side="baseline" />
+              {difference.knownDifferenceId && (
+                <Badge variant="secondary" data-testid="known-difference">
+                  {t('comparisons.report.known', 'known difference')}
+                </Badge>
+              )}
             </div>
-            <div className="space-y-1">
-              <div className="text-xs text-muted-foreground">
-                {t('comparisons.candidate', 'Candidate')}
+            {difference.kind === 'visual' ? (
+              <DiffImage
+                baseline={screenshotOf(difference.baseline)}
+                candidate={screenshotOf(difference.candidate)}
+              />
+            ) : (
+              <div className="grid gap-2 md:grid-cols-2">
+                <div className="space-y-1">
+                  <div className="text-xs text-muted-foreground">
+                    {t('comparisons.baseline', 'Baseline')}
+                  </div>
+                  <SideValue difference={difference} side="baseline" />
+                </div>
+                <div className="space-y-1">
+                  <div className="text-xs text-muted-foreground">
+                    {t('comparisons.candidate', 'Candidate')}
+                  </div>
+                  <SideValue difference={difference} side="candidate" />
+                </div>
               </div>
-              <SideValue difference={difference} side="candidate" />
-            </div>
-          </div>
-        </li>
-      ))}
-    </ul>
+            )}
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }
 
-function ResultRow({ comparisonId, row }: { comparisonId: string; row: ComparisonResultRow }) {
+function ResultRow({
+  comparisonId,
+  row,
+  canEdit,
+}: {
+  comparisonId: string;
+  row: ComparisonResultRow;
+  canEdit: boolean;
+}) {
   const [open, setOpen] = useState(false);
   return (
     <>
@@ -219,11 +320,14 @@ function ResultRow({ comparisonId, row }: { comparisonId: string; row: Compariso
           <ResultVerdictBadge verdict={row.verdict} />
         </TableCell>
         <TableCell className="text-xs">{row.differenceCount}</TableCell>
+        <TableCell>
+          <ReviewStatusBadge status={row.reviewStatus} />
+        </TableCell>
       </TableRow>
       {open && (
         <TableRow>
-          <TableCell colSpan={5}>
-            <ResultDetail comparisonId={comparisonId} resultId={row.id} />
+          <TableCell colSpan={6}>
+            <ResultDetail comparisonId={comparisonId} resultId={row.id} canEdit={canEdit} />
           </TableCell>
         </TableRow>
       )}
@@ -466,11 +570,12 @@ export default function ComparisonReportPage() {
                       <TableHead>{t('comparisons.columns.browser', 'Browser')}</TableHead>
                       <TableHead>{t('comparisons.columns.verdict', 'Verdict')}</TableHead>
                       <TableHead>{t('comparisons.columns.differences', 'Differences')}</TableHead>
+                      <TableHead>{t('comparisons.columns.review', 'Review')}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {results.rows.map((row) => (
-                      <ResultRow key={row.id} comparisonId={id} row={row} />
+                      <ResultRow key={row.id} comparisonId={id} row={row} canEdit={canEdit} />
                     ))}
                   </TableBody>
                 </Table>

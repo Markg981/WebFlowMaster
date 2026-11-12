@@ -1,3 +1,4 @@
+import { attachNetworkJournal, hasNetworkCheckpoint } from '../checkpoints/network-journal';
 import type { AccessibilityFinding } from '@shared/accessibility';
 import type { DownloadFinding } from '@shared/downloads';
 import { analyseFlow, leavesPageAlone } from '@shared/flow';
@@ -223,6 +224,8 @@ export class AdhocRunner {
         timeoutMs: pageTimeout,
       });
       page = session.page;
+      // Before the first navigation, so a network checkpoint sees the page's first requests too.
+      if (hasNetworkCheckpoint(adhocSequence)) attachNetworkJournal(page.context());
       resolvedLogger.debug({ message: 'PS:executeAdhocSequence - Browser session open', testName });
 
       if (targetUrl) {

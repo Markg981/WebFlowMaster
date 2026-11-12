@@ -195,7 +195,9 @@
       "smsInbox": "Boîte SMS",
       "smsInboxDescription": "Les SMS reçus par vos numéros de test, pour les étapes qui attendent un code par SMS.",
       "tags": "Tags",
-      "tagsDescription": "Les mots sous lesquels les tests sont classés. Renommer un tag met à jour chaque test ; le supprimer le retire de chaque test."
+      "tagsDescription": "Les mots sous lesquels les tests sont classés. Renommer un tag met à jour chaque test ; le supprimer le retire de chaque test.",
+      "knownDifferences": "Différences connues",
+      "knownDifferencesDescription": "Les différences qu'attendent les comparaisons d'environnements : un test qui ne montre qu'elles reste à parité."
     },
     "tags": {
       "title": "Tags",
@@ -483,6 +485,37 @@
       "revokeDescription": "Le navigateur ou l’appareil est déconnecté immédiatement.",
       "revokeOthersTitle": "Terminer toutes les autres sessions ?",
       "revokeOthersDescription": "Tous les autres navigateurs et appareils sont déconnectés immédiatement. Celui-ci reste connecté."
+    },
+    "knownDifferences": {
+      "title": "Différences connues",
+      "description": "Les différences qu'une comparaison d'environnements attend. Une différence couverte est marquée connue et le test reste à parité.",
+      "new": "Nouvelle",
+      "add": "Ajouter",
+      "reach": "S'applique à",
+      "reachTest": "Test « {{name}} »",
+      "reachProject": "Projet « {{name}} »",
+      "reachOrganization": "Toute l'organisation",
+      "kind": "Type",
+      "checkpoint": "Point de contrôle (vide : tous)",
+      "path": "Chemin (vide : tous)",
+      "reason": "Pourquoi elle est attendue",
+      "reference": "Référence (facultative)",
+      "expires": "Expiration (facultative)",
+      "expiresColumn": "Expiration",
+      "expired": "Expirée",
+      "never": "Jamais",
+      "what": "Quoi",
+      "error": "Les différences connues n'ont pas pu être chargées.",
+      "empty": "Aucune pour l'instant. Acceptez une différence dans un rapport de comparaison et choisissez de l'attendre.",
+      "created": "Différence connue ajoutée",
+      "createFailed": "La différence connue n'a pas été ajoutée",
+      "delete": "Supprimer la différence connue",
+      "deleted": "Différence connue supprimée",
+      "deleteFailed": "La différence connue n'a pas été supprimée",
+      "deleteDialog": {
+        "title": "Supprimer cette différence connue ?",
+        "description": "Les comparaisons suivantes signaleront de nouveau les différences qu'elle couvrait. Les comparaisons déjà faites gardent leur verdict."
+      }
     }
   },
   "dashboard": {
@@ -1500,6 +1533,21 @@
         "name": "Point de contrôle texte",
         "description": "Enregistre sous un nom le texte de chaque élément trouvé, pour qu'une comparaison d'exécutions le mette en regard du même point de contrôle sur un autre environnement. Ne fait jamais échouer le test sur ce que dit le texte.",
         "valueHint": "le nom du point de contrôle, unique dans le test — p. ex. total-commande"
+      },
+      "checkpointTable": {
+        "name": "Point de contrôle tableau",
+        "description": "Enregistre sous un nom les textes des cellules d'un tableau, ligne par ligne, pour qu'une comparaison d'exécutions les mette en regard du même point de contrôle sur un autre environnement. Ne fait jamais échouer le test sur ce que dit le tableau.",
+        "valueHint": "le nom du point de contrôle, puis en option ; rows=<css>; cells=<css> — p. ex. commandes; rows=tbody tr"
+      },
+      "checkpointChart": {
+        "name": "Point de contrôle graphique",
+        "description": "Enregistre sous un nom les séries, les axes et les lignes de référence d'un graphique, lus dans la bibliothèque qui l'a dessiné (DevExtreme, ECharts ou element.__wfmChartModel() de l'application), pour qu'une comparaison d'exécutions les mette en regard du même point de contrôle sur un autre environnement. Ne fait jamais échouer le test sur ce que montre le graphique.",
+        "valueHint": "le nom du point de contrôle, unique dans le test — p. ex. ventes-par-mois"
+      },
+      "checkpointNetwork": {
+        "name": "Point de contrôle réseau",
+        "description": "Enregistre sous un nom les requêtes faites par les pages du test depuis le point de contrôle réseau précédent : méthode, chemin, query triée, statut et empreintes des corps, jamais les corps. Sans motif, il garde les appels fetch et XHR. Une comparaison d'exécutions les met en regard du même point de contrôle sur un autre environnement. Ne fait jamais échouer le test sur les requêtes faites.",
+        "valueHint": "le nom du point de contrôle, puis éventuellement | et des motifs d'URL — p. ex. api-commandes | **/api/orders**"
       },
       "mockRequest": {
         "name": "Simuler une requête",
@@ -3249,6 +3297,9 @@
       "run_cancelled": "Exécution annulée",
       "comparison_created": "Comparaison lancée",
       "comparison_cancelled": "Comparaison annulée",
+      "comparison_difference_reviewed": "Résultat de comparaison revu",
+      "comparison_known_difference_created": "Différence connue enregistrée",
+      "comparison_known_difference_deleted": "Différence connue supprimée",
       "environment_created": "Environnement créé",
       "environment_deleted": "Environnement supprimé",
       "secret_set": "Secret défini",
@@ -5610,7 +5661,8 @@
       "differing": "Différents",
       "test": "Test",
       "browser": "Navigateur",
-      "differences": "Différences"
+      "differences": "Différences",
+      "review": "Revue"
     },
     "dialog": {
       "title": "Comparer les environnements : {{name}}",
@@ -5621,7 +5673,8 @@
       "mode": "Ordre",
       "name": "Nom (facultatif)",
       "namePlaceholder": "ex. Passage à Angular 22",
-      "start": "Lancer la comparaison"
+      "start": "Lancer la comparaison",
+      "tolerances": "Tolérances"
     },
     "modes": {
       "sequential": "La référence d'abord, puis le candidat",
@@ -5683,7 +5736,72 @@
       "noScreenshot": "Aucune capture que vous pouvez ouvrir.",
       "partOf": "Comparaison",
       "asBaseline": "cette exécution est la référence",
-      "asCandidate": "cette exécution est le candidat"
+      "asCandidate": "cette exécution est le candidat",
+      "known": "différence connue"
+    },
+    "reviewStatuses": {
+      "open": "À revoir",
+      "accepted": "Accepté",
+      "defect": "Défaut"
+    },
+    "policy": {
+      "text": "Textes et cellules",
+      "collapseWhitespace": "Traiter plusieurs espaces comme un seul",
+      "ignoreCase": "Ignorer majuscules et minuscules",
+      "replace": "Remplacer avant de comparer (une par ligne)",
+      "replacePlaceholder": "ORD-\\d+ => ORD-#",
+      "numeric": "Nombres",
+      "absTolerance": "Tolérance absolue",
+      "relTolerance": "Tolérance relative (%)",
+      "network": "Appels",
+      "include": "Comparer les appels dont l'URL correspond (une par ligne)",
+      "ignoreQueryParams": "Paramètres de requête à ignorer (un par ligne)",
+      "compareResponseHash": "Comparer aussi le corps des réponses",
+      "visualAndTime": "Captures et durées",
+      "visualMode": "Captures d'écran",
+      "visualThreshold": "Pixels modifiés admis (%)",
+      "performanceMode": "Durées",
+      "maxSlowdownPct": "Ralentissement admis (%)",
+      "modes": {
+        "off": "Non comparé",
+        "informative": "Informatif",
+        "blocking": "Bloquant"
+      }
+    },
+    "diff": {
+      "baselineOnly": "(référence seulement)",
+      "candidateOnly": "(candidat seulement)",
+      "moreRows": "{{n}} lignes de plus ne sont pas affichées.",
+      "noPoints": "Aucun des deux côtés n'a de point à tracer.",
+      "imageView": "Comment afficher les captures",
+      "sideBySide": "Côte à côte",
+      "overlay": "Superposées",
+      "mix": "Fondu de la référence au candidat"
+    },
+    "review": {
+      "open": "Revoir",
+      "title": "Revue de « {{name}} »",
+      "description": "Indiquez si les différences sont attendues. Un test accepté peut apprendre aux comparaisons suivantes à les attendre.",
+      "status": "Revue",
+      "statuses": {
+        "open": "À revoir",
+        "accepted": "Accepté : la différence est attendue",
+        "defect": "Défaut : le candidat est faux"
+      },
+      "reason": "Pourquoi elle est attendue",
+      "note": "Note (facultative)",
+      "reasonRequired": "Accepter une différence demande une raison.",
+      "saveAsKnown": "Attendre ces différences dans les comparaisons suivantes",
+      "scope": "Où les attendre",
+      "reference": "Référence (facultative)",
+      "referencePlaceholder": "p. ex. ticket 1234",
+      "expires": "Expiration (facultative)",
+      "save": "Enregistrer la revue"
+    },
+    "scopes": {
+      "test": "Ce test",
+      "project": "Tous les tests de son projet",
+      "organization": "Tous les tests de l'organisation"
     }
   }
 }

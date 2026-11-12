@@ -197,6 +197,18 @@ export const ACTION_CONFORMANCE: Record<AdhocActionId, ConformanceRow> = {
     support: 'unsupported',
     how: 'a capture for run comparison, which only WebFlowMaster pairs and diffs',
   },
+  checkpointTable: {
+    support: 'unsupported',
+    how: 'a capture for run comparison, which only WebFlowMaster pairs and diffs',
+  },
+  checkpointChart: {
+    support: 'unsupported',
+    how: 'a capture for run comparison, which only WebFlowMaster pairs and diffs',
+  },
+  checkpointNetwork: {
+    support: 'unsupported',
+    how: 'a capture for run comparison, which only WebFlowMaster pairs and diffs',
+  },
   queryDatabase: {
     support: 'unsupported',
     how: "queries the environment's database through WebFlowMaster",

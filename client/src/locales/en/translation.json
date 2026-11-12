@@ -195,7 +195,9 @@
       "smsInbox": "SMS inbox",
       "smsInboxDescription": "Text messages your test numbers receive, for steps that wait for a code sent by SMS.",
       "tags": "Tags",
-      "tagsDescription": "The words tests are filed under. Rename one and every test follows; delete one and it comes off every test."
+      "tagsDescription": "The words tests are filed under. Rename one and every test follows; delete one and it comes off every test.",
+      "knownDifferences": "Known differences",
+      "knownDifferencesDescription": "Differences environment comparisons expect, so a test that only shows them stays at parity."
     },
     "tags": {
       "title": "Tags",
@@ -483,6 +485,37 @@
       "revokeDescription": "The browser or device is signed out at once.",
       "revokeOthersTitle": "End all other sessions?",
       "revokeOthersDescription": "Every other browser and device is signed out at once. This one stays signed in."
+    },
+    "knownDifferences": {
+      "title": "Known differences",
+      "description": "Differences an environment comparison expects. A covered difference is marked as known and the test stays at parity.",
+      "new": "New",
+      "add": "Add",
+      "reach": "Applies to",
+      "reachTest": "Test “{{name}}”",
+      "reachProject": "Project “{{name}}”",
+      "reachOrganization": "Whole organization",
+      "kind": "Kind",
+      "checkpoint": "Checkpoint (empty: any)",
+      "path": "Path (empty: any)",
+      "reason": "Why it is expected",
+      "reference": "Reference (optional)",
+      "expires": "Expires (optional)",
+      "expiresColumn": "Expires",
+      "expired": "Expired",
+      "never": "Never",
+      "what": "What",
+      "error": "The known differences could not be loaded.",
+      "empty": "None yet. Accept a difference in a comparison report and choose to expect it.",
+      "created": "Known difference added",
+      "createFailed": "The known difference was not added",
+      "delete": "Delete known difference",
+      "deleted": "Known difference deleted",
+      "deleteFailed": "The known difference was not deleted",
+      "deleteDialog": {
+        "title": "Delete this known difference?",
+        "description": "Later comparisons report the differences it covered again. Comparisons already made keep their verdict."
+      }
     }
   },
   "dashboard": {
@@ -1500,6 +1533,21 @@
         "name": "Checkpoint text",
         "description": "Records the text of every matching element under a name, for a run comparison to set against the same checkpoint on another environment. It never fails the test on what the text says.",
         "valueHint": "the checkpoint name, unique in the test — e.g. order-total"
+      },
+      "checkpointTable": {
+        "name": "Checkpoint table",
+        "description": "Records the cell texts of a table, row by row, under a name, for a run comparison to set against the same checkpoint on another environment. It never fails the test on what the table says.",
+        "valueHint": "the checkpoint name, then optionally ; rows=<css>; cells=<css> — e.g. orders; rows=tbody tr"
+      },
+      "checkpointChart": {
+        "name": "Checkpoint chart",
+        "description": "Records the series, axes and reference lines of a chart under a name, read from the library that drew it (DevExtreme, ECharts, or the application's element.__wfmChartModel()), for a run comparison to set against the same checkpoint on another environment. It never fails the test on what the chart shows.",
+        "valueHint": "the checkpoint name, unique in the test — e.g. sales-by-month"
+      },
+      "checkpointNetwork": {
+        "name": "Checkpoint network",
+        "description": "Records under a name the requests the test's pages made since the previous network checkpoint: method, path, sorted query, status and the hashes of the bodies, never the bodies. With no pattern it keeps the fetch and XHR calls. A run comparison sets them against the same checkpoint on another environment. It never fails the test on what the requests were.",
+        "valueHint": "the checkpoint name, then optionally | and URL patterns — e.g. orders-api | **/api/orders**"
       },
       "mockRequest": {
         "name": "Mock request",
@@ -3249,6 +3297,9 @@
       "run_cancelled": "Run cancelled",
       "comparison_created": "Comparison started",
       "comparison_cancelled": "Comparison cancelled",
+      "comparison_difference_reviewed": "Comparison result reviewed",
+      "comparison_known_difference_created": "Known difference saved",
+      "comparison_known_difference_deleted": "Known difference deleted",
       "environment_created": "Environment created",
       "environment_deleted": "Environment deleted",
       "secret_set": "Secret set",
@@ -5610,7 +5661,8 @@
       "differing": "Differing",
       "test": "Test",
       "browser": "Browser",
-      "differences": "Differences"
+      "differences": "Differences",
+      "review": "Review"
     },
     "dialog": {
       "title": "Compare environments: {{name}}",
@@ -5621,7 +5673,8 @@
       "mode": "Order",
       "name": "Name (optional)",
       "namePlaceholder": "e.g. Angular 22 upgrade",
-      "start": "Start comparison"
+      "start": "Start comparison",
+      "tolerances": "Tolerances"
     },
     "modes": {
       "sequential": "Baseline first, then candidate",
@@ -5683,7 +5736,72 @@
       "noScreenshot": "No screenshot you can open.",
       "partOf": "Comparison",
       "asBaseline": "this run is the baseline",
-      "asCandidate": "this run is the candidate"
+      "asCandidate": "this run is the candidate",
+      "known": "known difference"
+    },
+    "reviewStatuses": {
+      "open": "To review",
+      "accepted": "Accepted",
+      "defect": "Defect"
+    },
+    "policy": {
+      "text": "Texts and cells",
+      "collapseWhitespace": "Treat runs of spaces as one",
+      "ignoreCase": "Ignore upper and lower case",
+      "replace": "Replace before comparing (one per line)",
+      "replacePlaceholder": "ORD-\\d+ => ORD-#",
+      "numeric": "Numbers",
+      "absTolerance": "Absolute tolerance",
+      "relTolerance": "Relative tolerance (%)",
+      "network": "Calls",
+      "include": "Compare the calls whose URL matches (one per line)",
+      "ignoreQueryParams": "Query parameters to ignore (one per line)",
+      "compareResponseHash": "Compare the response bodies too",
+      "visualAndTime": "Screenshots and durations",
+      "visualMode": "Screenshots",
+      "visualThreshold": "Changed pixels allowed (%)",
+      "performanceMode": "Durations",
+      "maxSlowdownPct": "Slowdown allowed (%)",
+      "modes": {
+        "off": "Not compared",
+        "informative": "Informative",
+        "blocking": "Blocking"
+      }
+    },
+    "diff": {
+      "baselineOnly": "(baseline only)",
+      "candidateOnly": "(candidate only)",
+      "moreRows": "{{n}} more rows are not shown.",
+      "noPoints": "Neither side has a point to draw.",
+      "imageView": "How to show the screenshots",
+      "sideBySide": "Side by side",
+      "overlay": "Overlay",
+      "mix": "Fade from baseline to candidate"
+    },
+    "review": {
+      "open": "Review",
+      "title": "Review “{{name}}”",
+      "description": "Say whether the differences are expected. An accepted test can teach later comparisons to expect them.",
+      "status": "Review",
+      "statuses": {
+        "open": "To review",
+        "accepted": "Accepted: the difference is expected",
+        "defect": "Defect: the candidate is wrong"
+      },
+      "reason": "Why it is expected",
+      "note": "Note (optional)",
+      "reasonRequired": "Accepting a difference needs a reason.",
+      "saveAsKnown": "Expect these differences in later comparisons",
+      "scope": "Where to expect them",
+      "reference": "Reference (optional)",
+      "referencePlaceholder": "e.g. ticket 1234",
+      "expires": "Expires (optional)",
+      "save": "Save review"
+    },
+    "scopes": {
+      "test": "This test",
+      "project": "Every test of its project",
+      "organization": "Every test of the organization"
     }
   }
 }

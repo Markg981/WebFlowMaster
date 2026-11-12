@@ -119,6 +119,13 @@ export const ADHOC_ACTION_IDS = [
   // Records what the page shows, under a name the author picks, for a run comparison to set
   // beside the same name on another environment (shared/comparison.ts). It checks nothing.
   'checkpointText',
+  // The same for the cell texts of a table, row by row.
+  'checkpointTable',
+  // The same for the series, axes and reference lines of a chart, read from its library.
+  'checkpointChart',
+  // The requests since the previous network checkpoint: method, path, query, status and body
+  // hashes, never the bodies.
+  'checkpointNetwork',
   // Blocks — see shared/flow.ts, which pairs them. `if` and `repeatWhile` take a condition:
   // with an element, a state it is in now (visible, hidden, checked, contains:text…); without
   // one, a comparison of values ("{{status}} == Paid").
@@ -305,6 +312,11 @@ export const ACTION_REQUIREMENTS: Record<
   assertCondition: { target: false, value: true, valueRequired: true },
   // The value is the checkpoint's name, unique within the test.
   checkpointText: { target: true, value: true, valueRequired: true },
+  // The name, then optionally `; rows=<css>; cells=<css>`.
+  checkpointTable: { target: true, value: true, valueRequired: true },
+  checkpointChart: { target: true, value: true, valueRequired: true },
+  // The name, then optionally `| pattern[, pattern]`.
+  checkpointNetwork: { target: false, value: true, valueRequired: true },
   if: { target: false, value: true, valueRequired: true, optionalTarget: true },
   else: { target: false, value: false, valueRequired: false },
   endIf: { target: false, value: false, valueRequired: false },
@@ -579,6 +591,21 @@ export const ACTION_I18N: Record<
     description: 'dashboardPageNew.actions.checkpointText.description',
     icon: 'Bookmark',
   },
+  checkpointTable: {
+    name: 'dashboardPageNew.actions.checkpointTable.name',
+    description: 'dashboardPageNew.actions.checkpointTable.description',
+    icon: 'Table',
+  },
+  checkpointChart: {
+    name: 'dashboardPageNew.actions.checkpointChart.name',
+    description: 'dashboardPageNew.actions.checkpointChart.description',
+    icon: 'ChartLine',
+  },
+  checkpointNetwork: {
+    name: 'dashboardPageNew.actions.checkpointNetwork.name',
+    description: 'dashboardPageNew.actions.checkpointNetwork.description',
+    icon: 'Network',
+  },
   if: {
     name: 'dashboardPageNew.actions.if.name',
     description: 'dashboardPageNew.actions.if.description',
@@ -640,6 +667,9 @@ export const ACTION_VALUE_HINTS: Partial<Record<AdhocActionId, string>> = {
   queryDatabase: 'dashboardPageNew.actions.queryDatabase.valueHint',
   assertCondition: 'dashboardPageNew.actions.assertCondition.valueHint',
   checkpointText: 'dashboardPageNew.actions.checkpointText.valueHint',
+  checkpointTable: 'dashboardPageNew.actions.checkpointTable.valueHint',
+  checkpointChart: 'dashboardPageNew.actions.checkpointChart.valueHint',
+  checkpointNetwork: 'dashboardPageNew.actions.checkpointNetwork.valueHint',
   if: 'dashboardPageNew.actions.if.valueHint',
   repeat: 'dashboardPageNew.actions.repeat.valueHint',
   repeatWhile: 'dashboardPageNew.actions.repeatWhile.valueHint',

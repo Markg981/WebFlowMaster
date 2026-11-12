@@ -101,6 +101,41 @@ export interface TextCheckpointData {
   texts: string[];
 }
 
+/** The data of a table checkpoint: the cell texts of every row, header rows included. */
+export interface TableCheckpointData {
+  rows: string[][];
+}
+
+/**
+ * The data of a chart checkpoint, the one shape every adapter returns
+ * (server/web/checkpoints/chart-adapters.ts). `x` is a category or a number; `y` a number or null.
+ */
+export interface ChartCheckpointData {
+  series: { name: string; type: string; points: [string | number, number | null][] }[];
+  axes: { name: string; min: number | null; max: number | null }[];
+  lines: { axis: string; value: number; label: string }[];
+}
+
+/**
+ * One finished request of a network checkpoint. Bodies are never kept, only their sha-256. The
+ * response hash is taken for fetch and XHR answers; the engine compares it only when the policy's
+ * `network.compareResponseHash` asks, so the choice can be made after both runs.
+ */
+export interface NetworkCheckpointEntry {
+  method: string;
+  path: string;
+  /** Sorted `key=value` pairs of the query string. */
+  query: string[];
+  requestBodyHash: string | null;
+  status: number;
+  responseBodyHash?: string;
+}
+
+/** The data of a network checkpoint: the requests since the previous one that match, sorted. */
+export interface NetworkCheckpointData {
+  entries: NetworkCheckpointEntry[];
+}
+
 export interface ComparisonDifference {
   /** The test's own step id; null for a difference of the whole test. */
   stepId: string | null;
@@ -179,6 +214,61 @@ export const CreateComparisonSchema = z
     path: ['candidateEnvironmentId'],
   });
 export type CreateComparisonInput = z.infer<typeof CreateComparisonSchema>;
+
+/** How far a known difference reaches: the one test, its project, or the whole organization. */
+export const KNOWN_DIFFERENCE_SCOPES = ['test', 'project', 'organization'] as const;
+export type KnownDifferenceScope = (typeof KNOWN_DIFFERENCE_SCOPES)[number];
+
+/** A known difference saved from a review: at most this many from one result. */
+export const MAX_KNOWN_DIFFERENCES_PER_REVIEW = 50;
+
+const futureDate = z
+  .string()
+  .datetime({ offset: true })
+  .refine((value) => Date.parse(value) > Date.now(), 'The expiry must be in the future.');
+
+export const ReviewComparisonResultSchema = z
+  .object({
+    status: z.enum(COMPARISON_REVIEW_STATUSES),
+    note: z.string().trim().max(2000).optional(),
+    /** Accepted differences later comparisons should recognise; the note is the reason. */
+    saveAsKnownDifference: z
+      .object({
+        scope: z.enum(KNOWN_DIFFERENCE_SCOPES).default('test'),
+        reference: z.string().trim().max(500).optional(),
+        expiresAt: futureDate.optional(),
+        /** Positions in the result's differences; by default every blocking one not yet known. */
+        differences: z
+          .array(z.number().int().min(0))
+          .min(1)
+          .max(MAX_KNOWN_DIFFERENCES_PER_REVIEW)
+          .optional(),
+      })
+      .optional(),
+  })
+  .refine((body) => body.status !== 'accepted' || !!body.note, {
+    message: 'Accepting a difference needs a reason.',
+    path: ['note'],
+  })
+  .refine((body) => !body.saveAsKnownDifference || body.status === 'accepted', {
+    message: 'Only an accepted difference can be saved as known.',
+    path: ['saveAsKnownDifference'],
+  });
+export type ReviewComparisonResultInput = z.infer<typeof ReviewComparisonResultSchema>;
+
+export const CreateKnownDifferenceSchema = z.object({
+  /** Null with no test: the whole organization. A test's project is taken from the test. */
+  projectId: z.number().int().positive().nullable().optional(),
+  uiTestId: z.number().int().positive().nullable().optional(),
+  checkpointName: z.string().trim().min(1).max(200).nullable().optional(),
+  kind: z.enum(DIFFERENCE_KINDS),
+  /** A glob over the difference path, `*` for any characters; null for any path. */
+  pathPattern: z.string().trim().min(1).max(500).nullable().optional(),
+  reason: z.string().trim().min(1).max(2000),
+  reference: z.string().trim().max(500).nullable().optional(),
+  expiresAt: futureDate.nullable().optional(),
+});
+export type CreateKnownDifferenceInput = z.infer<typeof CreateKnownDifferenceSchema>;
 
 export type VerdictCounts = Record<ComparisonResultVerdict, number>;
 
