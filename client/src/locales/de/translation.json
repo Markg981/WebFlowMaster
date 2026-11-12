@@ -195,7 +195,9 @@
       "smsInbox": "SMS-Postfach",
       "smsInboxDescription": "SMS, die Ihre Testnummern empfangen, für Schritte, die auf einen per SMS gesendeten Code warten.",
       "tags": "Tags",
-      "tagsDescription": "Die Wörter, unter denen Tests abgelegt werden. Ein umbenannter Tag ändert sich in jedem Test; ein gelöschter verschwindet aus jedem Test."
+      "tagsDescription": "Die Wörter, unter denen Tests abgelegt werden. Ein umbenannter Tag ändert sich in jedem Test; ein gelöschter verschwindet aus jedem Test.",
+      "knownDifferences": "Bekannte Abweichungen",
+      "knownDifferencesDescription": "Abweichungen, die Umgebungsvergleiche erwarten: Ein Test, der nur diese zeigt, bleibt in Parität."
     },
     "tags": {
       "title": "Tags",
@@ -483,6 +485,37 @@
       "revokeDescription": "Der Browser oder das Gerät wird sofort abgemeldet.",
       "revokeOthersTitle": "Alle anderen Sitzungen beenden?",
       "revokeOthersDescription": "Alle anderen Browser und Geräte werden sofort abgemeldet. Diese Sitzung bleibt angemeldet."
+    },
+    "knownDifferences": {
+      "title": "Bekannte Abweichungen",
+      "description": "Abweichungen, die ein Umgebungsvergleich erwartet. Eine abgedeckte Abweichung wird als bekannt markiert und der Test bleibt in Parität.",
+      "new": "Neu",
+      "add": "Hinzufügen",
+      "reach": "Gilt für",
+      "reachTest": "Test „{{name}}“",
+      "reachProject": "Projekt „{{name}}“",
+      "reachOrganization": "Ganze Organisation",
+      "kind": "Art",
+      "checkpoint": "Checkpoint (leer: beliebig)",
+      "path": "Pfad (leer: beliebig)",
+      "reason": "Warum sie erwartet ist",
+      "reference": "Referenz (optional)",
+      "expires": "Ablauf (optional)",
+      "expiresColumn": "Ablauf",
+      "expired": "Abgelaufen",
+      "never": "Nie",
+      "what": "Was",
+      "error": "Die bekannten Abweichungen konnten nicht geladen werden.",
+      "empty": "Noch keine. Akzeptieren Sie eine Abweichung in einem Vergleichsbericht und wählen Sie, sie zu erwarten.",
+      "created": "Bekannte Abweichung hinzugefügt",
+      "createFailed": "Die bekannte Abweichung wurde nicht hinzugefügt",
+      "delete": "Bekannte Abweichung löschen",
+      "deleted": "Bekannte Abweichung gelöscht",
+      "deleteFailed": "Die bekannte Abweichung wurde nicht gelöscht",
+      "deleteDialog": {
+        "title": "Diese bekannte Abweichung löschen?",
+        "description": "Spätere Vergleiche melden die abgedeckten Abweichungen wieder. Bereits durchgeführte Vergleiche behalten ihr Ergebnis."
+      }
     }
   },
   "dashboard": {
@@ -5628,7 +5661,8 @@
       "differing": "Abweichend",
       "test": "Test",
       "browser": "Browser",
-      "differences": "Unterschiede"
+      "differences": "Unterschiede",
+      "review": "Prüfung"
     },
     "dialog": {
       "title": "Umgebungen vergleichen: {{name}}",
@@ -5639,7 +5673,8 @@
       "mode": "Reihenfolge",
       "name": "Name (freiwillig)",
       "namePlaceholder": "z. B. Umstieg auf Angular 22",
-      "start": "Vergleich starten"
+      "start": "Vergleich starten",
+      "tolerances": "Toleranzen"
     },
     "modes": {
       "sequential": "Erst die Referenz, dann der Kandidat",
@@ -5701,7 +5736,72 @@
       "noScreenshot": "Kein Screenshot, den Sie öffnen dürfen.",
       "partOf": "Vergleich",
       "asBaseline": "diese Ausführung ist die Referenz",
-      "asCandidate": "diese Ausführung ist der Kandidat"
+      "asCandidate": "diese Ausführung ist der Kandidat",
+      "known": "bekannte Abweichung"
+    },
+    "reviewStatuses": {
+      "open": "Zu prüfen",
+      "accepted": "Akzeptiert",
+      "defect": "Fehler"
+    },
+    "policy": {
+      "text": "Texte und Zellen",
+      "collapseWhitespace": "Mehrere Leerzeichen als eines behandeln",
+      "ignoreCase": "Groß- und Kleinschreibung ignorieren",
+      "replace": "Vor dem Vergleich ersetzen (eine pro Zeile)",
+      "replacePlaceholder": "ORD-\\d+ => ORD-#",
+      "numeric": "Zahlen",
+      "absTolerance": "Absolute Toleranz",
+      "relTolerance": "Relative Toleranz (%)",
+      "network": "Aufrufe",
+      "include": "Aufrufe vergleichen, deren URL passt (eine pro Zeile)",
+      "ignoreQueryParams": "Zu ignorierende Query-Parameter (einer pro Zeile)",
+      "compareResponseHash": "Auch die Antwortinhalte vergleichen",
+      "visualAndTime": "Screenshots und Dauern",
+      "visualMode": "Screenshots",
+      "visualThreshold": "Erlaubte geänderte Pixel (%)",
+      "performanceMode": "Dauern",
+      "maxSlowdownPct": "Erlaubte Verlangsamung (%)",
+      "modes": {
+        "off": "Nicht verglichen",
+        "informative": "Informativ",
+        "blocking": "Blockierend"
+      }
+    },
+    "diff": {
+      "baselineOnly": "(nur Basis)",
+      "candidateOnly": "(nur Kandidat)",
+      "moreRows": "{{n}} weitere Zeilen werden nicht angezeigt.",
+      "noPoints": "Keine Seite hat einen Punkt zum Zeichnen.",
+      "imageView": "Wie die Screenshots angezeigt werden",
+      "sideBySide": "Nebeneinander",
+      "overlay": "Überlagert",
+      "mix": "Überblenden von Basis zu Kandidat"
+    },
+    "review": {
+      "open": "Prüfen",
+      "title": "Prüfung von „{{name}}“",
+      "description": "Geben Sie an, ob die Abweichungen erwartet sind. Ein akzeptierter Test kann späteren Vergleichen beibringen, sie zu erwarten.",
+      "status": "Prüfung",
+      "statuses": {
+        "open": "Zu prüfen",
+        "accepted": "Akzeptiert: die Abweichung ist erwartet",
+        "defect": "Fehler: der Kandidat ist falsch"
+      },
+      "reason": "Warum sie erwartet ist",
+      "note": "Notiz (optional)",
+      "reasonRequired": "Eine Abweichung zu akzeptieren braucht einen Grund.",
+      "saveAsKnown": "Diese Abweichungen in späteren Vergleichen erwarten",
+      "scope": "Wo sie erwartet werden",
+      "reference": "Referenz (optional)",
+      "referencePlaceholder": "z. B. Ticket 1234",
+      "expires": "Ablauf (optional)",
+      "save": "Prüfung speichern"
+    },
+    "scopes": {
+      "test": "Dieser Test",
+      "project": "Alle Tests seines Projekts",
+      "organization": "Alle Tests der Organisation"
     }
   }
 }

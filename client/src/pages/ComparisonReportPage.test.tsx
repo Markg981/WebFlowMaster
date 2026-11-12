@@ -183,6 +183,22 @@ describe('ComparisonReportPage', () => {
     );
   });
 
+  it('lets an editor review an opened test, and not a viewer', async () => {
+    renderPage();
+    fireEvent.click(await screen.findByRole('button', { name: /checkout/ }));
+    const review = await screen.findByTestId('review');
+    fireEvent.click(within(review).getByRole('button', { name: 'Review' }));
+    expect(await screen.findByRole('button', { name: 'Save review' })).toBeInTheDocument();
+  });
+
+  it('shows a viewer the review without the button', async () => {
+    role = 'viewer';
+    renderPage();
+    fireEvent.click(await screen.findByRole('button', { name: /checkout/ }));
+    const review = await screen.findByTestId('review');
+    expect(within(review).queryByRole('button', { name: 'Review' })).not.toBeInTheDocument();
+  });
+
   it('offers a viewer no cancel', async () => {
     status = 'running';
     role = 'viewer';

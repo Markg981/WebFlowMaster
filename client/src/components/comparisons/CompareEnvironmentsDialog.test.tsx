@@ -2,6 +2,7 @@ import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import CompareEnvironmentsDialog from './CompareEnvironmentsDialog';
+import { defaultPolicy } from './PolicyEditor';
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
@@ -86,6 +87,7 @@ describe('CompareEnvironmentsDialog', () => {
       candidateEnvironmentId: 2,
       mode: 'sequential',
       name: 'Angular 22',
+      policy: defaultPolicy(),
     });
     expect(init.headers['Idempotency-Key']).toEqual(expect.any(String));
   });
