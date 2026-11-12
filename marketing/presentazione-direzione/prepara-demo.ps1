@@ -50,9 +50,9 @@ function Verifica {
   } catch { Ko 'negozio demo non raggiungibile' }
 
   try {
-    $r = Invoke-WebRequest 'http://localhost:6080/' -TimeoutSec 5
-    Ok 'schermo virtuale noVNC su http://localhost:6080 (serve alla registrazione)'
-  } catch { Ko 'noVNC su localhost:6080 non risponde: la registrazione live non si vedrà (usare il piano B)' }
+    $r = Invoke-WebRequest 'http://127.0.0.1:6080/' -TimeoutSec 5
+    Ok 'schermo virtuale noVNC su http://127.0.0.1:6080 (serve alla registrazione)'
+  } catch { Ko 'noVNC su 127.0.0.1:6080 non risponde: la registrazione live non si vedrà (usare il piano B)' }
 
   # Login come maya e conteggio di piani e run
   try {
