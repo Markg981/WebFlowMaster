@@ -42,6 +42,7 @@ export function leavesPageAlone(actionId: string | undefined): boolean {
         'checkpointText',
         'checkpointTable',
         'checkpointChart',
+        'checkpointNetwork',
         'mockRequest',
         'blockRequests',
         'clearMocks',
@@ -180,6 +181,7 @@ const RETRY_SAFE_ACTION_IDS: ReadonlySet<string> = new Set([
   'checkpointText',
   'checkpointTable',
   'checkpointChart',
+  'checkpointNetwork',
 ]);
 
 export function isRetrySafeAction(actionId: string | undefined): boolean {

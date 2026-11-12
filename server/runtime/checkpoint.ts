@@ -1,10 +1,13 @@
 import { createHash } from 'node:crypto';
 import {
   MAX_CHECKPOINT_BYTES,
+  MAX_NETWORK_ENTRIES,
   MAX_TABLE_ROWS,
   MAX_TEXT_MATCHES,
   type ChartCheckpointData,
   type CheckpointCapture,
+  type NetworkCheckpointData,
+  type NetworkCheckpointEntry,
   type TableCheckpointData,
 } from '@shared/comparison';
 import { canonical } from '../authoring/step-provenance';
@@ -157,6 +160,31 @@ export function normaliseChartModel(raw: unknown): ChartCheckpointData {
             },
           ];
     }),
+  };
+}
+
+/**
+ * A network checkpoint over sorted entries, bounded by MAX_NETWORK_ENTRIES and
+ * MAX_CHECKPOINT_BYTES; `lost` counts requests the journal could not hold, which also cuts it.
+ */
+export function networkCheckpoint(
+  name: string,
+  sorted: readonly NetworkCheckpointEntry[],
+  lost = 0,
+): CheckpointCapture {
+  let truncated = lost > 0 || sorted.length > MAX_NETWORK_ENTRIES;
+  const entries = sorted.slice(0, MAX_NETWORK_ENTRIES);
+  while (entries.length > 0 && bytes({ entries }) > MAX_CHECKPOINT_BYTES) {
+    entries.splice(Math.floor(entries.length * 0.9));
+    truncated = true;
+  }
+  const data: NetworkCheckpointData = { entries };
+  return {
+    name,
+    kind: 'network',
+    data,
+    hash: checkpointHash(data),
+    ...(truncated ? { truncated: true } : {}),
   };
 }
 

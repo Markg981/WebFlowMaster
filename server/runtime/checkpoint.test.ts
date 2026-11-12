@@ -2,12 +2,16 @@ import { describe, expect, it } from 'vitest';
 import {
   MAX_CHECKPOINT_BYTES,
   MAX_TABLE_ROWS,
+  MAX_NETWORK_ENTRIES,
   MAX_TEXT_MATCHES,
   type ChartCheckpointData,
+  type NetworkCheckpointData,
+  type NetworkCheckpointEntry,
 } from '@shared/comparison';
 import {
   chartCheckpoint,
   checkpointHash,
+  networkCheckpoint,
   normaliseText,
   parseTableCheckpointValue,
   tableCheckpoint,
@@ -188,5 +192,40 @@ describe('chartCheckpoint', () => {
     expect(data.series[1].points).toHaveLength(10);
     expect(data.series[0].points[0]).toEqual(['point 0', 0]);
     expect(capture.truncated).toBe(true);
+  });
+});
+
+describe('networkCheckpoint', () => {
+  const entry = (i: number, path = `/api/items/${i}`): NetworkCheckpointEntry => ({
+    method: 'GET',
+    path,
+    query: [],
+    requestBodyHash: null,
+    status: 200,
+  });
+
+  it('keeps the entries, hashed, and is not cut when all fit', () => {
+    const c = networkCheckpoint('orders', [entry(1), entry(2)]);
+    expect(c.kind).toBe('network');
+    expect((c.data as NetworkCheckpointData).entries).toHaveLength(2);
+    expect(c.hash).toBe(checkpointHash(c.data));
+    expect(c.truncated).toBeUndefined();
+  });
+
+  it('is cut when the journal lost requests', () => {
+    expect(networkCheckpoint('orders', [entry(1)], 3).truncated).toBe(true);
+  });
+
+  it('holds at most MAX_NETWORK_ENTRIES entries and MAX_CHECKPOINT_BYTES', () => {
+    const many = Array.from({ length: MAX_NETWORK_ENTRIES + 10 }, (_, i) => entry(i));
+    const counted = networkCheckpoint('n', many);
+    expect((counted.data as NetworkCheckpointData).entries).toHaveLength(MAX_NETWORK_ENTRIES);
+    expect(counted.truncated).toBe(true);
+
+    const long = Array.from({ length: 100 }, (_, i) => entry(i, `/api/${'x'.repeat(2000)}/${i}`));
+    const sized = networkCheckpoint('n', long);
+    expect(JSON.stringify(sized.data).length).toBeLessThanOrEqual(MAX_CHECKPOINT_BYTES);
+    expect((sized.data as NetworkCheckpointData).entries.length).toBeGreaterThan(0);
+    expect(sized.truncated).toBe(true);
   });
 });

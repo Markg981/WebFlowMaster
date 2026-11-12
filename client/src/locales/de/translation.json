@@ -1511,6 +1511,11 @@
         "description": "Hält unter einem Namen die Reihen, Achsen und Referenzlinien eines Diagramms fest, gelesen aus der Bibliothek, die es gezeichnet hat (DevExtreme, ECharts oder element.__wfmChartModel() der Anwendung), damit ein Laufvergleich sie dem gleichen Checkpoint auf einer anderen Umgebung gegenüberstellt. Lässt den Test nie wegen des Diagramminhalts fehlschlagen.",
         "valueHint": "der Name des Checkpoints, eindeutig im Test — z. B. umsatz-pro-monat"
       },
+      "checkpointNetwork": {
+        "name": "Netzwerk-Checkpoint",
+        "description": "Hält unter einem Namen die Anfragen fest, die die Seiten des Tests seit dem vorigen Netzwerk-Checkpoint gestellt haben: Methode, Pfad, sortierte Query, Status und die Hashes der Bodys, nie die Bodys selbst. Ohne Muster behält er die Fetch- und XHR-Aufrufe. Ein Laufvergleich stellt sie dem gleichen Checkpoint auf einer anderen Umgebung gegenüber. Lässt den Test nie wegen der Anfragen fehlschlagen.",
+        "valueHint": "der Name des Checkpoints, optional gefolgt von | und URL-Mustern — z. B. bestellungen-api | **/api/orders**"
+      },
       "mockRequest": {
         "name": "Anfrage simulieren",
         "description": "Ab hier beantwortet der Test die Anfragen der Seite an diese Adresse statt des Servers: ein Fehler, eine leere Liste, eine langsame Antwort oder ein noch nicht fertiges Backend. Eine spätere Simulation derselben Adresse ersetzt sie; sie gilt in allen Tabs.",

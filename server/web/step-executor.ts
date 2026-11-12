@@ -33,15 +33,22 @@ import {
 import { inspectDownload } from '../runtime/download-check';
 import {
   chartCheckpoint,
+  networkCheckpoint,
   parseTableCheckpointValue,
   tableCheckpoint,
   textCheckpoint,
 } from '../runtime/checkpoint';
 import { readChartModel } from './checkpoints/chart-adapters';
 import {
+  attachNetworkJournal,
+  networkJournalOf,
+  parseNetworkCheckpointValue,
+} from './checkpoints/network-journal';
+import {
   MAX_TABLE_ROWS,
   type ChartCheckpointData,
   type CheckpointCapture,
+  type NetworkCheckpointData,
   type TableCheckpointData,
 } from '@shared/comparison';
 import {
@@ -1391,6 +1398,35 @@ const HANDLERS: Record<AdhocActionId, StepHandler> = {
       detail:
         `Checkpoint "${value.name}": ${kept} row${kept === 1 ? '' : 's'}` +
         (checkpoint.truncated ? ' (cut).' : '.'),
+    };
+  },
+
+  // The requests since the previous network checkpoint (network-journal.ts), which the runner
+  // attaches when the test has one; no target.
+  checkpointNetwork: async (rt) => {
+    const value = parseNetworkCheckpointValue(typeof rt.raw === 'string' ? rt.raw : '');
+    if ('error' in value)
+      return failed(`Value not valid for checkpointNetwork action: ${value.error}.`);
+    // A step run on its own, as the builder's preview does, finds no journal: it starts one, and
+    // the next network checkpoint sees what follows.
+    const context = rt.page.context();
+    const attached = networkJournalOf(context);
+    if (!attached) attachNetworkJournal(context);
+    const { entries, dropped } = attached
+      ? await attached.take(value.patterns)
+      : { entries: [], dropped: 0 };
+    const checkpoint = networkCheckpoint(value.name, entries, dropped);
+    const kept = (checkpoint.data as NetworkCheckpointData).entries.length;
+    return {
+      status: 'passed',
+      checkpoint,
+      detail:
+        `Checkpoint "${value.name}": ${kept} request${kept === 1 ? '' : 's'}` +
+        (value.patterns.length > 0
+          ? ` matching ${value.patterns.join(', ')}`
+          : ' (fetch and XHR)') +
+        (checkpoint.truncated ? ' (cut).' : '.') +
+        (attached ? '' : ' The journal started at this step; nothing before it was recorded.'),
     };
   },
 

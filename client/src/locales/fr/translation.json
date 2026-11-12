@@ -1511,6 +1511,11 @@
         "description": "Enregistre sous un nom les séries, les axes et les lignes de référence d'un graphique, lus dans la bibliothèque qui l'a dessiné (DevExtreme, ECharts ou element.__wfmChartModel() de l'application), pour qu'une comparaison d'exécutions les mette en regard du même point de contrôle sur un autre environnement. Ne fait jamais échouer le test sur ce que montre le graphique.",
         "valueHint": "le nom du point de contrôle, unique dans le test — p. ex. ventes-par-mois"
       },
+      "checkpointNetwork": {
+        "name": "Point de contrôle réseau",
+        "description": "Enregistre sous un nom les requêtes faites par les pages du test depuis le point de contrôle réseau précédent : méthode, chemin, query triée, statut et empreintes des corps, jamais les corps. Sans motif, il garde les appels fetch et XHR. Une comparaison d'exécutions les met en regard du même point de contrôle sur un autre environnement. Ne fait jamais échouer le test sur les requêtes faites.",
+        "valueHint": "le nom du point de contrôle, puis éventuellement | et des motifs d'URL — p. ex. api-commandes | **/api/orders**"
+      },
       "mockRequest": {
         "name": "Simuler une requête",
         "description": "Désormais les requêtes de la page vers cette adresse reçoivent cette réponse au lieu de celle du serveur : une erreur, une liste vide, une réponse lente ou un backend pas encore prêt. Une simulation ultérieure de la même adresse la remplace ; elle vaut dans tous les onglets.",

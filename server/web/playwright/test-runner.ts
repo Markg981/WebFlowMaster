@@ -1,3 +1,4 @@
+import { attachNetworkJournal, hasNetworkCheckpoint } from '../checkpoints/network-journal';
 import { aiSkipMessage } from '../../authoring/ai-consent';
 import type { AccessibilityFinding } from '@shared/accessibility';
 import type { BrowserGridProvider } from '@shared/browser-grids';
@@ -429,6 +430,8 @@ export class TestRunner {
       page = session.page;
       matrix = await browserMatrixEvidence(browserChoice, session.browser, page);
       if (options?.runtime) page.setDefaultNavigationTimeout(options.runtime.pageLoadTimeoutMs);
+      // Before the first navigation, so a network checkpoint sees the page's first requests too.
+      if (hasNetworkCheckpoint(sequenceToRun)) attachNetworkJournal(context);
 
       // A run no plan drives keeps a picture of every step, as it always has.
       const screenshots = options?.runtime?.screenshots ?? 'always';
