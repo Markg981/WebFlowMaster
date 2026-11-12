@@ -3,6 +3,7 @@ import {
   MAX_CHECKPOINT_BYTES,
   MAX_TABLE_ROWS,
   MAX_TEXT_MATCHES,
+  type ChartCheckpointData,
   type CheckpointCapture,
   type TableCheckpointData,
 } from '@shared/comparison';
@@ -109,6 +110,79 @@ export function tableCheckpoint(name: string, rawRows: readonly string[][]): Che
   return {
     name,
     kind: 'table',
+    data,
+    hash: checkpointHash(data),
+    ...(truncated ? { truncated: true } : {}),
+  };
+}
+
+const finiteOrNull = (value: unknown): number | null =>
+  typeof value === 'number' && Number.isFinite(value) ? value : null;
+const arrayOf = (value: unknown): unknown[] => (Array.isArray(value) ? value : []);
+const field = (value: unknown, key: string): unknown =>
+  value !== null && typeof value === 'object' ? (value as Record<string, unknown>)[key] : undefined;
+const textOf = (value: unknown): string =>
+  typeof value === 'string' ? value : value == null ? '' : String(value);
+
+/**
+ * The chart model an adapter or the application's hook returned, in the one shape the comparison
+ * reads. The hook is the application's code, so nothing about its answer is trusted: a field of
+ * the wrong type becomes empty, not an error.
+ */
+export function normaliseChartModel(raw: unknown): ChartCheckpointData {
+  return {
+    series: arrayOf(field(raw, 'series')).map((series) => ({
+      name: normaliseText(textOf(field(series, 'name'))),
+      type: normaliseText(textOf(field(series, 'type'))),
+      points: arrayOf(field(series, 'points')).map((point): [string | number, number | null] => {
+        const [x, y] = arrayOf(point);
+        const xValue = typeof x === 'number' && Number.isFinite(x) ? x : normaliseText(textOf(x));
+        return [xValue, finiteOrNull(y)];
+      }),
+    })),
+    axes: arrayOf(field(raw, 'axes')).map((axis) => ({
+      name: normaliseText(textOf(field(axis, 'name'))),
+      min: finiteOrNull(field(axis, 'min')),
+      max: finiteOrNull(field(axis, 'max')),
+    })),
+    lines: arrayOf(field(raw, 'lines')).flatMap((line) => {
+      const value = finiteOrNull(field(line, 'value'));
+      return value === null
+        ? []
+        : [
+            {
+              axis: normaliseText(textOf(field(line, 'axis'))),
+              value,
+              label: normaliseText(textOf(field(line, 'label'))),
+            },
+          ];
+    }),
+  };
+}
+
+/** A chart checkpoint, normalised and bounded: points go from the end of the longest series. */
+export function chartCheckpoint(name: string, raw: unknown): CheckpointCapture {
+  const data = normaliseChartModel(raw);
+  let truncated = false;
+  while (bytes(data) > MAX_CHECKPOINT_BYTES) {
+    const longest = data.series.reduce<ChartCheckpointData['series'][number] | undefined>(
+      (best, series) => (!best || series.points.length > best.points.length ? series : best),
+      undefined,
+    );
+    if (!longest || longest.points.length === 0) {
+      // Only names, axes and lines are left; they are the application's, and few, so they go.
+      if (data.lines.length > 0) data.lines.pop();
+      else if (data.axes.length > 0) data.axes.pop();
+      else if (data.series.length > 0) data.series.pop();
+      else break;
+    } else {
+      longest.points.splice(Math.floor(longest.points.length * 0.9));
+    }
+    truncated = true;
+  }
+  return {
+    name,
+    kind: 'chart',
     data,
     hash: checkpointHash(data),
     ...(truncated ? { truncated: true } : {}),

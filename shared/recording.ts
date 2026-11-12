@@ -121,6 +121,8 @@ export const ADHOC_ACTION_IDS = [
   'checkpointText',
   // The same for the cell texts of a table, row by row.
   'checkpointTable',
+  // The same for the series, axes and reference lines of a chart, read from its library.
+  'checkpointChart',
   // Blocks — see shared/flow.ts, which pairs them. `if` and `repeatWhile` take a condition:
   // with an element, a state it is in now (visible, hidden, checked, contains:text…); without
   // one, a comparison of values ("{{status}} == Paid").
@@ -309,6 +311,7 @@ export const ACTION_REQUIREMENTS: Record<
   checkpointText: { target: true, value: true, valueRequired: true },
   // The name, then optionally `; rows=<css>; cells=<css>`.
   checkpointTable: { target: true, value: true, valueRequired: true },
+  checkpointChart: { target: true, value: true, valueRequired: true },
   if: { target: false, value: true, valueRequired: true, optionalTarget: true },
   else: { target: false, value: false, valueRequired: false },
   endIf: { target: false, value: false, valueRequired: false },
@@ -588,6 +591,11 @@ export const ACTION_I18N: Record<
     description: 'dashboardPageNew.actions.checkpointTable.description',
     icon: 'Table',
   },
+  checkpointChart: {
+    name: 'dashboardPageNew.actions.checkpointChart.name',
+    description: 'dashboardPageNew.actions.checkpointChart.description',
+    icon: 'ChartLine',
+  },
   if: {
     name: 'dashboardPageNew.actions.if.name',
     description: 'dashboardPageNew.actions.if.description',
@@ -650,6 +658,7 @@ export const ACTION_VALUE_HINTS: Partial<Record<AdhocActionId, string>> = {
   assertCondition: 'dashboardPageNew.actions.assertCondition.valueHint',
   checkpointText: 'dashboardPageNew.actions.checkpointText.valueHint',
   checkpointTable: 'dashboardPageNew.actions.checkpointTable.valueHint',
+  checkpointChart: 'dashboardPageNew.actions.checkpointChart.valueHint',
   if: 'dashboardPageNew.actions.if.valueHint',
   repeat: 'dashboardPageNew.actions.repeat.valueHint',
   repeatWhile: 'dashboardPageNew.actions.repeatWhile.valueHint',

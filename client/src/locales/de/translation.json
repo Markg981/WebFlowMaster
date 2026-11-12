@@ -1506,6 +1506,11 @@
         "description": "Hält unter einem Namen die Zelltexte einer Tabelle Zeile für Zeile fest, damit ein Laufvergleich sie dem gleichen Checkpoint auf einer anderen Umgebung gegenüberstellt. Lässt den Test nie wegen des Tabelleninhalts fehlschlagen.",
         "valueHint": "der Name des Checkpoints, dann optional ; rows=<css>; cells=<css> — z. B. bestellungen; rows=tbody tr"
       },
+      "checkpointChart": {
+        "name": "Diagramm-Checkpoint",
+        "description": "Hält unter einem Namen die Reihen, Achsen und Referenzlinien eines Diagramms fest, gelesen aus der Bibliothek, die es gezeichnet hat (DevExtreme, ECharts oder element.__wfmChartModel() der Anwendung), damit ein Laufvergleich sie dem gleichen Checkpoint auf einer anderen Umgebung gegenüberstellt. Lässt den Test nie wegen des Diagramminhalts fehlschlagen.",
+        "valueHint": "der Name des Checkpoints, eindeutig im Test — z. B. umsatz-pro-monat"
+      },
       "mockRequest": {
         "name": "Anfrage simulieren",
         "description": "Ab hier beantwortet der Test die Anfragen der Seite an diese Adresse statt des Servers: ein Fehler, eine leere Liste, eine langsame Antwort oder ein noch nicht fertiges Backend. Eine spätere Simulation derselben Adresse ersetzt sie; sie gilt in allen Tabs.",

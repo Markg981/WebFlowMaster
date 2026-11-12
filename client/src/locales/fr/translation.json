@@ -1506,6 +1506,11 @@
         "description": "Enregistre sous un nom les textes des cellules d'un tableau, ligne par ligne, pour qu'une comparaison d'exécutions les mette en regard du même point de contrôle sur un autre environnement. Ne fait jamais échouer le test sur ce que dit le tableau.",
         "valueHint": "le nom du point de contrôle, puis en option ; rows=<css>; cells=<css> — p. ex. commandes; rows=tbody tr"
       },
+      "checkpointChart": {
+        "name": "Point de contrôle graphique",
+        "description": "Enregistre sous un nom les séries, les axes et les lignes de référence d'un graphique, lus dans la bibliothèque qui l'a dessiné (DevExtreme, ECharts ou element.__wfmChartModel() de l'application), pour qu'une comparaison d'exécutions les mette en regard du même point de contrôle sur un autre environnement. Ne fait jamais échouer le test sur ce que montre le graphique.",
+        "valueHint": "le nom du point de contrôle, unique dans le test — p. ex. ventes-par-mois"
+      },
       "mockRequest": {
         "name": "Simuler une requête",
         "description": "Désormais les requêtes de la page vers cette adresse reçoivent cette réponse au lieu de celle du serveur : une erreur, une liste vide, une réponse lente ou un backend pas encore prêt. Une simulation ultérieure de la même adresse la remplace ; elle vaut dans tous les onglets.",

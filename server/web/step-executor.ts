@@ -31,9 +31,16 @@ import {
   type SmsQuery,
 } from '../messaging/sms-inbox';
 import { inspectDownload } from '../runtime/download-check';
-import { parseTableCheckpointValue, tableCheckpoint, textCheckpoint } from '../runtime/checkpoint';
+import {
+  chartCheckpoint,
+  parseTableCheckpointValue,
+  tableCheckpoint,
+  textCheckpoint,
+} from '../runtime/checkpoint';
+import { readChartModel } from './checkpoints/chart-adapters';
 import {
   MAX_TABLE_ROWS,
+  type ChartCheckpointData,
   type CheckpointCapture,
   type TableCheckpointData,
 } from '@shared/comparison';
@@ -1383,6 +1390,42 @@ const HANDLERS: Record<AdhocActionId, StepHandler> = {
       checkpoint,
       detail:
         `Checkpoint "${value.name}": ${kept} row${kept === 1 ? '' : 's'}` +
+        (checkpoint.truncated ? ' (cut).' : '.'),
+    };
+  },
+
+  // The numbers behind a chart, read from the library that drew it (chart-adapters.ts).
+  checkpointChart: async (rt) => {
+    const target = requireSelector(rt, 'checkpointChart');
+    if ('error' in target) return failed(target.error);
+    const name = typeof rt.raw === 'string' ? rt.raw.trim() : '';
+    if (name === '')
+      return failed('Value missing for checkpointChart action: the name of the checkpoint.');
+
+    const chart = rt.locator(target.selector).first();
+    await chart.waitFor({ state: 'attached', timeout: rt.timeoutMs });
+    let read: Awaited<ReturnType<typeof readChartModel>>;
+    try {
+      read = await readChartModel(chart);
+    } catch (error) {
+      return failed(
+        `The chart model could not be read: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
+    if (read.adapter === null)
+      return failed(
+        'No chart model found on the target: expose element.__wfmChartModel(), or point the ' +
+          'step at a DevExtreme or ECharts chart.',
+      );
+    const checkpoint = chartCheckpoint(name, read.model);
+    const series = (checkpoint.data as ChartCheckpointData).series;
+    const points = series.reduce((sum, s) => sum + s.points.length, 0);
+    return {
+      status: 'passed',
+      checkpoint,
+      detail:
+        `Checkpoint "${name}" (${read.adapter}): ${series.length} series, ${points} point` +
+        `${points === 1 ? '' : 's'}` +
         (checkpoint.truncated ? ' (cut).' : '.'),
     };
   },

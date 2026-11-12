@@ -1506,6 +1506,11 @@
         "description": "Registra con un nome i testi delle celle di una tabella, riga per riga, perché un confronto di run li metta a fianco dello stesso checkpoint su un altro ambiente. Non fa mai fallire il test per ciò che la tabella dice.",
         "valueHint": "il nome del checkpoint, poi a scelta ; rows=<css>; cells=<css> — es. ordini; rows=tbody tr"
       },
+      "checkpointChart": {
+        "name": "Checkpoint di grafico",
+        "description": "Registra con un nome le serie, gli assi e le linee di riferimento di un grafico, lette dalla libreria che lo ha disegnato (DevExtreme, ECharts o element.__wfmChartModel() dell'applicazione), perché un confronto di run le metta a fianco dello stesso checkpoint su un altro ambiente. Non fa mai fallire il test per ciò che il grafico mostra.",
+        "valueHint": "il nome del checkpoint, unico nel test — es. vendite-per-mese"
+      },
       "mockRequest": {
         "name": "Simula richiesta",
         "description": "Da qui in poi le richieste della pagina a questo indirizzo ricevono questa risposta, non quella del server: un errore, una lista vuota, una risposta lenta o un backend non ancora pronto. Una simulazione successiva dello stesso indirizzo la sostituisce; vale in tutte le schede.",

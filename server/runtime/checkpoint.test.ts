@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { MAX_CHECKPOINT_BYTES, MAX_TABLE_ROWS, MAX_TEXT_MATCHES } from '@shared/comparison';
 import {
+  MAX_CHECKPOINT_BYTES,
+  MAX_TABLE_ROWS,
+  MAX_TEXT_MATCHES,
+  type ChartCheckpointData,
+} from '@shared/comparison';
+import {
+  chartCheckpoint,
   checkpointHash,
   normaliseText,
   parseTableCheckpointValue,
@@ -127,5 +133,60 @@ describe('tableCheckpoint', () => {
   it('records an empty table as no rows', () => {
     expect(tableCheckpoint('none', []).data).toEqual({ rows: [] });
     expect(tableCheckpoint('empty-row', [[]]).data).toEqual({ rows: [[]] });
+  });
+});
+
+describe('chartCheckpoint', () => {
+  it('keeps the one shape and trusts no field of a hook answer', () => {
+    const capture = chartCheckpoint('sales', {
+      series: [
+        { name: ' Sales ', type: 'bar', points: [['Jan', 10], [2, Number.NaN], ['x'], 'junk'] },
+        { points: 'not a list' },
+      ],
+      axes: [{ name: 'value', min: '0', max: 20 }],
+      lines: [
+        { axis: 'value', value: 15, label: 'Target' },
+        { axis: 'value', value: 'high' },
+      ],
+      extra: 'ignored',
+    });
+    const data = {
+      series: [
+        {
+          name: 'Sales',
+          type: 'bar',
+          points: [
+            ['Jan', 10],
+            [2, null],
+            ['x', null],
+            ['', null],
+          ],
+        },
+        { name: '', type: '', points: [] },
+      ],
+      axes: [{ name: 'value', min: null, max: 20 }],
+      lines: [{ axis: 'value', value: 15, label: 'Target' }],
+    };
+    expect(capture).toEqual({ name: 'sales', kind: 'chart', data, hash: checkpointHash(data) });
+  });
+
+  it('reads anything that is not a model as an empty chart', () => {
+    expect(chartCheckpoint('none', null).data).toEqual({ series: [], axes: [], lines: [] });
+    expect(chartCheckpoint('none', 'chart').data).toEqual({ series: [], axes: [], lines: [] });
+  });
+
+  it('stays within MAX_CHECKPOINT_BYTES, cutting points from the longest series', () => {
+    const points = Array.from({ length: 20_000 }, (_, i) => [`point ${i}`, i]);
+    const capture = chartCheckpoint('big', {
+      series: [
+        { name: 'long', type: 'line', points },
+        { name: 'short', type: 'line', points: points.slice(0, 10) },
+      ],
+    });
+    const data = capture.data as ChartCheckpointData;
+    expect(Buffer.byteLength(JSON.stringify(data))).toBeLessThanOrEqual(MAX_CHECKPOINT_BYTES);
+    expect(data.series[1].points).toHaveLength(10);
+    expect(data.series[0].points[0]).toEqual(['point 0', 0]);
+    expect(capture.truncated).toBe(true);
   });
 });
