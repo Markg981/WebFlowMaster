@@ -1,6 +1,7 @@
 import { API_SCOPES, type ApiScope } from '@shared/api-scopes';
 import { EXECUTION_STATUSES } from '@shared/execution-status';
 import { CI_PROVIDERS } from '@shared/ci';
+import { COMPARISON_MODES, COMPARISON_STATUSES, COMPARISON_VERDICTS } from '@shared/comparison';
 import { authoringPaths, authoringSchemas } from './authoring-openapi';
 import { managementPaths, managementSchemas } from './management-openapi';
 
@@ -42,6 +43,21 @@ const paginated = [
 ];
 
 const runId = { name: 'runId', in: 'path', required: true, schema: { type: 'string' } };
+const comparisonId = {
+  name: 'comparisonId',
+  in: 'path',
+  required: true,
+  schema: { type: 'string' },
+};
+
+const comparisonSide = {
+  type: 'object',
+  properties: {
+    environmentId: { type: ['integer', 'null'] },
+    environmentName: { type: 'string' },
+    runId: { type: ['string', 'null'], description: 'Null until the run is queued.' },
+  },
+};
 
 const scopeList = (Object.entries(API_SCOPES) as Array<[ApiScope, (typeof API_SCOPES)[ApiScope]]>)
   .map(
@@ -115,6 +131,48 @@ export const openApiDocument = {
           buildId: { type: 'string', maxLength: 200 },
           buildUrl: { type: 'string', format: 'uri', description: 'http or https only.' },
           actor: { type: 'string', maxLength: 200 },
+        },
+      },
+      Comparison: {
+        type: 'object',
+        required: ['id', 'planId', 'status', 'baseline', 'candidate', 'links'],
+        properties: {
+          id: { type: 'string' },
+          planId: { type: 'string' },
+          planName: { type: ['string', 'null'] },
+          name: { type: ['string', 'null'] },
+          mode: { type: 'string', enum: [...COMPARISON_MODES] },
+          status: { type: 'string', enum: [...COMPARISON_STATUSES] },
+          verdict: {
+            type: ['string', 'null'],
+            enum: [...COMPARISON_VERDICTS, null],
+            description: 'Null until both runs have ended and the comparison is computed.',
+          },
+          summary: {
+            type: ['object', 'null'],
+            description:
+              'total, byVerdict (identical, equivalent, different, outcome_mismatch, both_failed, not_comparable), byModule and droppedDifferences.',
+          },
+          baseline: comparisonSide,
+          candidate: comparisonSide,
+          failure: {
+            type: ['object', 'null'],
+            properties: { code: { type: 'string' }, message: { type: ['string', 'null'] } },
+          },
+          createdAt: { type: 'string', format: 'date-time' },
+          completedAt: { type: ['string', 'null'], format: 'date-time' },
+          links: {
+            type: 'object',
+            properties: {
+              self: { type: 'string' },
+              html: { type: 'string' },
+              pdf: { type: 'string' },
+              report: {
+                type: ['string', 'null'],
+                description: 'The comparison page, when WEBFLOW_PUBLIC_URL is set.',
+              },
+            },
+          },
         },
       },
       Run: {
@@ -407,6 +465,110 @@ export const openApiDocument = {
           ...common,
           '400': errorResponse('Unknown format.'),
           '404': errorResponse('No such run in this organization.'),
+          '503': errorResponse(
+            'PDF was asked for and the server has no browser to render it; the HTML export has the same content.',
+          ),
+        },
+      },
+    },
+    '/api/v1/plans/{planId}/comparisons': {
+      post: {
+        operationId: 'startComparison',
+        summary: 'Run a plan on two environments and compare the two runs.',
+        description:
+          'Freezes the plan once, runs it on the baseline environment and replays the same inputs on the candidate one, then compares the stored results. ' +
+          'Answers at once; poll `Location` until `status` is completed, cancelled or error, then read `verdict`. ' +
+          'Send an `Idempotency-Key` to make retrying the request safe: the same key returns the same comparison.',
+        ...secured('runs:write'),
+        parameters: [
+          { name: 'planId', in: 'path', required: true, schema: { type: 'string' } },
+          {
+            name: 'Idempotency-Key',
+            in: 'header',
+            required: false,
+            schema: { type: 'string', maxLength: 255 },
+          },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['baselineEnvironmentId', 'candidateEnvironmentId'],
+                properties: {
+                  baselineEnvironmentId: { type: 'integer' },
+                  candidateEnvironmentId: {
+                    type: 'integer',
+                    description: 'Must differ from the baseline.',
+                  },
+                  mode: { type: 'string', enum: [...COMPARISON_MODES], default: 'sequential' },
+                  name: { type: 'string', maxLength: 200 },
+                  policy: {
+                    type: 'object',
+                    description:
+                      'Tolerances: text, numeric, network, visual and performance. Every field has a default; see the guide.',
+                  },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          '202': {
+            description: 'Started, or found by its Idempotency-Key.',
+            headers: { Location: { schema: { type: 'string' }, description: 'The comparison.' } },
+            content: { 'application/json': { schema: ref('Comparison') } },
+          },
+          '400': errorResponse('The body or a header is not valid.'),
+          ...common,
+          '404': errorResponse('No such plan, or no such environment, in this organization.'),
+          '429': errorResponse("The organization's queue is full (`queue_quota_exceeded`)."),
+        },
+      },
+    },
+    '/api/v1/comparisons/{comparisonId}': {
+      get: {
+        operationId: 'getComparison',
+        summary: 'One comparison: its status, its overall verdict and its counts.',
+        ...secured('runs:read'),
+        parameters: [comparisonId],
+        responses: {
+          '200': {
+            description: 'The comparison.',
+            content: { 'application/json': { schema: ref('Comparison') } },
+          },
+          ...common,
+          '404': errorResponse('No such comparison in this organization.'),
+        },
+      },
+    },
+    '/api/v1/comparisons/{comparisonId}/export/{format}': {
+      get: {
+        operationId: 'exportComparison',
+        summary:
+          'The parity report as a file: verdicts, tolerances, differences and who accepted them.',
+        ...secured('runs:read'),
+        parameters: [
+          comparisonId,
+          {
+            name: 'format',
+            in: 'path',
+            required: true,
+            schema: { type: 'string', enum: ['html', 'pdf'] },
+          },
+        ],
+        responses: {
+          '200': {
+            description: 'The file, as an attachment.',
+            content: {
+              'text/html': { schema: { type: 'string' } },
+              'application/pdf': { schema: { type: 'string', format: 'binary' } },
+            },
+          },
+          ...common,
+          '400': errorResponse('Unknown format.'),
+          '404': errorResponse('No such comparison in this organization.'),
           '503': errorResponse(
             'PDF was asked for and the server has no browser to render it; the HTML export has the same content.',
           ),
