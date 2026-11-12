@@ -210,7 +210,28 @@ export function nativeFormat(webhookUrl: string | undefined): 'slack' | 'teams' 
   return null;
 }
 
-type Tone = 'good' | 'bad' | 'neutral';
+export type Tone = 'good' | 'bad' | 'neutral';
+
+/** What a Slack or Teams message lays out: one line, the numbers, and the link. */
+export interface NativeMessage {
+  line: string;
+  facts: Array<[string, string]>;
+  tone: Tone;
+  url: string | undefined;
+  /** The button's label. */
+  action?: string;
+}
+
+/** The message in the receiver's own format, or nothing when it has none (see `nativeFormat`). */
+export function nativeMessage(
+  webhookUrl: string | undefined,
+  message: NativeMessage,
+): Record<string, unknown> {
+  const native = nativeFormat(webhookUrl);
+  if (native === 'slack') return slackCard(message);
+  if (native === 'teams') return teamsCard(message);
+  return {};
+}
 
 function toneOf(status: RunStatus): Tone {
   const which = switchForStatus(status);
@@ -238,15 +259,24 @@ function facts(summary: RunSummary): Array<[string, string]> {
 
 /** Slack Block Kit inside an attachment, which is what draws the coloured bar. */
 function slackMessage(summary: RunSummary, url: string | undefined): Record<string, unknown> {
-  const color = { good: '#2eb67d', bad: '#e01e5a', neutral: '#868686' }[toneOf(summary.status)];
+  return slackCard({
+    line: summaryLine(summary),
+    facts: facts(summary),
+    tone: toneOf(summary.status),
+    url,
+  });
+}
+
+function slackCard({ line, facts: rows, tone, url, action }: NativeMessage) {
+  const color = { good: '#2eb67d', bad: '#e01e5a', neutral: '#868686' }[tone];
   // Slack's mrkdwn treats &, < and > as markup; a plan name is the user's text.
   const escape = (value: string) =>
     value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   const blocks: unknown[] = [
-    { type: 'section', text: { type: 'mrkdwn', text: `*${escape(summaryLine(summary))}*` } },
+    { type: 'section', text: { type: 'mrkdwn', text: `*${escape(line)}*` } },
     {
       type: 'section',
-      fields: facts(summary).map(([label, value]) => ({
+      fields: rows.map(([label, value]) => ({
         type: 'mrkdwn',
         text: `*${label}*\n${escape(value)}`,
       })),
@@ -255,7 +285,9 @@ function slackMessage(summary: RunSummary, url: string | undefined): Record<stri
   if (url) {
     blocks.push({
       type: 'actions',
-      elements: [{ type: 'button', text: { type: 'plain_text', text: 'Open report' }, url }],
+      elements: [
+        { type: 'button', text: { type: 'plain_text', text: action ?? 'Open report' }, url },
+      ],
     });
   }
   return { attachments: [{ color, blocks }] };
@@ -263,7 +295,16 @@ function slackMessage(summary: RunSummary, url: string | undefined): Record<stri
 
 /** A Teams message carrying an Adaptive Card, the format Workflows webhooks expect. */
 function teamsMessage(summary: RunSummary, url: string | undefined): Record<string, unknown> {
-  const color = { good: 'Good', bad: 'Attention', neutral: 'Default' }[toneOf(summary.status)];
+  return teamsCard({
+    line: summaryLine(summary),
+    facts: facts(summary),
+    tone: toneOf(summary.status),
+    url,
+  });
+}
+
+function teamsCard({ line, facts: rows, tone, url, action }: NativeMessage) {
+  const color = { good: 'Good', bad: 'Attention', neutral: 'Default' }[tone];
   const card: Record<string, unknown> = {
     $schema: 'http://adaptivecards.io/schemas/adaptive-card.json',
     type: 'AdaptiveCard',
@@ -271,17 +312,17 @@ function teamsMessage(summary: RunSummary, url: string | undefined): Record<stri
     body: [
       {
         type: 'TextBlock',
-        text: summaryLine(summary),
+        text: line,
         weight: 'Bolder',
         color,
         wrap: true,
       },
       {
         type: 'FactSet',
-        facts: facts(summary).map(([title, value]) => ({ title, value })),
+        facts: rows.map(([title, value]) => ({ title, value })),
       },
     ],
-    ...(url ? { actions: [{ type: 'Action.OpenUrl', title: 'Open report', url }] } : {}),
+    ...(url ? { actions: [{ type: 'Action.OpenUrl', title: action ?? 'Open report', url }] } : {}),
   };
   return {
     type: 'message',

@@ -8,7 +8,12 @@ import {
   testPlans,
 } from '@shared/schema';
 import { getTenantOrgId } from '../platform/middleware/tenancy';
-import { isEmailAddress, organizationMailConfigured, sendMail } from '../messaging/mailer';
+import {
+  isEmailAddress,
+  organizationMailConfigured,
+  sendMail,
+  type MailMessage,
+} from '../messaging/mailer';
 import { runFinishedMail } from '../messaging/mail-messages';
 import { shouldNotify, type NotificationSettings, type RunSummary } from './notifications';
 
@@ -45,6 +50,9 @@ export async function mailRunFinished(
   settings: NotificationSettings,
   requestedByUserId: number | null | undefined,
   summary: RunSummary,
+  /** The message for one recipient; a comparison has its own (comparison-notifications.ts). */
+  compose: (to: string, organizationId: number | null) => MailMessage = (to, organizationId) =>
+    runFinishedMail(to, summary, organizationId),
 ): Promise<RunMailOutcome[]> {
   const [execution] = await privilegedDb
     .select({ organizationId: testPlanExecutions.organizationId })
@@ -115,7 +123,7 @@ export async function mailRunFinished(
   const outcomes: RunMailOutcome[] = [];
   if (!(await organizationMailConfigured(organizationId))) return outcomes;
   for (const to of Array.from(recipients)) {
-    const result = await sendMail(runFinishedMail(to, summary, organizationId));
+    const result = await sendMail(compose(to, organizationId));
     outcomes.push({ to, ...result });
   }
   return outcomes;
