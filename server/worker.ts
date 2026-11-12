@@ -36,6 +36,8 @@ import { RunnerAgent, type PausableQueue } from './runtime/runner-registry';
 import { closeConsumers } from './runtime/worker-shutdown';
 import { registerCommitStatus } from './integrations/commit-status';
 import { registerRunPromotion } from './execution/run-promotion';
+import { registerComparisonFinalizer } from './execution/comparison-finalizer';
+import { comparisonOrchestrator } from './reporting/comparison/comparisons';
 import { installWorkerLogEmitter } from './http/websocket';
 import { publicBaseUrl } from './platform/report-links';
 import 'dotenv/config';
@@ -80,6 +82,8 @@ configureEgressProxy();
   // A run this worker moves reports on the commit it tested, when a pipeline started it.
   registerCommitStatus();
   registerRunPromotion();
+  // A run of a comparison that ends here moves the comparison on (the web process sweeps).
+  registerComparisonFinalizer(comparisonOrchestrator);
   // A plan with several shards asks for helpers on the same queue (server/runtime/run-shards.ts). The job id
   // makes asking twice for the same share harmless; first in the queue, since the run is under way.
   registerShardDispatcher(async ({ executionId, planId, userId, shard, updateBaselines }) => {

@@ -18,6 +18,7 @@ export const ADVISORY_KEYS = {
   runRecovery: 2,
   migrator: 3,
   dataRetention: 4,
+  comparisonSweep: 5,
 } as const;
 
 const localHeld = new Set<number>();

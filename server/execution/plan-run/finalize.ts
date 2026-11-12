@@ -259,11 +259,13 @@ export async function finalizeRun(
     if (ending === 'timed_out') {
       // Announced — a nightly run that never finished is exactly what somebody needs to hear
       // about — but not filed: which tests would have failed is not known.
-      await notifyRunFinished({
-        plan: { notificationSettings: snapshot.notificationSettings },
-        execution,
-        summary: summary('timed_out'),
-      });
+      // A side of a comparison is announced by the comparison, not on its own.
+      if (!snapshot.comparison)
+        await notifyRunFinished({
+          plan: { notificationSettings: snapshot.notificationSettings },
+          execution,
+          summary: summary('timed_out'),
+        });
       return finished;
     }
 
@@ -305,11 +307,14 @@ export async function finalizeRun(
       results: verdictRows,
     });
     if (snapshot.testManagement?.connectionId) await publishToTestManagement(executionId);
-    await notifyRunFinished({
-      plan: { notificationSettings: snapshot.notificationSettings },
-      execution,
-      summary: summary(finalOverallStatus),
-    });
+    // A side of a comparison is announced by the comparison: not to the plan's addresses (its
+    // snapshot has none) and not to the requester, who would otherwise get two e-mails.
+    if (!snapshot.comparison)
+      await notifyRunFinished({
+        plan: { notificationSettings: snapshot.notificationSettings },
+        execution,
+        summary: summary(finalOverallStatus),
+      });
     return finished;
   } catch (dbError: unknown) {
     logger.error({

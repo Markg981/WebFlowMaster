@@ -135,6 +135,47 @@ describe('buildExecutionSnapshot', () => {
   });
 
   /**
+   * One side of a comparison (shared/comparison.ts). The comparison compares the two runs'
+   * screenshots with each other, so every step keeps one; visual testing against stored baselines
+   * would compare with the past instead, and every intended difference would be reported twice;
+   * the comparison reports once, so neither run files issues, notifies or publishes. What decides
+   * what runs is untouched, which is what keeps the two sides' fingerprints equal.
+   */
+  it('forces the evidence and silences the reporting of a comparison run, and nothing else', () => {
+    const tests = [{ testType: 'ui' as const, testId: 11, apiTestId: null }];
+    const ordinary = buildExecutionSnapshot(plan, tests, { environmentId: 4 }, now);
+    const side = buildExecutionSnapshot(
+      { ...plan, captureScreenshots: 'never' },
+      tests,
+      { environmentId: 4, comparison: { id: 'cmp-1', role: 'baseline' } },
+      now,
+    );
+
+    expect(side.comparison).toEqual({ id: 'cmp-1', role: 'baseline' });
+    expect(side.captureScreenshots).toBe('always');
+    expect(side.visualTesting).toEqual({ enabled: false, updateBaselines: false });
+    expect(side.issues).toEqual({ trackerId: 'tracker-9', createOnFailure: false });
+    expect(side.notificationSettings).toBeNull();
+    expect(side.testManagement).toEqual({ connectionId: null });
+    expect(side.version).toBe(EXECUTION_SNAPSHOT_VERSION);
+
+    const unchanged = (s: typeof side) => {
+      const {
+        comparison: _c,
+        captureScreenshots: _s,
+        visualTesting: _v,
+        issues: _i,
+        notificationSettings: _n,
+        testManagement: _t,
+        ...rest
+      } = s;
+      return rest;
+    };
+    expect(unchanged(side)).toEqual(unchanged(ordinary));
+    expect(ordinary.comparison).toBeUndefined();
+  });
+
+  /**
    * A new column on test_plans fails this until somebody decides whether the runner reads it.
    * If it does, it goes into the snapshot; if it does not, it goes on the list below with the
    * reason. Either way it is a decision, not an omission.

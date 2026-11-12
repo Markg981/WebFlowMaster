@@ -556,6 +556,81 @@ describe('enqueue', () => {
       runWithTenant(organizationId, () => orchestrator.replay(execution.id, userId)),
     ).rejects.toMatchObject({ status: 409 });
   });
+
+  /**
+   * The two sides of a comparison: the baseline is enqueued, the candidate is its replay on the
+   * other environment. Same definitions and datasets, so the same fingerprints for each; the input
+   * fingerprint covers the environment, so it differs, and both stay reproducible.
+   */
+  it('replays a comparison baseline on another environment with the same frozen inputs', async () => {
+    const orchestrator = createExecutionOrchestrator(capturingQueue());
+    const [prod, staging] = await privilegedDb
+      .insert(environments)
+      .values([
+        { name: `prod-${uuidv4().slice(0, 8)}`, userId, organizationId },
+        { name: `staging-${uuidv4().slice(0, 8)}`, userId, organizationId },
+      ])
+      .returning();
+    const [theirs] = await privilegedDb
+      .insert(environments)
+      .values({
+        name: `theirs-${uuidv4().slice(0, 8)}`,
+        userId: outsiderId,
+        organizationId: otherOrganizationId,
+      })
+      .returning();
+    const baseline = await orchestrator.enqueue({
+      planId,
+      requestedByUserId: userId,
+      trigger: 'manual',
+      environmentId: prod.id,
+      comparison: { id: 'cmp-1', role: 'baseline' },
+    });
+    await privilegedDb
+      .update(testsTable)
+      .set({ url: 'https://changed.test' })
+      .where(eq(testsTable.id, firstTestId));
+
+    const candidate = await runWithTenant(organizationId, () =>
+      orchestrator.replay(baseline.id, userId, 'cmp-1-candidate', {
+        environmentId: staging.id,
+        comparison: { id: 'cmp-1', role: 'candidate' },
+      }),
+    );
+    const a = baseline.configurationSnapshot as any;
+    const b = candidate.configurationSnapshot as any;
+    expect(a.comparison).toEqual({ id: 'cmp-1', role: 'baseline' });
+    expect(b.comparison).toEqual({ id: 'cmp-1', role: 'candidate' });
+    expect(a.environmentId).toBe(prod.id);
+    expect(b.environmentId).toBe(staging.id);
+    expect(candidate.environment).toBe(String(staging.id));
+    expect(b.captureScreenshots).toBe('always');
+    expect(b.provenance.definitions).toEqual(a.provenance.definitions);
+    expect(b.provenance.datasetsFingerprint).toBe(a.provenance.datasetsFingerprint);
+    expect(b.provenance.inputFingerprint).not.toBe(a.provenance.inputFingerprint);
+    const { reproducibilitySummary } = await import('./execution-provenance');
+    expect(reproducibilitySummary(b).available).toBe(true);
+    expect(reproducibilitySummary(a).available).toBe(true);
+
+    // Asking again returns the same candidate; another organization's environment is not found.
+    const again = await runWithTenant(organizationId, () =>
+      orchestrator.replay(baseline.id, userId, 'cmp-1-candidate', {
+        environmentId: staging.id,
+        comparison: { id: 'cmp-1', role: 'candidate' },
+      }),
+    );
+    expect(again.id).toBe(candidate.id);
+    await expect(
+      runWithTenant(organizationId, () =>
+        orchestrator.replay(baseline.id, userId, 'cmp-1-foreign', { environmentId: theirs.id }),
+      ),
+    ).rejects.toMatchObject({ status: 404, code: 'environment_not_found' });
+
+    // The candidate runs what the baseline froze, not the edited test.
+    await processTestPlanJob(planId, candidate.id, userId);
+    expect(executeTestSequence.mock.calls[0][0].url).toBe('https://example.test/first');
+  });
+
   it('passes shared values frozen at enqueue to API requests', async () => {
     const runner = await import('../api-tests/api-test-runner');
     const request = vi.spyOn(runner, 'runApiRequest').mockResolvedValue({

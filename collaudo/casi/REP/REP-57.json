@@ -1,0 +1,16 @@
+{
+  "id": "REP-57",
+  "area": "REP",
+  "title": "Confronto tra ambienti: il report mostra esito, parità per modulo e differenze di testo",
+  "priority": "P2",
+  "actor": "owner.a",
+  "preconditions": "Due ambienti (es. \"prod\" e \"staging\") in cui la stessa pagina mostra un testo diverso; un piano con un test web che apre la pagina e ha uno step \"Checkpoint di testo\" con nome \"totale\" su quel testo.",
+  "steps": [
+    "In Piani di test fare clic su \"Confronta ambienti\" sul piano.",
+    "Scegliere \"prod\" come baseline e di nuovo \"prod\" come candidato: verificare che \"Avvia confronto\" resti disabilitato.",
+    "Scegliere \"staging\" come candidato, lasciare l'ordine \"Prima la baseline, poi il candidato\" e avviare.",
+    "Attendere che lo stato diventi \"Completato\", poi aprire il test nell'elenco dei test.",
+    "Dall'intestazione aprire il run del candidato e guardare il suo report."
+  ],
+  "expected": "Il report del confronto mostra l'esito \"Regressioni\", il test con esito \"Diverso\" e una differenza di tipo Testo sul checkpoint \"totale\" con il valore di ciascun lato; la tabella Parità per modulo riporta la quota del modulo. Il report del run candidato dice che il run è il candidato del confronto e rimanda a esso. Un viewer vede il report ma non il pulsante \"Annulla confronto\"."
+}

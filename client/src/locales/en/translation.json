@@ -608,6 +608,7 @@
     "backToDashboard": "Back to Dashboard",
     "executionReport": "Execution report",
     "runTestPlan": "Run test plan",
+    "comparisons": "Comparisons",
     "reviews": "Reviews",
     "testSuites": "Suites",
     "section": {
@@ -1494,6 +1495,11 @@
         "name": "Assert values",
         "description": "Fails the test unless a comparison of values holds, such as the result of a query, a stored text or an email subject.",
         "valueHint": "a == b, a != b, a > 3, a contains b — e.g. the db.value variable == 1"
+      },
+      "checkpointText": {
+        "name": "Checkpoint text",
+        "description": "Records the text of every matching element under a name, for a run comparison to set against the same checkpoint on another environment. It never fails the test on what the text says.",
+        "valueHint": "the checkpoint name, unique in the test — e.g. order-total"
       },
       "mockRequest": {
         "name": "Mock request",
@@ -3187,6 +3193,7 @@
       "requirement": "Requirements",
       "test_management": "Test management",
       "testcase_hub": "QA test case hub",
+      "comparison": "Environment comparisons",
       "mobile_test": "Mobile apps",
       "test_data_set": "Test data",
       "scim": "Provisioning (SCIM)",
@@ -3240,6 +3247,8 @@
       "project_updated": "Project updated",
       "project_deleted": "Project deleted",
       "run_cancelled": "Run cancelled",
+      "comparison_created": "Comparison started",
+      "comparison_cancelled": "Comparison cancelled",
       "environment_created": "Environment created",
       "environment_deleted": "Environment deleted",
       "secret_set": "Secret set",
@@ -5577,5 +5586,104 @@
     "description": "Someone saved this test after you opened it. Keep editing to review your draft (close the editor and reopen it to load their version), or overwrite their changes with yours.",
     "overwrite": "Overwrite",
     "keepEditing": "Keep editing"
+  },
+  "comparisons": {
+    "title": "Environment comparisons",
+    "description": "One plan run on two environments, compared test by test: outcome, checkpoint texts and screenshots. Start one from a plan with \"Compare environments\".",
+    "filteredByPlan": "Showing one plan only.",
+    "showAll": "Show all",
+    "loading": "Loading…",
+    "error": "The comparisons could not be loaded.",
+    "empty": "No comparison yet.",
+    "baseline": "Baseline",
+    "candidate": "Candidate",
+    "compareButton": "Compare environments",
+    "columns": {
+      "name": "Comparison",
+      "environments": "Environments",
+      "status": "Status",
+      "verdict": "Verdict",
+      "started": "Started",
+      "module": "Module",
+      "tests": "Tests",
+      "parity": "Parity",
+      "differing": "Differing",
+      "test": "Test",
+      "browser": "Browser",
+      "differences": "Differences"
+    },
+    "dialog": {
+      "title": "Compare environments: {{name}}",
+      "description": "The plan runs on the baseline, then the same tests replay on the candidate. The report shows, test by test, what differs.",
+      "pick": "Choose an environment",
+      "needTwo": "A comparison needs two environments. Add them in Settings → Environments.",
+      "same": "Choose two different environments.",
+      "mode": "Order",
+      "name": "Name (optional)",
+      "namePlaceholder": "e.g. Angular 22 upgrade",
+      "start": "Start comparison"
+    },
+    "modes": {
+      "sequential": "Baseline first, then candidate",
+      "parallel": "Both at once"
+    },
+    "statuses": {
+      "queued": "Queued",
+      "running": "Running",
+      "comparing": "Comparing",
+      "completed": "Completed",
+      "error": "Error",
+      "cancelled": "Cancelled"
+    },
+    "verdicts": {
+      "regressions": "Regressions",
+      "inconclusive": "Inconclusive",
+      "parity_with_accepted": "Parity with accepted differences",
+      "parity": "Parity"
+    },
+    "resultVerdicts": {
+      "identical": "Identical",
+      "equivalent": "Equivalent",
+      "different": "Different",
+      "outcome_mismatch": "Outcome differs",
+      "both_failed": "Failed on both",
+      "not_comparable": "Not comparable"
+    },
+    "kinds": {
+      "outcome": "Outcome",
+      "text": "Text",
+      "table": "Table",
+      "chart": "Chart",
+      "network": "Network",
+      "visual": "Screenshot",
+      "performance": "Duration"
+    },
+    "report": {
+      "back": "All comparisons",
+      "openRun": "Open its run",
+      "notStarted": "Not started yet",
+      "cancel": "Cancel comparison",
+      "inProgress": "The runs are not finished yet; the results appear here when the comparison completes.",
+      "notFound": "This comparison could not be found.",
+      "dropped": "{{n}} more differences were found but not kept: a test had too many.",
+      "byModule": "Parity by module",
+      "noModule": "No module",
+      "tests": "Tests",
+      "filterVerdict": "Filter by verdict",
+      "allVerdicts": "All tests",
+      "noTests": "No test with this verdict.",
+      "resultError": "This test could not be loaded.",
+      "hidden": "You may not see the details of this test.",
+      "noDifferences": "No difference between the two runs.",
+      "step": "step {{n}}",
+      "checkpoint": "checkpoint “{{name}}”",
+      "blocking": "blocking",
+      "informative": "informative",
+      "screenshotOf": "Screenshot on {{side}}",
+      "noScreenshot": "No screenshot you can open.",
+      "partOf": "Comparison",
+      "asBaseline": "this run is the baseline",
+      "asCandidate": "this run is the candidate"
+    }
   }
 }

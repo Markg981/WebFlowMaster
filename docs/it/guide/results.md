@@ -272,6 +272,52 @@ un'evidenza grezza come la trace.
 Uno step **Verifica accessibilità** mostra quali regole sono state violate, su quali elementi e
 con quale gravità; quali sono state rispettate; e quali richiedono il controllo di una persona.
 
+## Confrontare due ambienti {#comparing-environments}
+
+Un confronto esegue un piano su due ambienti e mette i due run fianco a fianco, test per test.
+Serve a mostrare che una nuova versione si comporta come quella attuale: la **baseline** è
+l'ambiente di cui ti fidi, il **candidato** quello che stai verificando.
+
+In **Piani di test**, un editor fa clic su **Confronta ambienti** su un piano, sceglie baseline e
+candidato (due [ambienti](web-tests.md#variables-and-environments) diversi) e l'ordine:
+
+- **Prima la baseline, poi il candidato**: il candidato parte quando il run della baseline è finito.
+- **Entrambi insieme**: i due run partono insieme.
+
+I due run rieseguono gli stessi test congelati, così una modifica fatta nel frattempo non può
+arrivare a un solo lato. Ogni run è un run normale con il suo report, e quel report rimanda al suo
+confronto. Un editor può annullare un confronto mentre è in corso; i viewer possono leggerlo.
+
+**Confronti**, nel menu laterale, li elenca. Quando entrambi i run sono finiti, il report di un
+confronto mostra:
+
+- l'esito complessivo e quanti test hanno ciascun esito;
+- **Parità per modulo**: la quota di test identici o equivalenti in ogni modulo;
+- i test, filtrabili per esito. Aprendone uno si vede ogni differenza: lo step, il checkpoint, il
+  tipo (esito, testo, screenshot, durata…), cosa aveva ciascun lato e se è bloccante o informativa.
+  Una differenza di screenshot mostra i due screenshot. Un test che non puoi vedere è elencato
+  senza dettagli.
+
+| Esito del test      | Quando                                  |
+| ------------------- | --------------------------------------- |
+| Identico            | Nessuna differenza                      |
+| Equivalente         | Solo differenze informative             |
+| Diverso             | Almeno una differenza bloccante         |
+| Esito diverso       | Passato su un lato, fallito sull'altro  |
+| Fallito su entrambi | Fallito sui due lati: non prova nulla   |
+| Non confrontabile   | Un lato non ha un risultato per il test |
+
+L'esito complessivo è **Regressioni** se un test è diverso o ha esito diverso; altrimenti
+**Non conclusivo** se uno è fallito su entrambi i lati o non è confrontabile; altrimenti **Parità
+con differenze accettate** se uno è equivalente; altrimenti **Parità**.
+
+Cosa si confronta: l'esito di ogni test; i testi registrati dagli step
+[**Checkpoint di testo**](web-tests.md#building-the-sequence), abbinati per nome del checkpoint (gli
+spazi ripetuti contano come uno, maiuscole e minuscole contano); gli screenshot dello stesso step e
+le durate, informativi per impostazione predefinita. Un test conserva al massimo 200 differenze; il
+report dice quante altre ne ha trovate. Le tolleranze si impostano dall'API, con `policy` in
+`POST /api/test-plans/{planId}/comparisons`.
+
 ## Esportare un run
 
 **Esporta** scarica il run come:

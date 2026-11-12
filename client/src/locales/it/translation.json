@@ -608,6 +608,7 @@
     "scheduling": "Schedulazione",
     "executionReport": "Report di esecuzione",
     "runTestPlan": "Esecuzione del piano",
+    "comparisons": "Confronti",
     "reviews": "Revisioni",
     "testSuites": "Suite",
     "section": {
@@ -1494,6 +1495,11 @@
         "name": "Verifica valori",
         "description": "Fa fallire il test se un confronto di valori non è vero: il risultato di una query, un testo salvato, l'oggetto di un'email.",
         "valueHint": "a == b, a != b, a > 3, a contains b — es. la variabile db.value == 1"
+      },
+      "checkpointText": {
+        "name": "Checkpoint di testo",
+        "description": "Registra con un nome il testo di ogni elemento trovato, perché un confronto di run lo metta a fianco dello stesso checkpoint su un altro ambiente. Non fa mai fallire il test per ciò che il testo dice.",
+        "valueHint": "il nome del checkpoint, unico nel test — es. totale-ordine"
       },
       "mockRequest": {
         "name": "Simula richiesta",
@@ -3187,6 +3193,7 @@
       "requirement": "Requisiti",
       "test_management": "Gestione test",
       "testcase_hub": "Hub dei test case QA",
+      "comparison": "Confronti tra ambienti",
       "mobile_test": "App mobili",
       "test_data_set": "Dati di test",
       "scim": "Provisioning (SCIM)",
@@ -3240,6 +3247,8 @@
       "project_updated": "Progetto aggiornato",
       "project_deleted": "Progetto eliminato",
       "run_cancelled": "Run annullato",
+      "comparison_created": "Confronto avviato",
+      "comparison_cancelled": "Confronto annullato",
       "environment_created": "Ambiente creato",
       "environment_deleted": "Ambiente eliminato",
       "secret_set": "Segreto impostato",
@@ -5577,5 +5586,104 @@
     "description": "Qualcuno ha salvato questo test dopo che lo hai aperto. Continua a modificare per rivedere la tua bozza (chiudi l'editor e riaprilo per caricare la versione di altri), oppure sovrascrivi le sue modifiche con le tue.",
     "overwrite": "Sovrascrivi",
     "keepEditing": "Continua a modificare"
+  },
+  "comparisons": {
+    "title": "Confronti tra ambienti",
+    "description": "Un piano eseguito su due ambienti e confrontato test per test: esito, testi dei checkpoint e screenshot. Avvialo da un piano con \"Confronta ambienti\".",
+    "filteredByPlan": "Mostra un solo piano.",
+    "showAll": "Mostra tutti",
+    "loading": "Caricamento…",
+    "error": "Impossibile caricare i confronti.",
+    "empty": "Nessun confronto per ora.",
+    "baseline": "Riferimento",
+    "candidate": "Candidato",
+    "compareButton": "Confronta ambienti",
+    "columns": {
+      "name": "Confronto",
+      "environments": "Ambienti",
+      "status": "Stato",
+      "verdict": "Esito",
+      "started": "Avviato",
+      "module": "Modulo",
+      "tests": "Test",
+      "parity": "Parità",
+      "differing": "Diversi",
+      "test": "Test",
+      "browser": "Browser",
+      "differences": "Differenze"
+    },
+    "dialog": {
+      "title": "Confronta ambienti: {{name}}",
+      "description": "Il piano viene eseguito sul riferimento, poi gli stessi test vengono rieseguiti sul candidato. Il report mostra, test per test, cosa cambia.",
+      "pick": "Scegli un ambiente",
+      "needTwo": "Un confronto richiede due ambienti. Aggiungili in Impostazioni → Ambienti.",
+      "same": "Scegli due ambienti diversi.",
+      "mode": "Ordine",
+      "name": "Nome (facoltativo)",
+      "namePlaceholder": "es. Aggiornamento ad Angular 22",
+      "start": "Avvia confronto"
+    },
+    "modes": {
+      "sequential": "Prima il riferimento, poi il candidato",
+      "parallel": "Entrambi insieme"
+    },
+    "statuses": {
+      "queued": "In coda",
+      "running": "In esecuzione",
+      "comparing": "Confronto in corso",
+      "completed": "Completato",
+      "error": "Errore",
+      "cancelled": "Annullato"
+    },
+    "verdicts": {
+      "regressions": "Regressioni",
+      "inconclusive": "Non conclusivo",
+      "parity_with_accepted": "Parità con differenze accettate",
+      "parity": "Parità"
+    },
+    "resultVerdicts": {
+      "identical": "Identico",
+      "equivalent": "Equivalente",
+      "different": "Diverso",
+      "outcome_mismatch": "Esito diverso",
+      "both_failed": "Fallito su entrambi",
+      "not_comparable": "Non confrontabile"
+    },
+    "kinds": {
+      "outcome": "Esito",
+      "text": "Testo",
+      "table": "Tabella",
+      "chart": "Grafico",
+      "network": "Rete",
+      "visual": "Screenshot",
+      "performance": "Durata"
+    },
+    "report": {
+      "back": "Tutti i confronti",
+      "openRun": "Apri l'esecuzione",
+      "notStarted": "Non ancora avviata",
+      "cancel": "Annulla confronto",
+      "inProgress": "Le esecuzioni non sono ancora finite; i risultati compaiono qui quando il confronto è completato.",
+      "notFound": "Confronto non trovato.",
+      "dropped": "Altre {{n}} differenze trovate ma non conservate: un test ne aveva troppe.",
+      "byModule": "Parità per modulo",
+      "noModule": "Senza modulo",
+      "tests": "Test",
+      "filterVerdict": "Filtra per esito",
+      "allVerdicts": "Tutti i test",
+      "noTests": "Nessun test con questo esito.",
+      "resultError": "Impossibile caricare questo test.",
+      "hidden": "Non puoi vedere i dettagli di questo test.",
+      "noDifferences": "Nessuna differenza tra le due esecuzioni.",
+      "step": "passo {{n}}",
+      "checkpoint": "checkpoint «{{name}}»",
+      "blocking": "bloccante",
+      "informative": "informativa",
+      "screenshotOf": "Screenshot su {{side}}",
+      "noScreenshot": "Nessuno screenshot che puoi aprire.",
+      "partOf": "Confronto",
+      "asBaseline": "questa esecuzione è il riferimento",
+      "asCandidate": "questa esecuzione è il candidato"
+    }
   }
 }

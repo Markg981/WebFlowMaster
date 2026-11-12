@@ -798,6 +798,9 @@ export const AUDIT_ACTIONS = {
   SOURCE_HOST_CONNECTED: 'source_host.connected',
   SOURCE_HOST_REMOVED: 'source_host.removed',
   RUN_CANCELLED: 'run.cancelled',
+  // One plan run on two environments and the runs compared (shared/comparison.ts).
+  COMPARISON_CREATED: 'comparison.created',
+  COMPARISON_CANCELLED: 'comparison.cancelled',
   // A person's verdict on a manual test in a run (shared/manual-tests.ts).
   RUN_MANUAL_RESULT_RECORDED: 'run.manual_result_recorded',
   RUN_FAILURE_ANALYSED: 'run.failure_analysed',

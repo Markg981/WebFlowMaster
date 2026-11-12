@@ -220,6 +220,13 @@ describe('route modules cannot query outside the tenant context', () => {
         'published: it is not a request and has no tenant. It only finds them; each is claimed, ' +
         'published and confirmed under its own organization.',
     },
+    'execution/comparison-finalizer.ts': {
+      max: 1,
+      why:
+        'The comparison sweep looks across every organization for comparisons that have not ' +
+        'ended: it is not a request and has no tenant. It only finds them; each is advanced ' +
+        'under its own organization.',
+    },
     'execution/execution-orchestrator.ts': {
       max: 1,
       why:

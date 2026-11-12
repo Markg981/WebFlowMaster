@@ -40,6 +40,12 @@ export const JSONB_PAYLOADS: Record<string, JsonbStrategy> = {
   // Provider price ids by interval; the server reads them when it opens a checkout.
   'billing_plans.provider_price_ids': 'migration',
   'comments.mentioned_user_ids': 'migration',
+  // A comparison's policy is read through comparisonPolicyOf, which fills defaults and reads an
+  // unreadable value as the default; its summary and a result's differences are written once
+  // when the comparison completes and read by its page (migration 0110).
+  'comparison_results.differences': 'migration',
+  'comparison_runs.policy': 'migration',
+  'comparison_runs.summary': 'migration',
   'custom_actions.parameters': 'migration',
   'dashboards.widgets': 'migration',
   'detected_elements.attributes': 'opaque',

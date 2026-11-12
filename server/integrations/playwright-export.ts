@@ -193,6 +193,10 @@ export const ACTION_CONFORMANCE: Record<AdhocActionId, ConformanceRow> = {
   endLoop: { support: 'supported', how: '} and {{loopIndex}} back to the outer loop' },
   waitForEmail: { support: 'unsupported', how: "reads the environment's test inbox (Mailpit)" },
   waitForSms: { support: 'unsupported', how: "reads the organization's SMS inbox" },
+  checkpointText: {
+    support: 'unsupported',
+    how: 'a capture for run comparison, which only WebFlowMaster pairs and diffs',
+  },
   queryDatabase: {
     support: 'unsupported',
     how: "queries the environment's database through WebFlowMaster",

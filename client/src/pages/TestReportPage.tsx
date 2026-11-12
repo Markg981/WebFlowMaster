@@ -95,6 +95,8 @@ function countsOf(tests: Array<{ status: string }>) {
 export interface TestPlanExecutionReport {
   header: {
     reproducibility?: ReproducibilitySummary;
+    /** The environment comparison this run is one side of. */
+    comparison?: { id: string; role: 'baseline' | 'candidate' } | null;
     testSuiteName: string;
     environment: string;
     browsers: string[];
@@ -583,6 +585,16 @@ const TestReportPage: React.FC = () => {
                 <p>
                   <strong>{t('runners.ranOn', 'Ran on')}:</strong>{' '}
                   <code className="text-xs">{header.runnerId}</code>
+                </p>
+              )}
+              {header.comparison && (
+                <p data-testid="run-comparison">
+                  <strong>{t('comparisons.report.partOf', 'Comparison')}:</strong>{' '}
+                  <Link href={`/comparisons/${header.comparison.id}`} className="underline">
+                    {header.comparison.role === 'baseline'
+                      ? t('comparisons.report.asBaseline', 'this run is the baseline')
+                      : t('comparisons.report.asCandidate', 'this run is the candidate')}
+                  </Link>
                 </p>
               )}
               {header.ci && (

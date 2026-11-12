@@ -608,6 +608,7 @@
     "scheduling": "Planung",
     "executionReport": "Ausführungsbericht",
     "runTestPlan": "Testplan ausführen",
+    "comparisons": "Vergleiche",
     "reviews": "Prüfungen",
     "testSuites": "Suiten",
     "section": {
@@ -1494,6 +1495,11 @@
         "name": "Werte prüfen",
         "description": "Lässt den Test fehlschlagen, wenn ein Vergleich von Werten nicht zutrifft: das Ergebnis einer Abfrage, ein gespeicherter Text, ein E-Mail-Betreff.",
         "valueHint": "a == b, a != b, a > 3, a contains b — z. B. die Variable db.value == 1"
+      },
+      "checkpointText": {
+        "name": "Text-Checkpoint",
+        "description": "Hält unter einem Namen den Text jedes gefundenen Elements fest, damit ein Laufvergleich ihn dem gleichen Checkpoint auf einer anderen Umgebung gegenüberstellt. Lässt den Test nie wegen des Textinhalts fehlschlagen.",
+        "valueHint": "der Name des Checkpoints, eindeutig im Test — z. B. bestellsumme"
       },
       "mockRequest": {
         "name": "Anfrage simulieren",
@@ -3187,6 +3193,7 @@
       "requirement": "Anforderungen",
       "test_management": "Testmanagement",
       "testcase_hub": "QA-Testfall-Hub",
+      "comparison": "Umgebungsvergleiche",
       "mobile_test": "Mobile Apps",
       "test_data_set": "Testdaten",
       "scim": "Bereitstellung (SCIM)",
@@ -3240,6 +3247,8 @@
       "project_updated": "Projekt aktualisiert",
       "project_deleted": "Projekt gelöscht",
       "run_cancelled": "Ausführung abgebrochen",
+      "comparison_created": "Vergleich gestartet",
+      "comparison_cancelled": "Vergleich abgebrochen",
       "environment_created": "Umgebung erstellt",
       "environment_deleted": "Umgebung gelöscht",
       "secret_set": "Geheimnis gesetzt",
@@ -5577,5 +5586,104 @@
     "description": "Jemand hat diesen Test gespeichert, nachdem Sie ihn geöffnet haben. Bearbeiten Sie weiter, um Ihren Entwurf zu prüfen (Editor schließen und erneut öffnen, um die andere Version zu laden), oder überschreiben Sie die Änderungen mit Ihren.",
     "overwrite": "Überschreiben",
     "keepEditing": "Weiter bearbeiten"
+  },
+  "comparisons": {
+    "title": "Umgebungsvergleiche",
+    "description": "Ein Plan, auf zwei Umgebungen ausgeführt und Test für Test verglichen: Ergebnis, Checkpoint-Texte und Screenshots. Starten Sie einen Vergleich bei einem Plan mit „Umgebungen vergleichen“.",
+    "filteredByPlan": "Nur ein Plan wird angezeigt.",
+    "showAll": "Alle anzeigen",
+    "loading": "Wird geladen…",
+    "error": "Die Vergleiche konnten nicht geladen werden.",
+    "empty": "Noch kein Vergleich.",
+    "baseline": "Referenz",
+    "candidate": "Kandidat",
+    "compareButton": "Umgebungen vergleichen",
+    "columns": {
+      "name": "Vergleich",
+      "environments": "Umgebungen",
+      "status": "Status",
+      "verdict": "Ergebnis",
+      "started": "Gestartet",
+      "module": "Modul",
+      "tests": "Tests",
+      "parity": "Parität",
+      "differing": "Abweichend",
+      "test": "Test",
+      "browser": "Browser",
+      "differences": "Unterschiede"
+    },
+    "dialog": {
+      "title": "Umgebungen vergleichen: {{name}}",
+      "description": "Der Plan läuft auf der Referenz, danach werden dieselben Tests auf dem Kandidaten wiederholt. Der Bericht zeigt Test für Test, was sich unterscheidet.",
+      "pick": "Umgebung wählen",
+      "needTwo": "Ein Vergleich braucht zwei Umgebungen. Legen Sie sie unter Einstellungen → Umgebungen an.",
+      "same": "Wählen Sie zwei verschiedene Umgebungen.",
+      "mode": "Reihenfolge",
+      "name": "Name (freiwillig)",
+      "namePlaceholder": "z. B. Umstieg auf Angular 22",
+      "start": "Vergleich starten"
+    },
+    "modes": {
+      "sequential": "Erst die Referenz, dann der Kandidat",
+      "parallel": "Beide gleichzeitig"
+    },
+    "statuses": {
+      "queued": "Wartend",
+      "running": "Läuft",
+      "comparing": "Wird verglichen",
+      "completed": "Abgeschlossen",
+      "error": "Fehler",
+      "cancelled": "Abgebrochen"
+    },
+    "verdicts": {
+      "regressions": "Regressionen",
+      "inconclusive": "Nicht eindeutig",
+      "parity_with_accepted": "Parität mit akzeptierten Unterschieden",
+      "parity": "Parität"
+    },
+    "resultVerdicts": {
+      "identical": "Identisch",
+      "equivalent": "Gleichwertig",
+      "different": "Abweichend",
+      "outcome_mismatch": "Ergebnis abweichend",
+      "both_failed": "Auf beiden fehlgeschlagen",
+      "not_comparable": "Nicht vergleichbar"
+    },
+    "kinds": {
+      "outcome": "Ergebnis",
+      "text": "Text",
+      "table": "Tabelle",
+      "chart": "Diagramm",
+      "network": "Netzwerk",
+      "visual": "Screenshot",
+      "performance": "Dauer"
+    },
+    "report": {
+      "back": "Alle Vergleiche",
+      "openRun": "Ausführung öffnen",
+      "notStarted": "Noch nicht gestartet",
+      "cancel": "Vergleich abbrechen",
+      "inProgress": "Die Ausführungen sind noch nicht fertig; die Ergebnisse erscheinen hier, sobald der Vergleich abgeschlossen ist.",
+      "notFound": "Vergleich nicht gefunden.",
+      "dropped": "{{n}} weitere Unterschiede gefunden, aber nicht gespeichert: Ein Test hatte zu viele.",
+      "byModule": "Parität nach Modul",
+      "noModule": "Ohne Modul",
+      "tests": "Tests",
+      "filterVerdict": "Nach Ergebnis filtern",
+      "allVerdicts": "Alle Tests",
+      "noTests": "Kein Test mit diesem Ergebnis.",
+      "resultError": "Dieser Test konnte nicht geladen werden.",
+      "hidden": "Sie dürfen die Details dieses Tests nicht sehen.",
+      "noDifferences": "Kein Unterschied zwischen den beiden Ausführungen.",
+      "step": "Schritt {{n}}",
+      "checkpoint": "Checkpoint „{{name}}“",
+      "blocking": "blockierend",
+      "informative": "informativ",
+      "screenshotOf": "Screenshot auf {{side}}",
+      "noScreenshot": "Kein Screenshot, den Sie öffnen dürfen.",
+      "partOf": "Vergleich",
+      "asBaseline": "diese Ausführung ist die Referenz",
+      "asCandidate": "diese Ausführung ist der Kandidat"
+    }
   }
 }

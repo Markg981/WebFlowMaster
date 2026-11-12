@@ -207,6 +207,13 @@ app.use(express.urlencoded({ extended: false }));
   // A run that ends lets its organization's next waiting run start at once (server/execution/run-promotion.ts).
   const { registerRunPromotion } = await import('./execution/run-promotion');
   registerRunPromotion();
+  // A run of a comparison that ends moves the comparison on; the sweep catches what that missed.
+  const { comparisonOrchestrator } = await import('./reporting/comparison/comparisons');
+  const { registerComparisonFinalizer, startComparisonSweep } =
+    await import('./execution/comparison-finalizer');
+  registerComparisonFinalizer(comparisonOrchestrator);
+  const stopComparisonSweep =
+    process.env.NODE_ENV === 'test' ? () => {} : startComparisonSweep(comparisonOrchestrator);
 
   // Initialize the scheduler after routes are registered and DB is presumably ready
   // In a real app, ensure DB connection/migration is complete before this.
@@ -223,7 +230,7 @@ app.use(express.urlencoded({ extended: false }));
   const { startOutboxDispatcher } = await import('./execution/execution-outbox');
   const stopOutboxDispatcher = process.env.NODE_ENV === 'test' ? () => {} : startOutboxDispatcher();
 
-  // Retries notifications a run owes and could not deliver — see server/integrations/deliveries.ts.
+  // Retries notifications a run owes and could not deliver â€” see server/integrations/deliveries.ts.
   const { startDeliverySweep } = await import('./integrations/deliveries');
   const stopDeliverySweep = process.env.NODE_ENV === 'test' ? () => {} : startDeliverySweep();
 
@@ -313,6 +320,7 @@ app.use(express.urlencoded({ extended: false }));
         stopArtifactRetention();
         stopDataRetention();
         stopBillingSweep();
+        stopComparisonSweep();
         const { closeBrowserTasks } = await import('./web/browser-tasks');
         await closeBrowserTasks();
         await redisConnection.quit();

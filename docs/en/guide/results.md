@@ -264,6 +264,52 @@ a custom header — is not recognised, which is why the HAR is raw evidence like
 A **Check accessibility** step shows which rules were broken, on which elements, and how serious
 each is; which passed; and which need a person to check.
 
+## Comparing two environments {#comparing-environments}
+
+A comparison runs one plan on two environments and sets the two runs side by side, test by test.
+Use it to show that a new version behaves like the current one: the **baseline** is the
+environment you trust, the **candidate** the one you are checking.
+
+On **Test plans**, an editor clicks **Compare environments** on a plan, picks the baseline and the
+candidate (two different [environments](web-tests.md#variables-and-environments)) and the order:
+
+- **Baseline first, then candidate**: the candidate starts when the baseline run has finished.
+- **Both at once**: the two runs start together.
+
+Both runs replay the same frozen tests, so an edit made in the meantime cannot reach one side only.
+Each run is an ordinary run with its own report, and that report links back to its comparison.
+An editor can cancel a comparison while it runs; viewers can read it.
+
+**Comparisons**, in the side menu, lists them. Once both runs have finished, a comparison's report
+shows:
+
+- the overall verdict and how many tests got each test verdict;
+- **Parity by module**: the share of identical or equivalent tests in each module;
+- the tests, filterable by verdict. Open one to see each difference: the step, the checkpoint, the
+  kind (outcome, text, screenshot, duration…), what each side had, and whether it is blocking or
+  informative. A screenshot difference shows both screenshots. A test you may not see is listed
+  without its details.
+
+| Test verdict    | When                                               |
+| --------------- | -------------------------------------------------- |
+| Identical       | No difference                                      |
+| Equivalent      | Informative differences only                       |
+| Different       | At least one blocking difference                   |
+| Outcome differs | Passed on one side, failed on the other            |
+| Failed on both  | Failed on both sides: it proves nothing either way |
+| Not comparable  | One side has no result for the test                |
+
+The overall verdict is **Regressions** if any test is different or its outcome differs; otherwise
+**Inconclusive** if any failed on both sides or is not comparable; otherwise **Parity with accepted
+differences** if any is equivalent; otherwise **Parity**.
+
+What is compared: the outcome of each test; the texts recorded by
+[**Checkpoint text**](web-tests.md#building-the-sequence) steps, matched by checkpoint name (runs of
+spaces collapse, case counts); the screenshots of the same step, and the durations — these two are
+informative by default. A test keeps at most 200 differences; the report says how many more were
+found. The tolerances can be set through the API, with `policy` in
+`POST /api/test-plans/{planId}/comparisons`.
+
 ## Exporting a run
 
 **Export** downloads the run as:

@@ -52,7 +52,11 @@ import { assertSelectedTestsBelongTo, SELECTED_TESTS_NOT_FOUND } from './selecte
 import { requestCancellation } from '../../execution/execution-state';
 import { AUDIT_ACTIONS } from '@shared/schema';
 import { auditActor, changedFields, recordAudit } from '../../tenancy/audit';
-import { publicExecution, reproducibilitySummary } from '../../execution/execution-provenance';
+import {
+  comparisonRefOf,
+  publicExecution,
+  reproducibilitySummary,
+} from '../../execution/execution-provenance';
 import { executionArtifactAvailability } from '../../tenancy/artifact-metering';
 import {
   relativeArtifactPath,
@@ -1497,6 +1501,8 @@ router.get(
           ci: execution.ciContext ?? null,
           executionId: execution.id,
           testPlanId: execution.testPlanId,
+          // The comparison this run is one side of, so the report links to it.
+          comparison: comparisonRefOf(execution.configurationSnapshot),
           // Which attempt of its scheduled occurrence this run is, and where the others are.
           attempt: execution.attempt,
           maxAttempts: execution.maxAttempts,
