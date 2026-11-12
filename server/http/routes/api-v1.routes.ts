@@ -15,12 +15,12 @@ import {
 } from '@shared/schema';
 import { CreateComparisonSchema } from '@shared/comparison';
 import { ComparisonError } from '../../execution/comparison-orchestrator';
-import { comparisonOrchestrator } from '../../reporting/comparison/comparisons';
+import { comparisonOrchestrator } from '../../integrations/comparisons';
 import {
   COMPARISON_EXPORT_FORMATS,
-  exportComparison,
   isComparisonExportFormat,
 } from '../../reporting/comparison/comparison-report-model';
+import { exportComparison } from '../../reporting/comparison/comparison-export';
 import { auditActor, recordAudit } from '../../tenancy/audit';
 import { EXECUTION_STATUSES } from '@shared/execution-status';
 import { withTenantTransaction } from '../../platform/middleware/tenancy';
@@ -45,6 +45,7 @@ import { comparisonUrlFor, reportUrlFor } from '../../platform/report-links';
 import logger from '../../platform/logger';
 import { registerAuthoringRoutes } from '../api-v1/authoring';
 import { registerManagementRoutes } from '../api-v1/management';
+import { sessionRateLimit, sharedHeavyRateLimit } from '../middleware/rate-limits';
 
 /**
  * /api/v1 — the API a pipeline is meant to use, described by /api/v1/openapi.json.
@@ -363,84 +364,113 @@ function toComparison(row: ComparisonRun, planName: string | null) {
   };
 }
 
-router.post('/api/v1/plans/:planId/comparisons', requireScope('runs:write'), async (req, res) => {
-  const parsed = CreateComparisonSchema.safeParse(req.body ?? {});
-  if (!parsed.success) {
-    return apiError(res, 400, 'invalid_request', 'The body does not match the schema.', {
-      details: flattenZodError(parsed.error),
-    });
-  }
-  const idempotencyKey = req.get('Idempotency-Key')?.trim() || null;
-  if (idempotencyKey && idempotencyKey.length > 255) {
-    return apiError(res, 400, 'invalid_request', 'Idempotency-Key must be at most 255 characters.');
-  }
-  const input = parsed.data;
-  try {
-    const { comparison } = await comparisonOrchestrator.create({
-      planId: req.params.planId,
-      requestedByUserId: req.user!.id,
-      input,
-      idempotencyKey,
-      onCreated: (tx, row) =>
-        recordAudit(tx, {
-          action: AUDIT_ACTIONS.COMPARISON_CREATED,
-          actor: auditActor(req),
-          targetType: 'comparison',
-          targetId: row.id,
-          metadata: {
-            planId: row.testPlanId,
-            baselineEnvironmentId: input.baselineEnvironmentId,
-            candidateEnvironmentId: input.candidateEnvironmentId,
-            mode: input.mode,
-            via: 'api',
-          },
-        }),
-    });
-    // 202 also when the Idempotency-Key found an earlier one: the same answer to the same request.
-    res
-      .status(202)
-      .location(`/api/v1/comparisons/${comparison.id}`)
-      .json(toComparison(comparison, null));
-  } catch (error: unknown) {
-    if (error instanceof ComparisonError)
-      return apiError(res, error.status, error.code, error.message);
-    const quota = quotaErrorBody(error);
-    if (quota)
-      return apiError(res, quotaErrorStatus(error), String(quota.code), String(quota.error), quota);
-    const message = error instanceof Error ? error.message : String(error);
-    const status = (error as { status?: unknown } | null)?.status;
-    if (typeof status === 'number' && status >= 400 && status < 500)
-      return apiError(res, status, 'refused', error instanceof Error ? message : 'Refused.');
-    logger.error({
-      message: 'Failed to start a comparison through /api/v1',
-      planId: req.params.planId,
-      error: message,
-    });
-    return apiError(res, 500, 'internal_error', 'The comparison could not be started.');
-  }
-});
+/**
+ * Keys are counted by apiRateLimit for every /api/v1 call. Starting a comparison (two runs) and
+ * rendering its parity report (a browser for the PDF) also share the budget of the expensive routes.
+ */
+const comparisonHeavyLimit = sharedHeavyRateLimit();
+const comparisonReadLimit = sessionRateLimit();
 
-router.get('/api/v1/comparisons/:comparisonId', requireScope('runs:read'), async (req, res) => {
-  const [row] = await withTenantTransaction((tx) =>
-    tx
-      .select({ comparison: comparisonRuns, planName: testPlans.name })
-      .from(comparisonRuns)
-      .leftJoin(testPlans, eq(testPlans.id, comparisonRuns.testPlanId))
-      .where(eq(comparisonRuns.id, req.params.comparisonId))
-      .limit(1),
-  );
-  if (!row)
-    return apiError(
-      res,
-      404,
-      'comparison_not_found',
-      'There is no such comparison in this organization.',
+router.post(
+  '/api/v1/plans/:planId/comparisons',
+  comparisonHeavyLimit,
+  requireScope('runs:write'),
+  async (req, res) => {
+    const parsed = CreateComparisonSchema.safeParse(req.body ?? {});
+    if (!parsed.success) {
+      return apiError(res, 400, 'invalid_request', 'The body does not match the schema.', {
+        details: flattenZodError(parsed.error),
+      });
+    }
+    const idempotencyKey = req.get('Idempotency-Key')?.trim() || null;
+    if (idempotencyKey && idempotencyKey.length > 255) {
+      return apiError(
+        res,
+        400,
+        'invalid_request',
+        'Idempotency-Key must be at most 255 characters.',
+      );
+    }
+    const input = parsed.data;
+    try {
+      const { comparison } = await comparisonOrchestrator.create({
+        planId: req.params.planId,
+        requestedByUserId: req.user!.id,
+        input,
+        idempotencyKey,
+        onCreated: (tx, row) =>
+          recordAudit(tx, {
+            action: AUDIT_ACTIONS.COMPARISON_CREATED,
+            actor: auditActor(req),
+            targetType: 'comparison',
+            targetId: row.id,
+            metadata: {
+              planId: row.testPlanId,
+              baselineEnvironmentId: input.baselineEnvironmentId,
+              candidateEnvironmentId: input.candidateEnvironmentId,
+              mode: input.mode,
+              via: 'api',
+            },
+          }),
+      });
+      // 202 also when the Idempotency-Key found an earlier one: the same answer to the same request.
+      res
+        .status(202)
+        .location(`/api/v1/comparisons/${comparison.id}`)
+        .json(toComparison(comparison, null));
+    } catch (error: unknown) {
+      if (error instanceof ComparisonError)
+        return apiError(res, error.status, error.code, error.message);
+      const quota = quotaErrorBody(error);
+      if (quota)
+        return apiError(
+          res,
+          quotaErrorStatus(error),
+          String(quota.code),
+          String(quota.error),
+          quota,
+        );
+      const message = error instanceof Error ? error.message : String(error);
+      const status = (error as { status?: unknown } | null)?.status;
+      if (typeof status === 'number' && status >= 400 && status < 500)
+        return apiError(res, status, 'refused', error instanceof Error ? message : 'Refused.');
+      logger.error({
+        message: 'Failed to start a comparison through /api/v1',
+        planId: req.params.planId,
+        error: message,
+      });
+      return apiError(res, 500, 'internal_error', 'The comparison could not be started.');
+    }
+  },
+);
+
+router.get(
+  '/api/v1/comparisons/:comparisonId',
+  comparisonReadLimit,
+  requireScope('runs:read'),
+  async (req, res) => {
+    const [row] = await withTenantTransaction((tx) =>
+      tx
+        .select({ comparison: comparisonRuns, planName: testPlans.name })
+        .from(comparisonRuns)
+        .leftJoin(testPlans, eq(testPlans.id, comparisonRuns.testPlanId))
+        .where(eq(comparisonRuns.id, req.params.comparisonId))
+        .limit(1),
     );
-  res.json(toComparison(row.comparison, row.planName));
-});
+    if (!row)
+      return apiError(
+        res,
+        404,
+        'comparison_not_found',
+        'There is no such comparison in this organization.',
+      );
+    res.json(toComparison(row.comparison, row.planName));
+  },
+);
 
 router.get(
   '/api/v1/comparisons/:comparisonId/export/:format',
+  comparisonHeavyLimit,
   requireScope('runs:read'),
   async (req, res) => {
     const { comparisonId, format } = req.params;

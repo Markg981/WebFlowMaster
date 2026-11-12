@@ -34,13 +34,13 @@ import { auditActor, recordAudit } from '../../tenancy/audit';
 import { runArtifactAccess, type RunArtifactAccess } from '../../tenancy/artifact-access';
 import { publicExecution } from '../../execution/execution-provenance';
 import { ComparisonError } from '../../execution/comparison-orchestrator';
-import { comparisonOrchestrator } from '../../reporting/comparison/comparisons';
+import { comparisonOrchestrator } from '../../integrations/comparisons';
 import { stepsOfLog, type ComparedStep } from '../../reporting/comparison/steps';
 import {
   COMPARISON_EXPORT_FORMATS,
-  exportComparison,
   isComparisonExportFormat,
 } from '../../reporting/comparison/comparison-report-model';
+import { exportComparison } from '../../reporting/comparison/comparison-export';
 import { ReportExportError, sendExport } from '../../reporting/report-export';
 import { flattenZodError } from '../zod-error';
 import { sessionRateLimit } from '../middleware/rate-limits';

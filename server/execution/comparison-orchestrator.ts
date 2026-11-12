@@ -25,7 +25,6 @@ import {
   transitionComparison,
   updateRunningComparison,
 } from './comparison-state';
-import { notifyComparisonFinished } from '../integrations/comparison-notifications';
 
 /**
  * The life of a comparison: one plan run on a baseline environment, replayed with the same frozen
@@ -73,7 +72,8 @@ export interface ComparisonOrchestratorOptions {
   comparingLeaseMs?: number;
   /**
    * Announces a comparison that ended completed or in error, once: called only by the call whose
-   * transition moved it. Must not throw; the default never does.
+   * transition moved it. Must not throw. The default announces nothing; the process wiring
+   * (server/integrations/comparisons.ts) passes the real notifications.
    */
   notify?: (comparison: ComparisonRun) => Promise<void>;
 }
@@ -120,7 +120,7 @@ export function createComparisonOrchestrator({
   executions = executionOrchestrator,
   engine,
   comparingLeaseMs = 10 * 60_000,
-  notify = notifyComparisonFinished,
+  notify = async () => {},
 }: ComparisonOrchestratorOptions) {
   /** After the transaction that ended it, so a notification never describes a rolled-back end. */
   async function announce(ended: ComparisonRun | null): Promise<ComparisonRun | null> {

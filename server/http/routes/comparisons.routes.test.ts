@@ -33,7 +33,7 @@ vi.mock('../../platform/logger', () => ({
 }));
 
 // The real comparison orchestrator over a queue that accepts every job and runs none.
-vi.mock('../../reporting/comparison/comparisons', async () => {
+vi.mock('../../integrations/comparisons', async () => {
   const { createComparisonOrchestrator } = await import('../../execution/comparison-orchestrator');
   const { createExecutionOrchestrator } = await import('../../execution/execution-orchestrator');
   const queue = {

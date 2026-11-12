@@ -20,7 +20,7 @@ vi.mock('../../platform/logger', () => ({
   },
   updateLogLevel: vi.fn(),
 }));
-vi.mock('../../reporting/comparison/comparisons', async () => {
+vi.mock('../../integrations/comparisons', async () => {
   const { createComparisonOrchestrator } = await import('../../execution/comparison-orchestrator');
   const { createExecutionOrchestrator } = await import('../../execution/execution-orchestrator');
   const queue = {
