@@ -11,6 +11,8 @@ export interface ComparedStep {
   status: 'passed' | 'failed';
   screenshot: string | null;
   checkpoint: CheckpointCapture | null;
+  /** How long the step took, when the log says (a mobile step does, a web step does not yet). */
+  durationMs?: number | null;
 }
 
 function isCheckpoint(value: unknown): value is CheckpointCapture {
@@ -52,6 +54,10 @@ export function stepsOfLog(detailedLog: string | null | undefined): ComparedStep
       status: step.status === 'failed' ? 'failed' : 'passed',
       screenshot: typeof step.screenshot === 'string' && step.screenshot ? step.screenshot : null,
       checkpoint: isCheckpoint(step.checkpoint) ? step.checkpoint : null,
+      durationMs:
+        typeof step.durationMs === 'number' && Number.isFinite(step.durationMs)
+          ? step.durationMs
+          : null,
     });
   });
   return steps;

@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 import type { BrowserContext, Request } from 'playwright';
 import type { NetworkCheckpointEntry } from '@shared/comparison';
+import { urlPatternMatcher } from '@shared/patterns';
 
 /**
  * The requests a test's pages made, kept for its `checkpointNetwork` steps
@@ -54,28 +55,6 @@ async function describeRequest(request: Request, failed: boolean): Promise<Recor
     }
   }
   return { url: request.url(), resourceType: type, entry };
-}
-
-/**
- * A URL pattern of a network checkpoint, in the syntax of `mockRequest`: `**` any characters,
- * `*` any but `/`. A pattern with no wildcard matches a URL that contains it.
- */
-export function urlPatternMatcher(pattern: string): (url: string) => boolean {
-  const p = pattern.trim();
-  if (!p.includes('*')) return (url) => url.includes(p);
-  let source = '';
-  for (let i = 0; i < p.length; i++) {
-    if (p[i] === '*' && p[i + 1] === '*') {
-      source += '.*';
-      i++;
-    } else if (p[i] === '*') {
-      source += '[^/]*';
-    } else {
-      source += p[i].replace(/[.+?^${}()|[\]\\]/g, '\\$&');
-    }
-  }
-  const regex = new RegExp(`^${source}$`);
-  return (url) => regex.test(url);
 }
 
 const entryKey = (e: NetworkCheckpointEntry) =>

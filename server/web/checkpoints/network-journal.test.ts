@@ -10,27 +10,9 @@ import {
   networkJournalOf,
   parseNetworkCheckpointValue,
   sortEntries,
-  urlPatternMatcher,
 } from './network-journal';
 
 const sha256 = (s: string) => createHash('sha256').update(s).digest('hex');
-
-describe('urlPatternMatcher', () => {
-  it('reads ** as anything and * as anything but a slash, over the whole URL', () => {
-    const any = urlPatternMatcher('**/api/**');
-    expect(any('http://a.test/api/orders?x=1')).toBe(true);
-    expect(any('http://a.test/static/app.js')).toBe(false);
-    const one = urlPatternMatcher('http://a.test/api/*');
-    expect(one('http://a.test/api/orders')).toBe(true);
-    expect(one('http://a.test/api/orders/7')).toBe(false);
-  });
-
-  it('matches a URL containing a pattern with no wildcard, and escapes regex characters', () => {
-    expect(urlPatternMatcher('/api/orders')('http://a.test/api/orders?x=1')).toBe(true);
-    expect(urlPatternMatcher('**/a.b?c')('http://h/a.b?c')).toBe(true);
-    expect(urlPatternMatcher('**/a.b?c')('http://h/aXbc')).toBe(false);
-  });
-});
 
 describe('parseNetworkCheckpointValue', () => {
   it('reads the name and the comma-separated patterns', () => {
