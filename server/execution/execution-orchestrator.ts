@@ -11,12 +11,14 @@ import {
   type TestPlanExecution,
 } from '@shared/schema';
 import type { CiContext } from '@shared/ci';
+import type { ExecutionComparisonRef } from '@shared/comparison';
 import { privilegedDb } from '../platform/db';
 import { runAsOrganization, withTenantTransaction } from '../platform/middleware/tenancy';
 import { expandPlanTests, type TestReference } from '../authoring/test-suites';
 import { selectForChanges } from './test-impact';
 import { announceExecution } from './execution-state';
 import {
+  asComparisonRun,
   buildExecutionSnapshot,
   readExecutionSnapshot,
   type SnapshotTestReference,
@@ -93,6 +95,16 @@ export interface EnqueueExecutionInput {
    * affect, by the organization's impact map (server/execution/test-impact.ts).
    */
   changedFiles?: string[] | null;
+  /** The comparison this run is the baseline of (server/execution/comparison-orchestrator.ts). */
+  comparison?: ExecutionComparisonRef;
+}
+
+/** What a replay may change about the run it repeats. Everything else is cloned untouched. */
+export interface ReplayOverrides {
+  /** Run the same frozen inputs on another environment of the organization. */
+  environmentId?: number;
+  /** The comparison the replay is one side of. */
+  comparison?: ExecutionComparisonRef;
 }
 
 /** More than this is not a retry policy, it is a loop. */
@@ -337,6 +349,7 @@ export function createExecutionOrchestrator(
               environmentId: input.environmentId ?? null,
               browsers: input.browsers,
               updateBaselines: input.updateBaselines,
+              comparison: input.comparison,
             },
           );
           if (narrowed) snapshot.selection = narrowed.selection;
@@ -522,11 +535,19 @@ export function createExecutionOrchestrator(
     return submit(retry);
   }
 
-  /** Explicit replay reads the source under the caller's RLS; it never expands today's plan. */
+  /**
+   * Explicit replay reads the source under the caller's RLS; it never expands today's plan.
+   *
+   * With `overrides.environmentId` the same frozen definitions and datasets run on another
+   * environment, checked as enqueue checks one. Both runs report the same definition and dataset
+   * fingerprints; the input fingerprint, which covers the environment, is recomputed. That is the
+   * candidate side of a comparison.
+   */
   async function replay(
     executionId: string,
     requestedByUserId: number,
     idempotencyKey?: string,
+    overrides: ReplayOverrides = {},
   ): Promise<TestPlanExecution> {
     const source = await withTenantTransaction(async (tx) => {
       const [row] = await tx
@@ -599,8 +620,30 @@ export function createExecutionOrchestrator(
               'The organization queue is full.',
               429,
             );
-          const snapshot = structuredClone(readExecutionSnapshot(source.configurationSnapshot)!);
+          let snapshot = structuredClone(readExecutionSnapshot(source.configurationSnapshot)!);
           snapshot.replayOf = { executionId: source.id, requestedAt: new Date().toISOString() };
+          let environment = source.environment;
+          if (overrides.environmentId != null) {
+            // Under RLS: another organization's environment is not found, not borrowed.
+            const [target] = await tx
+              .select({ id: environments.id })
+              .from(environments)
+              .where(eq(environments.id, overrides.environmentId))
+              .limit(1);
+            if (!target)
+              throw new ExecutionEnqueueError(
+                'environment_not_found',
+                'Environment not found',
+                404,
+              );
+            snapshot.environmentId = target.id;
+            environment = String(target.id);
+          }
+          if (overrides.comparison) snapshot = asComparisonRun(snapshot, overrides.comparison);
+          // The input fingerprint covers the environment and the comparison settings, so it is
+          // recomputed; the definition and dataset fingerprints come out as the source's.
+          if (overrides.environmentId != null || overrides.comparison)
+            snapshot.provenance = buildExecutionProvenance(snapshot);
           const [execution] = await tx
             .insert(testPlanExecutions)
             .values({
@@ -610,7 +653,7 @@ export function createExecutionOrchestrator(
               requestedByUserId,
               status: 'queued',
               triggeredBy: 'manual',
-              environment: source.environment,
+              environment,
               browsers: source.browsers,
               configurationSnapshot: snapshot,
               idempotencyKey: key,

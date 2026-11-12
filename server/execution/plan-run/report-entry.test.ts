@@ -230,4 +230,27 @@ describe('a run whose results were all recorded', () => {
     expect(execution).toMatchObject({ status: 'failed', failedTests: 1, failureCode: null });
     expect(notifiedStatus()).toBe('failed');
   });
+
+  // The comparison announces its verdict; a side that also did would mail the requester twice.
+  it('does not notify for one side of a comparison', async () => {
+    await seedPlan(1);
+    executeTestSequence.mockResolvedValueOnce(failed);
+    const { createExecutionOrchestrator } = await import('../execution-orchestrator');
+    const orchestrator = createExecutionOrchestrator({ add: async () => ({}) } as any);
+    const side = await orchestrator.enqueue({
+      planId,
+      requestedByUserId: userId,
+      trigger: 'manual',
+      comparison: { id: 'cmp-1', role: 'baseline' },
+    });
+
+    await processTestPlanJob(planId, side.id, userId);
+
+    const [execution] = await privilegedDb
+      .select()
+      .from(testPlanExecutions)
+      .where(eq(testPlanExecutions.id, side.id));
+    expect(execution).toMatchObject({ status: 'failed', failedTests: 1 });
+    expect(notifyRunFinished).not.toHaveBeenCalled();
+  });
 });

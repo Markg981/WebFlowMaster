@@ -173,8 +173,16 @@ export function reproducibilitySummary(value: unknown): ReproducibilitySummary {
   }
 }
 
-/** Execution JSON APIs must never serialize the private runner snapshot. */
+/**
+ * Execution JSON APIs must never serialize the private runner snapshot. The comparison a run is
+ * one side of is safe to show (an id and a role), and lets its report link to the comparison.
+ */
 export function publicExecution<T extends { configurationSnapshot: unknown }>(row: T) {
   const { configurationSnapshot, ...metadata } = row;
-  return { ...metadata, reproducibility: reproducibilitySummary(configurationSnapshot) };
+  const comparison = readExecutionSnapshot(configurationSnapshot)?.comparison;
+  return {
+    ...metadata,
+    reproducibility: reproducibilitySummary(configurationSnapshot),
+    comparison: comparison ? { id: comparison.id, role: comparison.role } : null,
+  };
 }

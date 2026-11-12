@@ -2,6 +2,7 @@ import { EVIDENCE_CAPTURE_MODES, type EvidenceCaptureMode, type TestPlan } from 
 import type { WorkerLossPolicy } from '@shared/execution-identity';
 import type { RunSelection } from './test-impact';
 import { normalizeLocales } from '@shared/locales';
+import type { ExecutionComparisonRef } from '@shared/comparison';
 
 /**
  * What a run was asked to do, written down when it was asked.
@@ -94,6 +95,11 @@ export interface ExecutionSnapshot {
   testManagement?: { connectionId: string | null };
   /** Present when the run was narrowed to the tests a change affects (server/execution/test-impact.ts). */
   selection?: RunSelection;
+  /**
+   * The comparison this run is one side of (shared/comparison.ts). Optional, so the version does
+   * not change: absent means an ordinary run. See `asComparisonRun` for what it forces.
+   */
+  comparison?: ExecutionComparisonRef;
 }
 
 /** What the request may say that the plan does not. Anything absent comes from the plan. */
@@ -101,6 +107,32 @@ export interface SnapshotOverrides {
   environmentId?: number | null;
   browsers?: unknown;
   updateBaselines?: boolean;
+  comparison?: ExecutionComparisonRef;
+}
+
+/**
+ * The snapshot of one side of a comparison.
+ *
+ * Every step keeps its screenshot, because the comparison compares the two runs' pictures with
+ * each other. Visual testing against stored baselines is off: that compares a run with the past,
+ * and would report every intended difference twice. No issue is filed, no notification is sent
+ * and nothing is published to test management for either run: the comparison is what reports.
+ * Everything that decides what runs (definitions, datasets, browsers, tests) is left as it is,
+ * so the two sides keep the same fingerprints.
+ */
+export function asComparisonRun(
+  snapshot: ExecutionSnapshot,
+  comparison: ExecutionComparisonRef,
+): ExecutionSnapshot {
+  return {
+    ...snapshot,
+    comparison: { id: comparison.id, role: comparison.role },
+    captureScreenshots: 'always',
+    visualTesting: { enabled: false, updateBaselines: false },
+    issues: { ...snapshot.issues, createOnFailure: false },
+    notificationSettings: null,
+    testManagement: { connectionId: null },
+  };
 }
 
 function evidenceMode(value: unknown): EvidenceCaptureMode {
@@ -132,6 +164,16 @@ export function buildExecutionSnapshot(
   selectedTests: SnapshotTestReference[],
   overrides: SnapshotOverrides = {},
   now: Date = new Date(),
+): ExecutionSnapshot {
+  const snapshot = planSnapshot(plan, selectedTests, overrides, now);
+  return overrides.comparison ? asComparisonRun(snapshot, overrides.comparison) : snapshot;
+}
+
+function planSnapshot(
+  plan: TestPlan,
+  selectedTests: SnapshotTestReference[],
+  overrides: SnapshotOverrides,
+  now: Date,
 ): ExecutionSnapshot {
   return {
     version: EXECUTION_SNAPSHOT_VERSION,
