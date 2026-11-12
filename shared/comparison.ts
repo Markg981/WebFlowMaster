@@ -215,6 +215,61 @@ export const CreateComparisonSchema = z
   });
 export type CreateComparisonInput = z.infer<typeof CreateComparisonSchema>;
 
+/** How far a known difference reaches: the one test, its project, or the whole organization. */
+export const KNOWN_DIFFERENCE_SCOPES = ['test', 'project', 'organization'] as const;
+export type KnownDifferenceScope = (typeof KNOWN_DIFFERENCE_SCOPES)[number];
+
+/** A known difference saved from a review: at most this many from one result. */
+export const MAX_KNOWN_DIFFERENCES_PER_REVIEW = 50;
+
+const futureDate = z
+  .string()
+  .datetime({ offset: true })
+  .refine((value) => Date.parse(value) > Date.now(), 'The expiry must be in the future.');
+
+export const ReviewComparisonResultSchema = z
+  .object({
+    status: z.enum(COMPARISON_REVIEW_STATUSES),
+    note: z.string().trim().max(2000).optional(),
+    /** Accepted differences later comparisons should recognise; the note is the reason. */
+    saveAsKnownDifference: z
+      .object({
+        scope: z.enum(KNOWN_DIFFERENCE_SCOPES).default('test'),
+        reference: z.string().trim().max(500).optional(),
+        expiresAt: futureDate.optional(),
+        /** Positions in the result's differences; by default every blocking one not yet known. */
+        differences: z
+          .array(z.number().int().min(0))
+          .min(1)
+          .max(MAX_KNOWN_DIFFERENCES_PER_REVIEW)
+          .optional(),
+      })
+      .optional(),
+  })
+  .refine((body) => body.status !== 'accepted' || !!body.note, {
+    message: 'Accepting a difference needs a reason.',
+    path: ['note'],
+  })
+  .refine((body) => !body.saveAsKnownDifference || body.status === 'accepted', {
+    message: 'Only an accepted difference can be saved as known.',
+    path: ['saveAsKnownDifference'],
+  });
+export type ReviewComparisonResultInput = z.infer<typeof ReviewComparisonResultSchema>;
+
+export const CreateKnownDifferenceSchema = z.object({
+  /** Null with no test: the whole organization. A test's project is taken from the test. */
+  projectId: z.number().int().positive().nullable().optional(),
+  uiTestId: z.number().int().positive().nullable().optional(),
+  checkpointName: z.string().trim().min(1).max(200).nullable().optional(),
+  kind: z.enum(DIFFERENCE_KINDS),
+  /** A glob over the difference path, `*` for any characters; null for any path. */
+  pathPattern: z.string().trim().min(1).max(500).nullable().optional(),
+  reason: z.string().trim().min(1).max(2000),
+  reference: z.string().trim().max(500).nullable().optional(),
+  expiresAt: futureDate.nullable().optional(),
+});
+export type CreateKnownDifferenceInput = z.infer<typeof CreateKnownDifferenceSchema>;
+
 export type VerdictCounts = Record<ComparisonResultVerdict, number>;
 
 /** Counts kept on the comparison when it completes. */

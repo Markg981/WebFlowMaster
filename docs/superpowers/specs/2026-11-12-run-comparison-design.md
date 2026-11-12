@@ -219,7 +219,7 @@ Built with `asyncRouter()`, tenant transactions, explicit `requireRole` on every
 | `GET /api/comparisons/:id/export/:format`             | viewer         | `html`, `pdf`, `json` parity report (release 3)                                                                                          |
 | `GET, POST, DELETE /api/comparison-known-differences` | viewer, editor | Manage known differences                                                                                                                 |
 
-Audit actions (`shared/schema/identity.ts`, with labels in the four languages): `comparison.created`, `comparison.cancelled`, `comparison_difference.reviewed`, `comparison_known_difference.created`, `comparison_known_difference.deleted`.
+Audit actions (`shared/schema/identity.ts`, with labels in the four languages): `comparison.created`, `comparison.cancelled`, `comparison.difference_reviewed`, `comparison.known_difference_created`, `comparison.known_difference_deleted`.
 
 Release 3 adds `POST /api/v1/plans/:planId/comparisons` (`runs:write`) and `GET /api/v1/comparisons/:id` (`runs:read`) in `server/http/routes/api-v1.routes.ts` together with `server/http/api-v1/openapi.ts`, and `wfm compare` in `scripts/wfm-cli.ts`.
 

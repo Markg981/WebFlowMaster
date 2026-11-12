@@ -801,6 +801,9 @@ export const AUDIT_ACTIONS = {
   // One plan run on two environments and the runs compared (shared/comparison.ts).
   COMPARISON_CREATED: 'comparison.created',
   COMPARISON_CANCELLED: 'comparison.cancelled',
+  COMPARISON_DIFFERENCE_REVIEWED: 'comparison.difference_reviewed',
+  COMPARISON_KNOWN_DIFFERENCE_CREATED: 'comparison.known_difference_created',
+  COMPARISON_KNOWN_DIFFERENCE_DELETED: 'comparison.known_difference_deleted',
   // A person's verdict on a manual test in a run (shared/manual-tests.ts).
   RUN_MANUAL_RESULT_RECORDED: 'run.manual_result_recorded',
   RUN_FAILURE_ANALYSED: 'run.failure_analysed',

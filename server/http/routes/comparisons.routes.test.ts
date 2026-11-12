@@ -5,9 +5,11 @@ import { v4 as uuidv4 } from 'uuid';
 import { and, eq } from 'drizzle-orm';
 import {
   auditLog,
+  comparisonKnownDifferences,
   comparisonResults,
   comparisonRuns,
   environments,
+  projects,
   reportTestCaseResults,
   testPlanExecutions,
   testPlanSelectedTests,
@@ -325,5 +327,212 @@ describe('cancelling a comparison', () => {
     await request(app).post(`/api/comparisons/${body.id}/cancel`).expect(409);
     await request(app).post(`/api/comparisons/${uuidv4()}/cancel`).expect(404);
     expect(await audits('comparison.cancelled', body.id)).toHaveLength(1);
+  });
+});
+
+async function uiTest(projectId: number | null = null) {
+  const [test] = await privilegedDb
+    .insert(tests)
+    .values({
+      userId: editorId,
+      organizationId,
+      projectId,
+      name: 'orders',
+      url: 'https://example.test/orders',
+      sequence: [],
+      elements: [],
+    })
+    .returning();
+  return test.id;
+}
+
+/** A completed comparison with one different result of the given test. */
+async function comparedResult(uiTestId: number) {
+  const [comparison] = await privilegedDb
+    .insert(comparisonRuns)
+    .values({
+      id: uuidv4(),
+      organizationId,
+      testPlanId: planId,
+      baselineEnvironmentName: 'prod',
+      candidateEnvironmentName: 'staging',
+      status: 'completed',
+      verdict: 'regressions',
+      summary: { total: 1, byVerdict: emptyVerdictCounts(), byModule: [], droppedDifferences: 0 },
+    })
+    .returning();
+  const cell = (path: string) => ({
+    stepId: 's1',
+    stepIndex: 0,
+    checkpoint: 'orders',
+    kind: 'table' as const,
+    path,
+    baseline: '1',
+    candidate: '2',
+    severity: 'blocking' as const,
+  });
+  const resultId = uuidv4();
+  await privilegedDb.insert(comparisonResults).values({
+    id: resultId,
+    organizationId,
+    comparisonRunId: comparison.id,
+    pairKey: `unit:${resultId}`,
+    testType: 'ui',
+    uiTestId,
+    testName: 'orders',
+    verdict: 'different',
+    differences: [
+      cell('rows[1][2]'),
+      cell('rows[2][2]'),
+      { ...cell('duration'), kind: 'performance', severity: 'informative' },
+    ],
+  });
+  return { comparisonId: comparison.id, resultId };
+}
+
+describe('reviewing a result', () => {
+  it('records the review for an editor, refuses a viewer, and an acceptance without a reason', async () => {
+    const { comparisonId, resultId } = await comparedResult(await uiTest());
+    const review = (body: Record<string, unknown>) =>
+      request(app).post(`/api/comparisons/${comparisonId}/results/${resultId}/review`).send(body);
+    asViewer();
+    await review({ status: 'defect' }).expect(403);
+    asEditor();
+    await review({ status: 'accepted' }).expect(400);
+    await review({ status: 'defect', saveAsKnownDifference: {} }).expect(400);
+    const { body } = await review({ status: 'defect', note: 'BUG-12' }).expect(200);
+    expect(body.result).toMatchObject({
+      reviewStatus: 'defect',
+      reviewNote: 'BUG-12',
+      reviewedByUserId: editorId,
+    });
+    expect(body.knownDifferences).toEqual([]);
+    const [entry] = await audits('comparison.difference_reviewed', resultId);
+    expect(entry.metadata).toMatchObject({ from: 'open', to: 'defect', knownDifferences: 0 });
+    const reopened = await review({ status: 'open' }).expect(200);
+    expect(reopened.body.result).toMatchObject({ reviewStatus: 'open', reviewedByUserId: null });
+    await request(app)
+      .post(`/api/comparisons/${comparisonId}/results/${uuidv4()}/review`)
+      .send({ status: 'defect' })
+      .expect(404);
+    asOutsider();
+    await review({ status: 'defect' }).expect(404);
+  });
+
+  it('saves the open blocking differences as known, scoped to the test by default', async () => {
+    const testId = await uiTest();
+    const { comparisonId, resultId } = await comparedResult(testId);
+    const review = (body: Record<string, unknown>) =>
+      request(app).post(`/api/comparisons/${comparisonId}/results/${resultId}/review`).send(body);
+    await review({
+      status: 'accepted',
+      note: 'rounding',
+      saveAsKnownDifference: { differences: [7] },
+    }).expect(400);
+    const { body } = await review({
+      status: 'accepted',
+      note: 'New rounding of totals',
+      saveAsKnownDifference: { reference: 'CHG-1' },
+    }).expect(200);
+    expect(body.knownDifferences.map((k: { pathPattern: string }) => k.pathPattern).sort()).toEqual(
+      ['rows[1][2]', 'rows[2][2]'],
+    );
+    expect(body.knownDifferences[0]).toMatchObject({
+      uiTestId: testId,
+      kind: 'table',
+      checkpointName: 'orders',
+      reason: 'New rounding of totals',
+      reference: 'CHG-1',
+      approvedByUserId: editorId,
+    });
+    for (const k of body.knownDifferences)
+      expect(await audits('comparison.known_difference_created', k.id)).toHaveLength(1);
+
+    const organizationWide = await review({
+      status: 'accepted',
+      note: 'everywhere',
+      saveAsKnownDifference: { scope: 'organization', differences: [0] },
+    }).expect(200);
+    expect(organizationWide.body.knownDifferences).toMatchObject([
+      { projectId: null, uiTestId: null, pathPattern: 'rows[1][2]' },
+    ]);
+    await review({
+      status: 'accepted',
+      note: 'no project',
+      saveAsKnownDifference: { scope: 'project' },
+    }).expect(422);
+  });
+});
+
+describe('known differences', () => {
+  it('lists, creates and deletes them, with audit, and refuses a viewer', async () => {
+    const testId = await uiTest();
+    const create = (body: Record<string, unknown>) =>
+      request(app).post('/api/comparison-known-differences').send(body);
+    asViewer();
+    await create({ kind: 'text', reason: 'x' }).expect(403);
+    asEditor();
+    await create({ kind: 'nope', reason: 'x' }).expect(400);
+    await create({ kind: 'text', reason: 'x', expiresAt: '2020-01-01T00:00:00Z' }).expect(400);
+    await create({ kind: 'text', reason: 'x', uiTestId: 999_999_999 }).expect(422);
+    const { body: created } = await create({
+      kind: 'text',
+      uiTestId: testId,
+      checkpointName: 'banner',
+      pathPattern: 'texts[*]',
+      reason: 'Release banner',
+    }).expect(201);
+    expect(created).toMatchObject({ uiTestId: testId, projectId: null, kind: 'text' });
+    expect(await audits('comparison.known_difference_created', created.id)).toHaveLength(1);
+
+    asViewer();
+    const list = await request(app)
+      .get(`/api/comparison-known-differences?uiTestId=${testId}`)
+      .expect(200);
+    expect(list.body).toMatchObject({ total: 1, rows: [{ id: created.id, testName: 'orders' }] });
+    await request(app).delete(`/api/comparison-known-differences/${created.id}`).expect(403);
+    asOutsider();
+    const outside = await request(app)
+      .get(`/api/comparison-known-differences?uiTestId=${testId}`)
+      .expect(200);
+    expect(outside.body.total).toBe(0);
+    await request(app).delete(`/api/comparison-known-differences/${created.id}`).expect(404);
+
+    asEditor();
+    await request(app).delete(`/api/comparison-known-differences/${created.id}`).expect(204);
+    await request(app).delete(`/api/comparison-known-differences/${created.id}`).expect(404);
+    const [deleted] = await audits('comparison.known_difference_deleted', created.id);
+    expect(deleted.metadata).toMatchObject({ reason: 'Release banner' });
+  });
+
+  it('keeps a restricted project entries to the people on the project', async () => {
+    const [restricted] = await privilegedDb
+      .insert(projects)
+      .values({ name: 'Payroll', userId: editorId, organizationId, restricted: true })
+      .returning();
+    const id = uuidv4();
+    await privilegedDb.insert(comparisonKnownDifferences).values({
+      id,
+      organizationId,
+      projectId: restricted.id,
+      kind: 'text',
+      reason: 'Restricted',
+    });
+    asViewer();
+    const seen = await request(app)
+      .get(`/api/comparison-known-differences?projectId=${restricted.id}`)
+      .expect(200);
+    expect(seen.body.total).toBe(0);
+    asEditor();
+    await request(app)
+      .post('/api/comparison-known-differences')
+      .send({ kind: 'text', reason: 'x', projectId: restricted.id })
+      .expect(422);
+    await request(app).delete(`/api/comparison-known-differences/${id}`).expect(404);
+    const [kept] = await privilegedDb
+      .select()
+      .from(comparisonKnownDifferences)
+      .where(eq(comparisonKnownDifferences.id, id));
+    expect(kept).toBeDefined();
   });
 });
