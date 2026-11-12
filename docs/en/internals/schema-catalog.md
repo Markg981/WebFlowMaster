@@ -4,7 +4,7 @@ Generated from `shared/schema/` (one file per domain) with `node scripts/generat
 
 Read the [domain schema](./database-schema) for explanations and relationships, then find the table here. Each row lists the TypeScript property, SQL name and complete builder: type, nullability, default and references declared on the column. Table callback constraints are not expanded here.
 
-**88 tables / 1056 declared columns.**
+**91 tables / 1114 declared columns.**
 
 ## Index
 
@@ -75,6 +75,9 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 | [test_quarantines](#test-quarantines)                         | `testQuarantines`            | 12      |
 | [mobile_test_runs](#mobile-test-runs)                         | `mobileTestRuns`             | 18      |
 | [load_test_runs](#load-test-runs)                             | `loadTestRuns`               | 17      |
+| [comparison_runs](#comparison-runs)                           | `comparisonRuns`             | 22      |
+| [comparison_results](#comparison-results)                     | `comparisonResults`          | 24      |
+| [comparison_known_differences](#comparison-known-differences) | `comparisonKnownDifferences` | 12      |
 | [runners](#runners)                                           | `runners`                    | 12      |
 | [environments](#environments)                                 | `environments`               | 10      |
 | [secrets](#secrets)                                           | `secrets`                    | 10      |
@@ -483,7 +486,7 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 
 ## sessions {#sessions}
 
-`sessions` — `shared/schema/identity.ts:898`
+`sessions` — `shared/schema/identity.ts:901`
 
 | TS property | SQL column | Declaration                     |
 | ----------- | ---------- | ------------------------------- |
@@ -1273,6 +1276,85 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 | `requestedBy`     | `requested_by`     | `integer('requested_by').references(() => users.id, { onDelete: 'set null' })`                |
 | `startedAt`       | `started_at`       | `timestamp('started_at').defaultNow().notNull()`                                              |
 | `finishedAt`      | `finished_at`      | `timestamp('finished_at')`                                                                    |
+
+## comparison_runs {#comparison-runs}
+
+`comparisonRuns` — `shared/schema/comparison.ts:26`
+
+| TS property                | SQL column                   | Declaration                                                                                         |
+| -------------------------- | ---------------------------- | --------------------------------------------------------------------------------------------------- |
+| `id`                       | `id`                         | `text('id').primaryKey()`                                                                           |
+| `organizationId`           | `organization_id`            | `integer('organization_id') .notNull() .references(() => organizations.id)`                         |
+| `testPlanId`               | `test_plan_id`               | `text('test_plan_id') .notNull() .references(() => testPlans.id, { onDelete: 'cascade' })`          |
+| `name`                     | `name`                       | `text('name')`                                                                                      |
+| `baselineEnvironmentId`    | `baseline_environment_id`    | `integer('baseline_environment_id').references(() => environments.id, { onDelete: 'set null', })`   |
+| `candidateEnvironmentId`   | `candidate_environment_id`   | `integer('candidate_environment_id').references(() => environments.id, { onDelete: 'set null', })`  |
+| `baselineEnvironmentName`  | `baseline_environment_name`  | `text('baseline_environment_name').notNull()`                                                       |
+| `candidateEnvironmentName` | `candidate_environment_name` | `text('candidate_environment_name').notNull()`                                                      |
+| `baselineExecutionId`      | `baseline_execution_id`      | `text('baseline_execution_id').references(() => testPlanExecutions.id, { onDelete: 'set null', })`  |
+| `candidateExecutionId`     | `candidate_execution_id`     | `text('candidate_execution_id').references(() => testPlanExecutions.id, { onDelete: 'set null', })` |
+| `mode`                     | `mode`                       | `text('mode').$type<ComparisonMode>().notNull().default('sequential')`                              |
+| `policy`                   | `policy`                     | `jsonb('policy').$type<Record<string, unknown>>().notNull().default({})`                            |
+| `status`                   | `status`                     | `text('status').$type<ComparisonStatus>().notNull().default('queued')`                              |
+| `verdict`                  | `verdict`                    | `text('verdict').$type<ComparisonVerdict>()`                                                        |
+| `summary`                  | `summary`                    | `jsonb('summary').$type<ComparisonSummary>()`                                                       |
+| `failureCode`              | `failure_code`               | `text('failure_code')`                                                                              |
+| `failureMessage`           | `failure_message`            | `text('failure_message')`                                                                           |
+| `idempotencyKey`           | `idempotency_key`            | `text('idempotency_key')`                                                                           |
+| `requestedByUserId`        | `requested_by_user_id`       | `integer('requested_by_user_id').references(() => users.id, { onDelete: 'set null', })`             |
+| `createdAt`                | `created_at`                 | `timestamp('created_at').notNull().defaultNow()`                                                    |
+| `updatedAt`                | `updated_at`                 | `timestamp('updated_at').notNull().defaultNow()`                                                    |
+| `completedAt`              | `completed_at`               | `timestamp('completed_at')`                                                                         |
+
+## comparison_results {#comparison-results}
+
+`comparisonResults` — `shared/schema/comparison.ts:84`
+
+| TS property           | SQL column              | Declaration                                                                                          |
+| --------------------- | ----------------------- | ---------------------------------------------------------------------------------------------------- |
+| `id`                  | `id`                    | `text('id').primaryKey()`                                                                            |
+| `organizationId`      | `organization_id`       | `integer('organization_id') .notNull() .references(() => organizations.id)`                          |
+| `comparisonRunId`     | `comparison_run_id`     | `text('comparison_run_id') .notNull() .references(() => comparisonRuns.id, { onDelete: 'cascade' })` |
+| `pairKey`             | `pair_key`              | `text('pair_key').notNull()`                                                                         |
+| `uiTestId`            | `ui_test_id`            | `integer('ui_test_id').references(() => tests.id, { onDelete: 'set null' })`                         |
+| `apiTestId`           | `api_test_id`           | `integer('api_test_id').references(() => apiTests.id, { onDelete: 'set null' })`                     |
+| `testType`            | `test_type`             | `text('test_type')`                                                                                  |
+| `testName`            | `test_name`             | `text('test_name')`                                                                                  |
+| `browser`             | `browser`               | `text('browser')`                                                                                    |
+| `module`              | `module`                | `text('module')`                                                                                     |
+| `component`           | `component`             | `text('component')`                                                                                  |
+| `priority`            | `priority`              | `text('priority')`                                                                                   |
+| `severity`            | `severity`              | `text('severity')`                                                                                   |
+| `baselineResultId`    | `baseline_result_id`    | `text('baseline_result_id').references(() => reportTestCaseResults.id, { onDelete: 'set null', })`   |
+| `candidateResultId`   | `candidate_result_id`   | `text('candidate_result_id').references(() => reportTestCaseResults.id, { onDelete: 'set null', })`  |
+| `verdict`             | `verdict`               | `text('verdict').$type<ComparisonResultVerdict>().notNull()`                                         |
+| `differences`         | `differences`           | `jsonb('differences').$type<ComparisonDifference[]>().notNull().default([])`                         |
+| `baselineDurationMs`  | `baseline_duration_ms`  | `integer('baseline_duration_ms')`                                                                    |
+| `candidateDurationMs` | `candidate_duration_ms` | `integer('candidate_duration_ms')`                                                                   |
+| `reviewStatus`        | `review_status`         | `text('review_status').$type<ComparisonReviewStatus>().notNull().default('open')`                    |
+| `reviewedByUserId`    | `reviewed_by_user_id`   | `integer('reviewed_by_user_id').references(() => users.id, { onDelete: 'set null', })`               |
+| `reviewedAt`          | `reviewed_at`           | `timestamp('reviewed_at')`                                                                           |
+| `reviewNote`          | `review_note`           | `text('review_note')`                                                                                |
+| `createdAt`           | `created_at`            | `timestamp('created_at').notNull().defaultNow()`                                                     |
+
+## comparison_known_differences {#comparison-known-differences}
+
+`comparisonKnownDifferences` — `shared/schema/comparison.ts:133`
+
+| TS property        | SQL column            | Declaration                                                                            |
+| ------------------ | --------------------- | -------------------------------------------------------------------------------------- |
+| `id`               | `id`                  | `text('id').primaryKey()`                                                              |
+| `organizationId`   | `organization_id`     | `integer('organization_id') .notNull() .references(() => organizations.id)`            |
+| `projectId`        | `project_id`          | `integer('project_id').references(() => projects.id, { onDelete: 'cascade' })`         |
+| `uiTestId`         | `ui_test_id`          | `integer('ui_test_id').references(() => tests.id, { onDelete: 'cascade' })`            |
+| `checkpointName`   | `checkpoint_name`     | `text('checkpoint_name')`                                                              |
+| `kind`             | `kind`                | `text('kind').$type<DifferenceKind>().notNull()`                                       |
+| `pathPattern`      | `path_pattern`        | `text('path_pattern')`                                                                 |
+| `reason`           | `reason`              | `text('reason').notNull()`                                                             |
+| `reference`        | `reference`           | `text('reference')`                                                                    |
+| `approvedByUserId` | `approved_by_user_id` | `integer('approved_by_user_id').references(() => users.id, { onDelete: 'set null', })` |
+| `createdAt`        | `created_at`          | `timestamp('created_at').notNull().defaultNow()`                                       |
+| `expiresAt`        | `expires_at`          | `timestamp('expires_at')`                                                              |
 
 ## runners {#runners}
 
