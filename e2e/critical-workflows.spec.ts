@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { type Page } from '@playwright/test';
 import { test, expect, openPage } from './fixtures';
 import { history, member, password, register, saveApiTest, unique } from './helpers';
@@ -351,4 +352,106 @@ test('cancelling a running plan through its report persists cancellation and ski
     status: 'Skipped',
     reasonForFailure: expect.stringMatching(/cancelled/i),
   });
+});
+
+test('comparing a plan across two environments of the demo shop flags only the controlled difference', async ({
+  page,
+}) => {
+  await register(page);
+  // Two environments of the same shop. They differ in one variable only: the candidate asks for
+  // an order number the shop does not have, so one test changes outcome and the other does not.
+  const environment = async (name: string, orderId: string) => {
+    const created = await page.request.post('/api/environments', { data: { name } });
+    expect(created.status()).toBe(201);
+    const { id } = await created.json();
+    for (const [keyName, value] of [
+      ['baseUrl', 'http://127.0.0.1:5080/demo-shop/api'],
+      ['orderId', orderId],
+    ])
+      expect(
+        (
+          await page.request.post(`/api/environments/${id}/secrets`, { data: { keyName, value } })
+        ).ok(),
+      ).toBeTruthy();
+    return name;
+  };
+  const baseline = await environment(unique('shop_baseline'), '10001');
+  const candidate = await environment(unique('shop_candidate'), '42');
+
+  const shopTest = async (name: string, path: string) => {
+    const saved = await saveApiTest(page, name);
+    const configured = await page.request.put(`/api/api-tests/${saved.id}`, {
+      data: {
+        name,
+        method: 'GET',
+        url: `{{baseUrl}}${path}`,
+        module: 'Northwind Shop',
+        assertions: [
+          {
+            id: randomUUID(),
+            source: 'status_code',
+            comparison: 'equals',
+            targetValue: '200',
+            enabled: true,
+          },
+        ],
+      },
+    });
+    expect(configured.ok()).toBeTruthy();
+    expect(
+      (await page.request.post(`/api/api-tests/${saved.id}/publish`, { data: {} })).ok(),
+    ).toBeTruthy();
+    return saved;
+  };
+  const healthName = unique('shop_health');
+  const orderName = unique('shop_order');
+  const health = await shopTest(healthName, '/health');
+  const order = await shopTest(orderName, '/orders/{{orderId}}');
+  const planName = unique('shop_parity');
+  const created = await page.request.post('/api/test-plans', {
+    data: {
+      name: planName,
+      selectedTests: [health, order].map((item) => ({ id: item.id, type: 'api' })),
+      testMachinesConfig: [{ browserName: 'chromium', headless: true }],
+      maxParallelTests: 1,
+    },
+  });
+  expect(created.status()).toBe(201);
+
+  await page.goto('/test-plans');
+  await page
+    .getByRole('row')
+    .filter({ hasText: planName })
+    .getByRole('button', { name: 'Compare environments', exact: true })
+    .click();
+  const dialog = page.getByRole('dialog');
+  await dialog.getByRole('combobox', { name: 'Baseline', exact: true }).click();
+  await page.getByRole('option', { name: baseline, exact: true }).click();
+  await dialog.getByRole('combobox', { name: 'Candidate', exact: true }).click();
+  await page.getByRole('option', { name: candidate, exact: true }).click();
+  await dialog.getByRole('button', { name: 'Start comparison', exact: true }).click();
+  await expect(page).toHaveURL(/\/comparisons\/[0-9a-f-]+$/);
+  const comparisonId = page.url().split('/').pop()!;
+
+  await expect
+    .poll(
+      async () =>
+        (await (await page.request.get(`/api/comparisons/${comparisonId}`)).json()).status,
+      { timeout: 120_000 },
+    )
+    .toBe('completed');
+  const comparison = await (await page.request.get(`/api/comparisons/${comparisonId}`)).json();
+  expect(comparison).toMatchObject({
+    verdict: 'regressions',
+    // Only the outcome is pinned: a loaded runner may make the health check slower, which the
+    // default policy reports as an informative difference, never as a changed outcome.
+    summary: { total: 2, byVerdict: { outcome_mismatch: 1 } },
+    baseline: { environmentName: baseline },
+    candidate: { environmentName: candidate },
+  });
+
+  await page.reload();
+  const rows = page.getByRole('row');
+  await expect(rows.filter({ hasText: orderName })).toContainText('Outcome differs');
+  await expect(rows.filter({ hasText: healthName })).not.toContainText('Outcome differs');
 });
