@@ -5802,6 +5802,20 @@
       "test": "Dieser Test",
       "project": "Alle Tests seines Projekts",
       "organization": "Alle Tests der Organisation"
+    },
+    "export": {
+      "button": "Exportieren",
+      "title": "Paritätsbericht herunterladen als",
+      "formats": {
+        "html": {
+          "label": "HTML-Paritätsbericht",
+          "hint": "Eine Datei, die sich überall öffnet: Urteile, Toleranzen und Prüfungen"
+        },
+        "pdf": {
+          "label": "PDF",
+          "hint": "Zum Anhängen an eine Abnahme oder zur Ablage für ein Audit"
+        }
+      }
     }
   }
 }

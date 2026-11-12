@@ -36,6 +36,12 @@ import { publicExecution } from '../../execution/execution-provenance';
 import { ComparisonError } from '../../execution/comparison-orchestrator';
 import { comparisonOrchestrator } from '../../reporting/comparison/comparisons';
 import { stepsOfLog, type ComparedStep } from '../../reporting/comparison/steps';
+import {
+  COMPARISON_EXPORT_FORMATS,
+  exportComparison,
+  isComparisonExportFormat,
+} from '../../reporting/comparison/comparison-report-model';
+import { ReportExportError, sendExport } from '../../reporting/report-export';
 import { flattenZodError } from '../zod-error';
 import { sessionRateLimit } from '../middleware/rate-limits';
 import { requireRole } from '../middleware/require-role';
@@ -436,6 +442,37 @@ router.get(
       ),
       steps: { baseline: baseline.steps, candidate: candidate.steps },
     });
+  },
+);
+
+// GET /api/comparisons/:id/export/:format — the parity report as a file: html or pdf.
+router.get(
+  '/api/comparisons/:id/export/:format',
+  comparisonsLimit,
+  requireRole('viewer'),
+  async (req, res) => {
+    if (!req.isAuthenticated()) return res.status(401).json({ error: 'Unauthorized' });
+    const { id, format } = req.params;
+    if (!isComparisonExportFormat(format))
+      return res.status(400).json({
+        error: `Unknown format "${format}". Use one of: ${COMPARISON_EXPORT_FORMATS.join(', ')}.`,
+      });
+    if (!ID_PATTERN.test(id)) return notFound(res);
+    try {
+      const exported = await exportComparison(id, format, evidencePrincipalOf(req));
+      if (!exported) return notFound(res);
+      sendExport(res, exported);
+    } catch (error) {
+      if (error instanceof ReportExportError)
+        return res.status(error.status).json({ error: error.message, code: error.code });
+      logger.error({
+        message: 'Failed to export the parity report',
+        comparisonId: id,
+        format,
+        error: String(error),
+      });
+      res.status(500).json({ error: 'Failed to export the parity report.' });
+    }
   },
 );
 

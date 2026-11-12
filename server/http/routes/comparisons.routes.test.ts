@@ -314,6 +314,106 @@ describe('reading comparisons', () => {
     asOutsider();
     await request(app).get(`/api/comparisons/${comparison.id}/results/${visualId}`).expect(404);
   });
+
+  it('exports the parity report as HTML with reviews and tolerances, and no stored paths', async () => {
+    const byVerdict = { ...emptyVerdictCounts(), different: 1, identical: 1 };
+    const [comparison] = await privilegedDb
+      .insert(comparisonRuns)
+      .values({
+        id: uuidv4(),
+        organizationId,
+        testPlanId: planId,
+        name: 'Angular <22>',
+        baselineEnvironmentName: 'prod',
+        candidateEnvironmentName: 'staging',
+        status: 'completed',
+        verdict: 'parity_with_accepted',
+        policy: { numeric: { absTolerance: 0.5 } },
+        summary: {
+          total: 2,
+          byVerdict,
+          byModule: [{ module: 'Cart', total: 2, byVerdict }],
+          droppedDifferences: 0,
+        },
+      })
+      .returning();
+    await privilegedDb.insert(comparisonResults).values([
+      {
+        id: uuidv4(),
+        organizationId,
+        comparisonRunId: comparison.id,
+        pairKey: 'unit:a',
+        testType: 'ui',
+        testName: 'checkout <total>',
+        module: 'Cart',
+        verdict: 'different',
+        reviewStatus: 'accepted',
+        reviewedByUserId: editorId,
+        reviewedAt: new Date(),
+        reviewNote: 'Rounding changed on purpose',
+        differences: [
+          {
+            stepId: 'total',
+            stepIndex: 2,
+            checkpoint: 'cart total',
+            kind: 'text',
+            path: 'texts[0]',
+            baseline: '10.01',
+            candidate: '10.02',
+            severity: 'blocking',
+          },
+          {
+            stepId: 'open',
+            stepIndex: 0,
+            checkpoint: null,
+            kind: 'visual',
+            path: 'pixels',
+            baseline: { screenshot: '/results/secret/step-1.png', width: 10, height: 10 },
+            candidate: { screenshot: '/results/secret/step-2.png', diffRatio: 0.3 },
+            severity: 'informative',
+          },
+        ],
+      },
+      {
+        id: uuidv4(),
+        organizationId,
+        comparisonRunId: comparison.id,
+        pairKey: 'unit:b',
+        testType: 'ui',
+        testName: 'login',
+        module: 'Cart',
+        verdict: 'identical',
+      },
+    ]);
+
+    asViewer();
+    const html = await request(app)
+      .get(`/api/comparisons/${comparison.id}/export/html`)
+      .buffer(true)
+      .parse((res, done) => {
+        let body = '';
+        res.on('data', (chunk) => (body += chunk));
+        res.on('end', () => done(null, body));
+      })
+      .expect(200);
+    expect(html.headers['content-type']).toMatch(/text\/html/);
+    expect(html.headers['content-disposition']).toMatch(/attachment; filename="parity-angular-22-/);
+    const body = html.body as string;
+    expect(body).toContain('Parity with accepted differences');
+    expect(body).toContain('Angular &lt;22&gt;');
+    expect(body).toContain('checkout &lt;total&gt;');
+    expect(body).toContain('Rounding changed on purpose');
+    expect(body).toContain('by cmp-editor');
+    expect(body).toContain('absolute tolerance 0.5');
+    expect(body).toContain('diffRatio');
+    expect(body).not.toContain('/results/secret');
+    expect(body).not.toContain('<script');
+
+    await request(app).get(`/api/comparisons/${comparison.id}/export/allure`).expect(400);
+    await request(app).get(`/api/comparisons/${uuidv4()}/export/html`).expect(404);
+    asOutsider();
+    await request(app).get(`/api/comparisons/${comparison.id}/export/html`).expect(404);
+  });
 });
 
 describe('cancelling a comparison', () => {

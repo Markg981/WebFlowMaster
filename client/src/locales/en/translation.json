@@ -5802,6 +5802,20 @@
       "test": "This test",
       "project": "Every test of its project",
       "organization": "Every test of the organization"
+    },
+    "export": {
+      "button": "Export",
+      "title": "Download the parity report as",
+      "formats": {
+        "html": {
+          "label": "HTML parity report",
+          "hint": "One file that opens anywhere: verdicts, tolerances and reviews"
+        },
+        "pdf": {
+          "label": "PDF",
+          "hint": "To attach to a sign-off or file for an audit"
+        }
+      }
     }
   }
 }

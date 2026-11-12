@@ -5802,6 +5802,20 @@
       "test": "Ce test",
       "project": "Tous les tests de son projet",
       "organization": "Tous les tests de l'organisation"
+    },
+    "export": {
+      "button": "Exporter",
+      "title": "Télécharger le rapport de parité en",
+      "formats": {
+        "html": {
+          "label": "Rapport de parité HTML",
+          "hint": "Un fichier qui s’ouvre partout : verdicts, tolérances et revues"
+        },
+        "pdf": {
+          "label": "PDF",
+          "hint": "À joindre à une recette ou à archiver pour un audit"
+        }
+      }
     }
   }
 }
