@@ -20,6 +20,11 @@ export const ORG_SCOPED_TABLES = [
   'execution_outbox',
   // Notifications a finished run owes, with their delivery state (migration 0105).
   'outbound_deliveries',
+  // A plan run on two environments and compared, its per-test verdicts and the differences
+  // approved once and recognised after (migration 0110).
+  'comparison_runs',
+  'comparison_results',
+  'comparison_known_differences',
   'test_plan_selected_tests',
   'test_plan_webhooks',
   'report_test_case_results',
