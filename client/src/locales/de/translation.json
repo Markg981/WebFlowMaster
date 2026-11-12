@@ -5619,7 +5619,7 @@
       "needTwo": "Ein Vergleich braucht zwei Umgebungen. Legen Sie sie unter Einstellungen → Umgebungen an.",
       "same": "Wählen Sie zwei verschiedene Umgebungen.",
       "mode": "Reihenfolge",
-      "name": "Name (optional)",
+      "name": "Name (freiwillig)",
       "namePlaceholder": "z. B. Umstieg auf Angular 22",
       "start": "Vergleich starten"
     },

@@ -5676,7 +5676,7 @@
       "hidden": "Non puoi vedere i dettagli di questo test.",
       "noDifferences": "Nessuna differenza tra le due esecuzioni.",
       "step": "passo {{n}}",
-      "checkpoint": "checkpoint “{{name}}”",
+      "checkpoint": "checkpoint «{{name}}»",
       "blocking": "bloccante",
       "informative": "informativa",
       "screenshotOf": "Screenshot su {{side}}",
