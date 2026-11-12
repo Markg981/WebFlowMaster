@@ -28,7 +28,8 @@ Connect or SAML.
 - **Plans, suites and schedules**: choose the tests, the browsers and how many run at once; run
   them now, on a cron schedule or from a webhook; quarantine flaky tests; get notified on
   completion by email, in Slack or Microsoft Teams, or through your own webhook.
-- **Results**: a report per run with evidence for each step, history and trends of the runs of a plan (no run-to-run comparison), and exports to
+- **Results**: a report per run with evidence for each step, history and trends of the runs of a plan, a comparison of one plan run on two environments
+  test by test, and exports to
   HTML, PDF, JUnit and Allure.
 - **CI**: the `wfm` command-line tool, and ready-made integrations for GitHub Actions, GitLab CI,
   Jenkins, Azure Pipelines, Bitbucket Pipelines and CircleCI.

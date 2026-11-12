@@ -10,6 +10,10 @@ pull requests (`npm run changelog:draft`) and are edited by hand before a releas
 
 ## [Unreleased]
 
+### Added
+
+- Compare environments: run one plan on a baseline and a candidate environment and get, test by test, what differs — outcome, checkpoint texts, screenshots and durations — with an overall verdict and parity by module. The new **Checkpoint text** action records texts for the comparison without ever failing a test.
+
 ### Security
 
 - **Breaking:** the agent relay refuses browser tickets without a `jti` (single-use id). Local agents and runners must be updated to a build that signs tickets with it.
