@@ -30,6 +30,7 @@ export interface AuditEntry {
     | 'schedule'
     | 'project'
     | 'run'
+    | 'comparison'
     | 'environment'
     | 'secret'
     | 'system_settings'

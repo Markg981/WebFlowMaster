@@ -50,6 +50,7 @@ import debugSessionsRoutes from './http/routes/debug-sessions.routes';
 import browserGridsRoutes from './http/routes/browser-grids.routes';
 import projectElementsRoutes from './http/routes/project-elements.routes';
 import healingProposalsRoutes from './http/routes/healing-proposals.routes';
+import comparisonsRoutes from './http/routes/comparisons.routes';
 import nlAuthoringRoutes from './http/routes/nl-authoring.routes';
 import tagsRoutes from './http/routes/tags.routes';
 import testVersionsRoutes from './http/routes/test-versions.routes';
@@ -170,6 +171,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use(browserGridsRoutes);
   app.use(projectElementsRoutes);
   app.use(healingProposalsRoutes);
+  app.use(comparisonsRoutes);
   app.use(nlAuthoringRoutes);
   app.use(tagsRoutes);
   app.use(testVersionsRoutes);
