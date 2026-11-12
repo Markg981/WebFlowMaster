@@ -303,12 +303,74 @@ The overall verdict is **Regressions** if any test is different or its outcome d
 **Inconclusive** if any failed on both sides or is not comparable; otherwise **Parity with accepted
 differences** if any is equivalent; otherwise **Parity**.
 
-What is compared: the outcome of each test; the texts recorded by
-[**Checkpoint text**](web-tests.md#building-the-sequence) steps, matched by checkpoint name (runs of
-spaces collapse, case counts); the screenshots of the same step, and the durations — these two are
-informative by default. A test keeps at most 200 differences; the report says how many more were
-found. The tolerances can be set through the API, with `policy` in
-`POST /api/test-plans/{planId}/comparisons`.
+What is compared, checkpoint by checkpoint, matched by name:
+
+- the outcome of each test;
+- **Checkpoint text**: the texts, in order;
+- **Checkpoint table**: the cells, row by row and cell by cell. A row on one side only is one
+  difference. A cell that reads as a number on both sides matches within the numeric tolerance;
+- **Checkpoint chart**: the series, paired by name, and their points by argument (values within the
+  numeric tolerance); the axis ranges; the reference lines;
+- **Checkpoint network**: each call (method, path and query) since the previous network checkpoint,
+  how many times it was made, its status and the hash of the request body, and of the response body
+  if the tolerances ask for it;
+- the screenshots of the same step, and the durations: the test's and, where the log records it, each
+  step's. Faster is never a difference, and neither is a slowdown under 250 ms.
+
+A test keeps at most 200 differences; the report says how many more were found.
+
+### Tolerances
+
+**Tolerances**, in the **Compare environments** dialog, set how strict the comparison is. The API
+takes the same settings as `policy` in `POST /api/test-plans/{planId}/comparisons`.
+
+| Group       | Setting                                                    | Default          |
+| ----------- | ---------------------------------------------------------- | ---------------- |
+| Text        | Collapse runs of spaces                                    | on               |
+| Text        | Ignore case                                                | off              |
+| Text        | Replace rules, one `pattern => replacement` per line       | none             |
+| Numbers     | Absolute tolerance; relative tolerance (%)                 | 0; 0             |
+| Network     | Paths compared (patterns, `*` matches anything)            | `**/api/**`      |
+| Network     | Query parameters ignored; compare the response body hash   | none; off        |
+| Screenshots | Off, informative or blocking; pixels allowed to differ (%) | informative; 1%  |
+| Durations   | Off, informative or blocking; slowdown allowed (%)         | informative; 20% |
+
+A replace rule is a regular expression applied to both sides before they are compared, everywhere
+in the text: `\d{2}/\d{2}/\d{4} => DATE` makes two dates equal. A rule without `=>` deletes what
+it matches.
+
+### Reviewing a test and known differences {#known-differences}
+
+In an open test, an editor clicks **Review** and says whether the differences are expected:
+
+- **Accepted**: the difference is expected. A reason is required.
+- **Defect**: the candidate is wrong. The note is optional.
+
+The review and its note stay on the test; a viewer sees them but cannot review.
+
+An accepted test can also teach later comparisons: **Expect these differences in later
+comparisons** saves the chosen blocking differences (at most 50) as **known differences**, for this
+test, every test of its project or every test of the organization, with an optional reference (a
+ticket, for example) and expiry date. The review's reason becomes their reason. From then on, a
+difference a known difference covers is marked **known** and no longer blocks: a test whose only
+blocking differences are known is **Equivalent**. A known difference covers a difference of the same kind, on the same checkpoint (or
+any, if it names none) and a path its pattern matches, until it expires. A comparison already made
+keeps its verdict.
+
+**Settings → Known differences** lists them all, marks the expired ones, and lets an editor add one
+by hand or delete one. A known difference of a restricted project is visible only to those who can
+see the project, and only those who can edit the project can add or delete it.
+
+### Limits
+
+- A table's rows are compared by position: a row inserted on one side shifts every row after it,
+  and each shifted row is a difference (up to the 200 a test keeps). Record a table sorted the same
+  way on both sides, or record the rows you need with `rows=` in the checkpoint.
+- Network paths are filtered when the comparison runs, not when the run records them: a network
+  checkpoint keeps every fetch and XHR call (or those matching its own patterns), so a later
+  comparison can choose different paths.
+- A web step's duration is not in the log, so the durations of web tests are compared for the whole
+  test only.
 
 ## Exporting a run
 

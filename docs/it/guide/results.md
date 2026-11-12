@@ -311,12 +311,78 @@ L'esito complessivo è **Regressioni** se un test è diverso o ha esito diverso;
 **Non conclusivo** se uno è fallito su entrambi i lati o non è confrontabile; altrimenti **Parità
 con differenze accettate** se uno è equivalente; altrimenti **Parità**.
 
-Cosa si confronta: l'esito di ogni test; i testi registrati dagli step
-[**Checkpoint di testo**](web-tests.md#building-the-sequence), abbinati per nome del checkpoint (gli
-spazi ripetuti contano come uno, maiuscole e minuscole contano); gli screenshot dello stesso step e
-le durate, informativi per impostazione predefinita. Un test conserva al massimo 200 differenze; il
-report dice quante altre ne ha trovate. Le tolleranze si impostano dall'API, con `policy` in
-`POST /api/test-plans/{planId}/comparisons`.
+Cosa si confronta, checkpoint per checkpoint, abbinati per nome:
+
+- l'esito di ogni test;
+- **Checkpoint di testo**: i testi, nell'ordine;
+- **Checkpoint di tabella**: le celle, riga per riga e cella per cella. Una riga presente su un solo
+  lato è una sola differenza. Una cella che su entrambi i lati si legge come numero coincide entro
+  la tolleranza numerica;
+- **Checkpoint di grafico**: le serie, abbinate per nome, e i loro punti per argomento (valori entro
+  la tolleranza numerica); gli intervalli degli assi; le linee di riferimento;
+- **Checkpoint di rete**: ogni chiamata (metodo, percorso e query) dal checkpoint di rete
+  precedente, quante volte è stata fatta, il suo stato e l'hash del corpo della richiesta, e di
+  quello della risposta se le tolleranze lo chiedono;
+- gli screenshot dello stesso step e le durate: quella del test e, dove il log la registra, quella
+  di ogni step. Essere più veloci non è mai una differenza, e nemmeno un rallentamento sotto i
+  250 ms.
+
+Un test conserva al massimo 200 differenze; il report dice quante altre ne ha trovate.
+
+### Tolleranze
+
+**Tolleranze**, nella finestra **Confronta ambienti**, stabilisce quanto è severo il confronto.
+L'API accetta le stesse impostazioni come `policy` in `POST /api/test-plans/{planId}/comparisons`.
+
+| Gruppo     | Impostazione                                                   | Predefinito      |
+| ---------- | -------------------------------------------------------------- | ---------------- |
+| Testi      | Considera più spazi come uno solo                              | sì               |
+| Testi      | Ignora maiuscole e minuscole                                   | no               |
+| Testi      | Sostituzioni, una `pattern => sostituto` per riga              | nessuna          |
+| Numeri     | Tolleranza assoluta; tolleranza relativa (%)                   | 0; 0             |
+| Chiamate   | URL confrontati (pattern, `*` corrisponde a qualsiasi cosa)    | `**/api/**`      |
+| Chiamate   | Parametri di query ignorati; confronta il corpo delle risposte | nessuno; no      |
+| Screenshot | Non confrontati, informativo o bloccante; pixel ammessi (%)    | informativo; 1%  |
+| Durate     | Non confrontate, informativo o bloccante; rallentamento (%)    | informativo; 20% |
+
+Una sostituzione è un'espressione regolare applicata ai due lati prima del confronto, in tutto il
+testo: `\d{2}/\d{2}/\d{4} => DATA` rende uguali due date. Una riga senza `=>` cancella ciò che
+trova.
+
+### Rivedere un test e differenze note {#known-differences}
+
+In un test aperto, un editor fa clic su **Rivedi** e dice se le differenze sono attese:
+
+- **Accettato**: la differenza è attesa. Serve un motivo.
+- **Difetto**: il candidato è sbagliato. La nota è facoltativa.
+
+La revisione e la sua nota restano sul test; un viewer le vede ma non può rivedere.
+
+Un test accettato può anche istruire i confronti successivi: **Aspettati queste differenze nei
+confronti successivi** salva le differenze bloccanti scelte (al massimo 50) come **differenze
+note**, per questo test, per tutti i test del suo progetto o per tutti i test dell'organizzazione,
+con un riferimento facoltativo (per esempio un ticket) e una data di scadenza. Il motivo della
+revisione diventa il loro motivo. Da allora una differenza coperta da una differenza nota è segnata
+come **differenza nota** e non blocca più: un test le cui sole differenze bloccanti sono note è
+**Equivalente**. Una differenza nota copre una differenza dello stesso tipo, sullo stesso checkpoint
+(o su qualsiasi, se non ne indica uno) e con un percorso che il suo pattern riconosce, fino alla
+scadenza. Un confronto già fatto mantiene il suo esito.
+
+**Impostazioni → Differenze note** le elenca tutte, segna quelle scadute e permette a un editor di
+aggiungerne una a mano o di eliminarla. Una differenza nota di un progetto riservato la vede solo
+chi può vedere il progetto, e solo chi può modificare il progetto può aggiungerla o eliminarla.
+
+### Limiti
+
+- Le righe di una tabella si confrontano per posizione: una riga inserita su un lato sposta tutte
+  quelle che seguono, e ogni riga spostata è una differenza (fino alle 200 che un test conserva).
+  Registra una tabella ordinata allo stesso modo sui due lati, oppure registra solo le righe che
+  servono con `rows=` nel checkpoint.
+- I percorsi di rete si filtrano quando il confronto viene eseguito, non quando il run li registra:
+  un checkpoint di rete conserva tutte le chiamate fetch e XHR (o quelle che corrispondono ai suoi
+  pattern), così un confronto successivo può scegliere percorsi diversi.
+- La durata di uno step web non è nel log, quindi per i test web si confronta solo la durata
+  dell'intero test.
 
 ## Esportare un run
 

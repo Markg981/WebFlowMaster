@@ -1,0 +1,14 @@
+{
+  "id": "REP-62",
+  "area": "REP",
+  "title": "Confronto tra ambienti: le differenze note restano nella loro organizzazione",
+  "priority": "P1",
+  "actor": "owner.a, owner.b",
+  "preconditions": "La differenza nota di REP-59 nell'organizzazione A; owner.b nell'organizzazione B con un piano confrontabile.",
+  "steps": [
+    "Come owner.b aprire Impostazioni → Differenze note.",
+    "Come owner.b chiamare GET /api/comparison-known-differences e DELETE /api/comparison-known-differences/<id della differenza di A>.",
+    "Come owner.b eseguire un confronto con una differenza dello stesso tipo e checkpoint."
+  ],
+  "expected": "owner.b non vede la differenza nota di A, né nell'interfaccia né nell'API; il DELETE risponde 404 e la differenza di A resta. Nel confronto di B la differenza non è segnata come nota."
+}

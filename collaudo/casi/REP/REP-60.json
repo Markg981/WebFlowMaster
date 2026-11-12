@@ -1,0 +1,15 @@
+{
+  "id": "REP-60",
+  "area": "REP",
+  "title": "Confronto tra ambienti: una differenza nota è riconosciuta nel confronto successivo",
+  "priority": "P2",
+  "actor": "editor.a",
+  "preconditions": "La differenza nota salvata in REP-59; gli ambienti non sono cambiati.",
+  "steps": [
+    "Avviare di nuovo \"Confronta ambienti\" sullo stesso piano con le stesse scelte.",
+    "Attendere \"Completato\" e aprire il test.",
+    "In Impostazioni → Differenze note eliminare la differenza nota, confermando.",
+    "Avviare un terzo confronto uguale e aprire il test."
+  ],
+  "expected": "Nel secondo confronto la differenza è segnata \"differenza nota\" e il test è \"Equivalente\"; l'esito complessivo è \"Parità con differenze accettate\". Il primo confronto mantiene il suo esito \"Regressioni\". Dopo l'eliminazione il terzo confronto torna a dare il test \"Diverso\"."
+}
