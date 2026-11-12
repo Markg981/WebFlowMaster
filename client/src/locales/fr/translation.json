@@ -1501,6 +1501,11 @@
         "description": "Enregistre sous un nom le texte de chaque élément trouvé, pour qu'une comparaison d'exécutions le mette en regard du même point de contrôle sur un autre environnement. Ne fait jamais échouer le test sur ce que dit le texte.",
         "valueHint": "le nom du point de contrôle, unique dans le test — p. ex. total-commande"
       },
+      "checkpointTable": {
+        "name": "Point de contrôle tableau",
+        "description": "Enregistre sous un nom les textes des cellules d'un tableau, ligne par ligne, pour qu'une comparaison d'exécutions les mette en regard du même point de contrôle sur un autre environnement. Ne fait jamais échouer le test sur ce que dit le tableau.",
+        "valueHint": "le nom du point de contrôle, puis en option ; rows=<css>; cells=<css> — p. ex. commandes; rows=tbody tr"
+      },
       "mockRequest": {
         "name": "Simuler une requête",
         "description": "Désormais les requêtes de la page vers cette adresse reçoivent cette réponse au lieu de celle du serveur : une erreur, une liste vide, une réponse lente ou un backend pas encore prêt. Une simulation ultérieure de la même adresse la remplace ; elle vaut dans tous les onglets.",

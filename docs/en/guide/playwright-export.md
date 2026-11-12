@@ -142,6 +142,7 @@ described. **unsupported** — the step needs WebFlowMaster: refused in strict m
 | `waitForEmail`       | unsupported | reads the environment's test inbox (Mailpit)                                                |
 | `waitForSms`         | unsupported | reads the organization's SMS inbox                                                          |
 | `checkpointText`     | unsupported | a capture for run comparison, which only WebFlowMaster pairs and diffs                      |
+| `checkpointTable`    | unsupported | a capture for run comparison, which only WebFlowMaster pairs and diffs                      |
 | `queryDatabase`      | unsupported | queries the environment's database through WebFlowMaster                                    |
 | `assertAccessible`   | unsupported | the axe-core scan and its thresholds run in WebFlowMaster                                   |
 | `measurePerformance` | unsupported | the Web Vitals collection runs in WebFlowMaster                                             |

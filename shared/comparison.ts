@@ -101,6 +101,41 @@ export interface TextCheckpointData {
   texts: string[];
 }
 
+/** The data of a table checkpoint: the cell texts of every row, header rows included. */
+export interface TableCheckpointData {
+  rows: string[][];
+}
+
+/**
+ * The data of a chart checkpoint, the one shape every adapter returns
+ * (server/web/checkpoints/chart-adapters.ts). `x` is a category or a number; `y` a number or null.
+ */
+export interface ChartCheckpointData {
+  series: { name: string; type: string; points: [string | number, number | null][] }[];
+  axes: { name: string; min: number | null; max: number | null }[];
+  lines: { axis: string; value: number; label: string }[];
+}
+
+/**
+ * One finished request of a network checkpoint. Bodies are never kept, only their sha-256. The
+ * response hash is taken for fetch and XHR answers; the engine compares it only when the policy's
+ * `network.compareResponseHash` asks, so the choice can be made after both runs.
+ */
+export interface NetworkCheckpointEntry {
+  method: string;
+  path: string;
+  /** Sorted `key=value` pairs of the query string. */
+  query: string[];
+  requestBodyHash: string | null;
+  status: number;
+  responseBodyHash?: string;
+}
+
+/** The data of a network checkpoint: the requests since the previous one that match, sorted. */
+export interface NetworkCheckpointData {
+  entries: NetworkCheckpointEntry[];
+}
+
 export interface ComparisonDifference {
   /** The test's own step id; null for a difference of the whole test. */
   stepId: string | null;

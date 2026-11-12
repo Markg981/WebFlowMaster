@@ -31,8 +31,12 @@ import {
   type SmsQuery,
 } from '../messaging/sms-inbox';
 import { inspectDownload } from '../runtime/download-check';
-import { textCheckpoint } from '../runtime/checkpoint';
-import type { CheckpointCapture } from '@shared/comparison';
+import { parseTableCheckpointValue, tableCheckpoint, textCheckpoint } from '../runtime/checkpoint';
+import {
+  MAX_TABLE_ROWS,
+  type CheckpointCapture,
+  type TableCheckpointData,
+} from '@shared/comparison';
 import {
   parseDownloadChecks,
   parseGeolocation,
@@ -1347,6 +1351,39 @@ const HANDLERS: Record<AdhocActionId, StepHandler> = {
       detail:
         `Checkpoint "${name}": ${kept} text${kept === 1 ? '' : 's'}` +
         (checkpoint.truncated ? ` (cut from ${texts.length} matches).` : '.'),
+    };
+  },
+
+  // The cell texts of a table, row by row: the first match of the target is the table, its rows
+  // and their cells are read with the selectors the value names (tr and th, td by default).
+  checkpointTable: async (rt) => {
+    const target = requireSelector(rt, 'checkpointTable');
+    if ('error' in target) return failed(target.error);
+    const value = parseTableCheckpointValue(typeof rt.raw === 'string' ? rt.raw : '');
+    if ('error' in value)
+      return failed(`Value not valid for checkpointTable action: ${value.error}.`);
+
+    const table = rt.locator(target.selector).first();
+    await table.waitFor({ state: 'attached', timeout: rt.timeoutMs });
+    const rows = await table.evaluate(
+      (root, { rowSelector, cellSelector, maxRows }) =>
+        Array.from(root.querySelectorAll(rowSelector))
+          .slice(0, maxRows + 1)
+          .map((row) =>
+            Array.from(row.querySelectorAll(cellSelector)).map(
+              (cell) => (cell as HTMLElement).innerText ?? cell.textContent ?? '',
+            ),
+          ),
+      { rowSelector: value.rows, cellSelector: value.cells, maxRows: MAX_TABLE_ROWS },
+    );
+    const checkpoint = tableCheckpoint(value.name, rows);
+    const kept = (checkpoint.data as TableCheckpointData).rows.length;
+    return {
+      status: 'passed',
+      checkpoint,
+      detail:
+        `Checkpoint "${value.name}": ${kept} row${kept === 1 ? '' : 's'}` +
+        (checkpoint.truncated ? ' (cut).' : '.'),
     };
   },
 

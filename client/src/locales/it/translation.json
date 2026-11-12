@@ -1501,6 +1501,11 @@
         "description": "Registra con un nome il testo di ogni elemento trovato, perché un confronto di run lo metta a fianco dello stesso checkpoint su un altro ambiente. Non fa mai fallire il test per ciò che il testo dice.",
         "valueHint": "il nome del checkpoint, unico nel test — es. totale-ordine"
       },
+      "checkpointTable": {
+        "name": "Checkpoint di tabella",
+        "description": "Registra con un nome i testi delle celle di una tabella, riga per riga, perché un confronto di run li metta a fianco dello stesso checkpoint su un altro ambiente. Non fa mai fallire il test per ciò che la tabella dice.",
+        "valueHint": "il nome del checkpoint, poi a scelta ; rows=<css>; cells=<css> — es. ordini; rows=tbody tr"
+      },
       "mockRequest": {
         "name": "Simula richiesta",
         "description": "Da qui in poi le richieste della pagina a questo indirizzo ricevono questa risposta, non quella del server: un errore, una lista vuota, una risposta lenta o un backend non ancora pronto. Una simulazione successiva dello stesso indirizzo la sostituisce; vale in tutte le schede.",
