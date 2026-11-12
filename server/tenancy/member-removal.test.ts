@@ -71,6 +71,9 @@ const PROVENANCE = [
   'healing_proposals.decided_by',
   'test_suites.created_by',
   'test_versions.created_by',
+  'comparison_runs.requested_by_user_id',
+  'comparison_results.reviewed_by_user_id',
+  'comparison_known_differences.approved_by_user_id',
 ];
 
 /**

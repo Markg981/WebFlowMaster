@@ -409,7 +409,9 @@ describe('rows that point across organizations', () => {
     // A hub case's source and the test it was imported as (0103).
     // A hub wave's source, plan and execution, a wave result's wave, a hub job's source (0104).
     // An outbound delivery belongs to a run of the same organization (0108).
-    expect(rows.length).toBe(111);
+    // Run comparisons: plan, both environments, both runs and requester; a result's comparison,
+    // tests, reviewer and both report results; a known difference's project, test and approver (0110).
+    expect(rows.length).toBe(126);
     expect(rows.filter((r) => !r.convalidated)).toEqual([]);
   });
 

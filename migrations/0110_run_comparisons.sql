@@ -122,6 +122,16 @@ ALTER TABLE comparison_results ADD CONSTRAINT comparison_results_reviewed_by_use
   REFERENCES organization_memberships (user_id, organization_id)
   ON DELETE SET NULL (reviewed_by_user_id);
 --> statement-breakpoint
+ALTER TABLE comparison_results ADD CONSTRAINT comparison_results_baseline_result_id_same_org_fk
+  FOREIGN KEY (baseline_result_id, organization_id)
+  REFERENCES report_test_case_results (id, organization_id)
+  ON DELETE SET NULL (baseline_result_id);
+--> statement-breakpoint
+ALTER TABLE comparison_results ADD CONSTRAINT comparison_results_candidate_result_id_same_org_fk
+  FOREIGN KEY (candidate_result_id, organization_id)
+  REFERENCES report_test_case_results (id, organization_id)
+  ON DELETE SET NULL (candidate_result_id);
+--> statement-breakpoint
 CREATE UNIQUE INDEX comparison_results_pair_idx ON comparison_results(comparison_run_id, pair_key);
 --> statement-breakpoint
 CREATE INDEX comparison_results_baseline_result_idx ON comparison_results(baseline_result_id);
