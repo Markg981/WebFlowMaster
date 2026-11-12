@@ -1,4 +1,5 @@
 import { attachNetworkJournal, hasNetworkCheckpoint } from '../checkpoints/network-journal';
+import { variantOf } from '@shared/element-variants';
 import { aiSkipMessage } from '../../authoring/ai-consent';
 import type { AccessibilityFinding } from '@shared/accessibility';
 import type { BrowserGridProvider } from '@shared/browser-grids';
@@ -186,7 +187,8 @@ export class TestRunner {
     // bundle it was queued with and reads nothing live; an ad-hoc run reads them now. A call that
     // cannot be expanded — a group deleted since the test was written — fails the test here
     // rather than running a shorter test that would report as a pass.
-    const resolution = await prepareSequence(test.sequence, options?.dependencies);
+    // An environment with a `uiVariant` finds the elements that have a locator by that name there.
+    const resolution = await prepareSequence(test.sequence, options?.dependencies, variantOf(vars));
     if (resolution.errors.length > 0) {
       const message = resolution.errors.join(' ');
       resolvedLogger.warn({

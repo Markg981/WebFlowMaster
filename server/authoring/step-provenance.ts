@@ -37,7 +37,11 @@ export interface StepProvenance {
    * The shared element the step names. `fingerprint` is the element as the run resolved it, or
    * null when it was not available (deleted, another project's): such a step ran on its own copy.
    */
-  element?: { id: string; fingerprint: string | null };
+  /**
+   * `fingerprint` is of the locator the step ran with; `variant` names the element's locator
+   * variant it came from, null or absent for the element's own (shared/element-variants.ts).
+   */
+  element?: { id: string; fingerprint: string | null; variant?: string | null };
 }
 
 type Step = { [key: string]: unknown };
@@ -136,6 +140,7 @@ export function withElementProvenance<T extends Step>(
   step: T,
   elementId: string,
   element: { selector: string; frameSelector?: string | null } | null,
+  variant: string | null = null,
 ): T {
   const provenance = provenanceOf(step);
   if (!provenance) return step;
@@ -143,7 +148,11 @@ export function withElementProvenance<T extends Step>(
     ...step,
     [PROVENANCE_KEY]: {
       ...provenance,
-      element: { id: elementId, fingerprint: element ? elementFingerprint(element) : null },
+      element: {
+        id: elementId,
+        fingerprint: element ? elementFingerprint(element) : null,
+        ...(variant ? { variant } : {}),
+      },
     },
   };
 }

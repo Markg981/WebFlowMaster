@@ -91,10 +91,12 @@ export function dependencyFingerprint(bundle: Omit<DependencyBundle, 'fingerprin
   const executable = {
     protocol: bundle.protocol,
     groups: byId(bundle.groups).map(({ id, name, sequence }) => ({ id, name, sequence })),
-    elements: byId(bundle.elements).map(({ id, selector, frameSelector }) => ({
+    // Variants only when an element has some, so every bundle frozen before them keeps its hash.
+    elements: byId(bundle.elements).map(({ id, selector, frameSelector, variants }) => ({
       id,
       selector,
       frameSelector: frameSelector ?? null,
+      ...(variants && Object.keys(variants).length > 0 ? { variants } : {}),
     })),
     customActions: byId(bundle.customActions).map(({ id, name, parameters, script }) => ({
       id,
@@ -168,6 +170,7 @@ export async function captureDependencies(
       projectId: row.projectId,
       selector: row.selector,
       frameSelector: row.frameSelector ?? null,
+      ...(row.variants && Object.keys(row.variants).length > 0 ? { variants: row.variants } : {}),
       updatedAt: iso(row.updatedAt),
     })),
     customActions: actions.map((row) => ({
@@ -303,10 +306,14 @@ export interface PreparedSequence {
  * Groups, then custom actions (including those a group uses), then repository elements — the
  * same order the live path has always used — from the bundle alone. Pure.
  */
-export function expandWithBundle(sequence: unknown, bundle: DependencyBundle): PreparedSequence {
+export function expandWithBundle(
+  sequence: unknown,
+  bundle: DependencyBundle,
+  variant: string | null = null,
+): PreparedSequence {
   const groups = expandStepGroups(sequence, bundle.groups);
   const actions = expandCustomActions(groups.steps, bundle.customActions);
-  const elements = resolveStepElements(actions.steps, bundle.elements);
+  const elements = resolveStepElements(actions.steps, bundle.elements, variant);
   return {
     steps: elements.steps,
     errors: [...groups.errors, ...actions.errors],
@@ -325,19 +332,23 @@ export function expandWithBundle(sequence: unknown, bundle: DependencyBundle): P
  *
  * Every step comes out with its provenance (server/authoring/step-provenance.ts): the test's or
  * the group's sequence it is written in, and where, which is what healing writes back to.
+ *
+ * `variant` is the run's `uiVariant` (shared/element-variants.ts): the elements that have a locator
+ * by that name are found there, frozen or live alike.
  */
 export async function prepareSequence(
   written: unknown,
   frozen?: FrozenDependencies,
+  variant: string | null = null,
 ): Promise<PreparedSequence> {
   if (frozen && 'error' in frozen)
     return { steps: [], errors: [frozen.error], unresolved: [], expanded: false };
   const sequence = withTestProvenance(asSteps(written));
-  if (frozen) return expandWithBundle(sequence, frozen.bundle);
+  if (frozen) return expandWithBundle(sequence, frozen.bundle, variant);
   const expansion = await expandSequenceForRun(sequence);
   if (expansion.errors.length > 0)
     return { steps: expansion.steps, errors: expansion.errors, unresolved: [], expanded: false };
-  const resolution = await resolveSequenceForRun(expansion.steps);
+  const resolution = await resolveSequenceForRun(expansion.steps, variant);
   return {
     steps: resolution.steps,
     errors: [],
@@ -371,7 +382,11 @@ export function describeDependencyChange(
       'shared element',
       previous.elements,
       next.elements,
-      ({ selector, frameSelector }) => ({ selector, frameSelector: frameSelector ?? null }),
+      ({ selector, frameSelector, variants }) => ({
+        selector,
+        frameSelector: frameSelector ?? null,
+        variants: variants ?? {},
+      }),
     ),
   ];
   return parts.length ? parts.join(', ') : 'shared dependencies changed';

@@ -1,4 +1,5 @@
 import { attachNetworkJournal, hasNetworkCheckpoint } from '../checkpoints/network-journal';
+import { variantOf } from '@shared/element-variants';
 import type { AccessibilityFinding } from '@shared/accessibility';
 import type { DownloadFinding } from '@shared/downloads';
 import { analyseFlow, leavesPageAlone } from '@shared/flow';
@@ -140,7 +141,7 @@ export class AdhocRunner {
         duration: Date.now() - startTime,
       };
     }
-    const adhocSequence = (await resolveSequenceForRun(adhocExpansion.steps))
+    const adhocSequence = (await resolveSequenceForRun(adhocExpansion.steps, variantOf(vars)))
       .steps as unknown as TestStep[];
     // After expansion, so a block that opens in a group and closes in the test is judged
     // as the run will meet it.

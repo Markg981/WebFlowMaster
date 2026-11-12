@@ -3,6 +3,7 @@ import { projectElements } from '@shared/schema';
 import { withTenantTransaction, type TenantTx } from '../platform/middleware/tenancy';
 import { asSteps, type SequenceStep } from './step-groups';
 import { elementFingerprint, withElementProvenance } from './step-provenance';
+import { locatorFor, readVariants, type ElementVariants } from '@shared/element-variants';
 
 /**
  * Letting a step name an element from the project's repository instead of carrying its own copy.
@@ -43,6 +44,8 @@ export interface RepositoryElement {
   id: string;
   selector: string;
   frameSelector?: string | null;
+  /** Locator variants by name; see shared/element-variants.ts. */
+  variants?: ElementVariants;
 }
 
 /** The repository elements a sequence names, once each. */
@@ -62,10 +65,14 @@ export function referencedElementIds(sequence: unknown): string[] {
  * The step keeps everything else it carries — its text, its tag, whatever the builder shows —
  * because what the repository owns is where the element is, not what it looked like when
  * somebody last recorded it.
+ *
+ * With a `variant` (the run's `uiVariant`), an element that has a locator by that name is found
+ * there instead; one without it keeps its own, so a variant only changes what it names.
  */
 export function resolveStepElements(
   sequence: unknown,
   elements: RepositoryElement[],
+  variant: string | null = null,
 ): ResolutionResult {
   const steps = asSteps(sequence);
   const byId = new Map(elements.map((element) => [element.id, element]));
@@ -84,12 +91,13 @@ export function resolveStepElements(
     }
 
     resolved++;
+    const locator = locatorFor(element, variant);
     return {
-      ...withElementProvenance(step, id, element),
+      ...withElementProvenance(step, id, locator, locator.variant),
       targetElement: {
         ...target,
-        selector: element.selector,
-        frameSelector: element.frameSelector ?? target.frameSelector ?? null,
+        selector: locator.selector,
+        frameSelector: locator.frameSelector ?? target.frameSelector ?? null,
       },
     };
   });
@@ -116,6 +124,7 @@ export async function loadRepositoryElements(
     projectId: row.projectId,
     selector: row.selector,
     frameSelector: row.frameSelector ?? null,
+    variants: readVariants(row.variants),
     updatedAt: row.updatedAt ?? null,
   }));
 }
@@ -126,7 +135,10 @@ export async function loadRepositoryElements(
  * Returns the sequence untouched, and without a query, when no step names one — which is every
  * test written before the repository existed.
  */
-export async function resolveSequenceForRun(sequence: unknown): Promise<ResolutionResult> {
+export async function resolveSequenceForRun(
+  sequence: unknown,
+  variant: string | null = null,
+): Promise<ResolutionResult> {
   const ids = referencedElementIds(sequence);
   if (ids.length === 0) return { steps: asSteps(sequence), unresolved: [], resolved: 0 };
 
@@ -134,7 +146,13 @@ export async function resolveSequenceForRun(sequence: unknown): Promise<Resoluti
     const rows = await withTenantTransaction((tx) => loadRepositoryElements(tx, ids));
     return resolveStepElements(
       sequence,
-      rows.map(({ id, selector, frameSelector }) => ({ id, selector, frameSelector })),
+      rows.map(({ id, selector, frameSelector, variants }) => ({
+        id,
+        selector,
+        frameSelector,
+        variants,
+      })),
+      variant,
     );
   } catch {
     // The repository being unreachable must not stop a run that has selectors of its own.

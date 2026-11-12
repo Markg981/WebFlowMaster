@@ -23,13 +23,16 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Crosshair, Loader2, Save, Trash2 } from 'lucide-react';
+import type { ElementVariants } from '@shared/element-variants';
+import ElementVariantsEditor from './ElementVariantsEditor';
 
 /**
  * Curating the elements of one application.
  *
  * This is where a selector is corrected once instead of in every test that copied it, and
  * where the healing pass's repairs show up — a list of what the application has been moving
- * underneath the suite.
+ * underneath the suite. An element can also carry locator variants: where it is in a build that
+ * renders it differently, chosen by an environment's `uiVariant`.
  */
 
 interface ProjectElement {
@@ -38,6 +41,8 @@ interface ProjectElement {
   selector: string;
   originalSelector: string | null;
   frameSelector: string | null;
+  /** Locator variants by name, chosen by a run's `uiVariant`. */
+  variants?: ElementVariants;
   healedAt: string | null;
   updatedAt: string;
 }
@@ -85,6 +90,32 @@ const ElementRepositoryCard: React.FC = () => {
         text: t(
           'settings.elements.updated',
           'Updated. Every test that uses it will run against the new selector.',
+        ),
+      });
+      queryClient.invalidateQueries({ queryKey: ['projectElements', projectId] });
+    },
+    onError: (error: Error) => setMessage({ kind: 'error', text: error.message }),
+  });
+
+  const saveVariants = useMutation({
+    mutationFn: async ({ id, variants }: { id: string; variants: ElementVariants }) => {
+      const response = await fetch(`/api/project-elements/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ variants }),
+      });
+      if (!response.ok) {
+        const body = await response.json().catch(() => ({}));
+        throw new Error(body.error || 'Could not update the variants');
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      setMessage({
+        kind: 'info',
+        text: t(
+          'settings.elements.variants.updated',
+          'Variants saved. A run whose environment sets uiVariant to one of them uses its selector.',
         ),
       });
       queryClient.invalidateQueries({ queryKey: ['projectElements', projectId] });
@@ -223,6 +254,12 @@ const ElementRepositoryCard: React.FC = () => {
                               <code>{element.originalSelector}</code>
                             </div>
                           )}
+                        <ElementVariantsEditor
+                          elementName={element.name}
+                          variants={element.variants ?? {}}
+                          saving={saveVariants.isPending}
+                          onSave={(variants) => saveVariants.mutate({ id: element.id, variants })}
+                        />
                       </TableCell>
                       <TableCell className="align-top">
                         {element.healedAt ? (

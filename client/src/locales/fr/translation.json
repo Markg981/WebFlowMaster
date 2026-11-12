@@ -376,7 +376,18 @@
       "was": "avant",
       "healed": "réparé",
       "saveSelector": "Enregistrer le sélecteur",
-      "delete": "Supprimer l'élément"
+      "delete": "Supprimer l'élément",
+      "variants": {
+        "updated": "Variantes enregistrées. Une exécution dont l'environnement définit uiVariant sur l'une d'elles utilise son sélecteur.",
+        "badName": "Un nom de variante contient des lettres, des chiffres, \"_\", \"-\" ou \".\", 40 caractères au plus.",
+        "noSelector": "Une variante a besoin d'un sélecteur.",
+        "remove": "Supprimer la variante {{variant}}",
+        "name": "Variante (uiVariant)",
+        "nameFor": "Nom de variante pour {{name}}",
+        "selector": "Sélecteur dans cette variante",
+        "selectorFor": "Sélecteur de variante pour {{name}}",
+        "add": "Ajouter une variante"
+      }
     },
     "sourceHosts": {
       "title": "Statut du commit",

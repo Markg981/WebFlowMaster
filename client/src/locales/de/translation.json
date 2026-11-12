@@ -376,7 +376,18 @@
       "was": "vorher",
       "healed": "repariert",
       "saveSelector": "Selektor speichern",
-      "delete": "Element löschen"
+      "delete": "Element löschen",
+      "variants": {
+        "updated": "Varianten gespeichert. Ein Lauf, dessen Umgebung uiVariant auf eine davon setzt, verwendet deren Selektor.",
+        "badName": "Ein Variantenname besteht aus Buchstaben, Ziffern, \"_\", \"-\" oder \".\", höchstens 40 Zeichen.",
+        "noSelector": "Eine Variante braucht einen Selektor.",
+        "remove": "Variante {{variant}} entfernen",
+        "name": "Variante (uiVariant)",
+        "nameFor": "Variantenname für {{name}}",
+        "selector": "Selektor in dieser Variante",
+        "selectorFor": "Variantenselektor für {{name}}",
+        "add": "Variante hinzufügen"
+      }
     },
     "sourceHosts": {
       "title": "Commit-Status",
