@@ -208,7 +208,7 @@ app.use(express.urlencoded({ extended: false }));
   const { registerRunPromotion } = await import('./execution/run-promotion');
   registerRunPromotion();
   // A run of a comparison that ends moves the comparison on; the sweep catches what that missed.
-  const { comparisonOrchestrator } = await import('./execution/comparisons');
+  const { comparisonOrchestrator } = await import('./reporting/comparison/comparisons');
   const { registerComparisonFinalizer, startComparisonSweep } =
     await import('./execution/comparison-finalizer');
   registerComparisonFinalizer(comparisonOrchestrator);

@@ -1,5 +1,5 @@
-import { createCompareRuns } from '../reporting/comparison/compare-runs';
-import { createComparisonOrchestrator } from './comparison-orchestrator';
+import { createCompareRuns } from './compare-runs';
+import { createComparisonOrchestrator } from '../../execution/comparison-orchestrator';
 
 /**
  * The comparison orchestrator of this process, with the real engine. The web process starts and

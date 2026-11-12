@@ -25,7 +25,7 @@ import { auditActor, recordAudit } from '../../tenancy/audit';
 import { runArtifactAccess, type RunArtifactAccess } from '../../tenancy/artifact-access';
 import { publicExecution } from '../../execution/execution-provenance';
 import { ComparisonError } from '../../execution/comparison-orchestrator';
-import { comparisonOrchestrator } from '../../execution/comparisons';
+import { comparisonOrchestrator } from '../../reporting/comparison/comparisons';
 import { stepsOfLog, type ComparedStep } from '../../reporting/comparison/steps';
 import { flattenZodError } from '../zod-error';
 import { sessionRateLimit } from '../middleware/rate-limits';
