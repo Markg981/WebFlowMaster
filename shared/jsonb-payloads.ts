@@ -89,6 +89,7 @@ export const JSONB_PAYLOADS: Record<string, JsonbStrategy> = {
   // The body a finished run owes an endpoint, built once and resent as is on every retry.
   'outbound_deliveries.payload': 'opaque',
   'project_elements.attributes': 'opaque',
+  'project_elements.variants': 'migration',
   'report_test_case_results.ai_analysis': 'versioned',
   'report_test_case_results.network_summary': 'migration',
   'run_work_items.results': 'migration',

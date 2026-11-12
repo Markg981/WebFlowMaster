@@ -1234,6 +1234,73 @@
           "actor": { "type": "string", "maxLength": 200 }
         }
       },
+      "Comparison": {
+        "type": "object",
+        "required": ["id", "planId", "status", "baseline", "candidate", "links"],
+        "properties": {
+          "id": { "type": "string" },
+          "planId": { "type": "string" },
+          "planName": { "type": ["string", "null"] },
+          "name": { "type": ["string", "null"] },
+          "mode": { "type": "string", "enum": ["sequential", "parallel"] },
+          "status": {
+            "type": "string",
+            "enum": ["queued", "running", "comparing", "completed", "error", "cancelled"]
+          },
+          "verdict": {
+            "type": ["string", "null"],
+            "enum": ["regressions", "inconclusive", "parity_with_accepted", "parity", null],
+            "description": "Null until both runs have ended and the comparison is computed."
+          },
+          "summary": {
+            "type": ["object", "null"],
+            "description": "total, byVerdict (identical, equivalent, different, outcome_mismatch, both_failed, not_comparable), byModule and droppedDifferences."
+          },
+          "baseline": {
+            "type": "object",
+            "properties": {
+              "environmentId": { "type": ["integer", "null"] },
+              "environmentName": { "type": "string" },
+              "runId": {
+                "type": ["string", "null"],
+                "description": "Null until the run is queued."
+              }
+            }
+          },
+          "candidate": {
+            "type": "object",
+            "properties": {
+              "environmentId": { "type": ["integer", "null"] },
+              "environmentName": { "type": "string" },
+              "runId": {
+                "type": ["string", "null"],
+                "description": "Null until the run is queued."
+              }
+            }
+          },
+          "failure": {
+            "type": ["object", "null"],
+            "properties": {
+              "code": { "type": "string" },
+              "message": { "type": ["string", "null"] }
+            }
+          },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "completedAt": { "type": ["string", "null"], "format": "date-time" },
+          "links": {
+            "type": "object",
+            "properties": {
+              "self": { "type": "string" },
+              "html": { "type": "string" },
+              "pdf": { "type": "string" },
+              "report": {
+                "type": ["string", "null"],
+                "description": "The comparison page, when WEBFLOW_PUBLIC_URL is set."
+              }
+            }
+          }
+        }
+      },
       "Run": {
         "type": "object",
         "required": ["id", "planId", "status", "trigger", "links"],
@@ -5904,6 +5971,191 @@
           },
           "404": {
             "description": "No such run in this organization.",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/Error" } }
+            }
+          },
+          "503": {
+            "description": "PDF was asked for and the server has no browser to render it; the HTML export has the same content.",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/Error" } }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/plans/{planId}/comparisons": {
+      "post": {
+        "operationId": "startComparison",
+        "summary": "Run a plan on two environments and compare the two runs.",
+        "description": "Freezes the plan once, runs it on the baseline environment and replays the same inputs on the candidate one, then compares the stored results. Answers at once; poll `Location` until `status` is completed, cancelled or error, then read `verdict`. Send an `Idempotency-Key` to make retrying the request safe: the same key returns the same comparison.",
+        "security": [{ "bearerKey": [] }, { "headerKey": [] }],
+        "x-required-scope": "runs:write",
+        "parameters": [
+          { "name": "planId", "in": "path", "required": true, "schema": { "type": "string" } },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": false,
+            "schema": { "type": "string", "maxLength": 255 }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["baselineEnvironmentId", "candidateEnvironmentId"],
+                "properties": {
+                  "baselineEnvironmentId": { "type": "integer" },
+                  "candidateEnvironmentId": {
+                    "type": "integer",
+                    "description": "Must differ from the baseline."
+                  },
+                  "mode": {
+                    "type": "string",
+                    "enum": ["sequential", "parallel"],
+                    "default": "sequential"
+                  },
+                  "name": { "type": "string", "maxLength": 200 },
+                  "policy": {
+                    "type": "object",
+                    "description": "Tolerances: text, numeric, network, visual and performance. Every field has a default; see the guide."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Started, or found by its Idempotency-Key.",
+            "headers": {
+              "Location": { "schema": { "type": "string" }, "description": "The comparison." }
+            },
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/Comparison" } }
+            }
+          },
+          "400": {
+            "description": "The body or a header is not valid.",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/Error" } }
+            }
+          },
+          "401": {
+            "description": "No usable API key was sent.",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/Error" } }
+            }
+          },
+          "403": {
+            "description": "The key lacks the scope, or its account's role is below what the scope needs.",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/Error" } }
+            }
+          },
+          "404": {
+            "description": "No such plan, or no such environment, in this organization.",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/Error" } }
+            }
+          },
+          "429": {
+            "description": "The organization's queue is full (`queue_quota_exceeded`).",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/Error" } }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/comparisons/{comparisonId}": {
+      "get": {
+        "operationId": "getComparison",
+        "summary": "One comparison: its status, its overall verdict and its counts.",
+        "security": [{ "bearerKey": [] }, { "headerKey": [] }],
+        "x-required-scope": "runs:read",
+        "parameters": [
+          { "name": "comparisonId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "The comparison.",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/Comparison" } }
+            }
+          },
+          "401": {
+            "description": "No usable API key was sent.",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/Error" } }
+            }
+          },
+          "403": {
+            "description": "The key lacks the scope, or its account's role is below what the scope needs.",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/Error" } }
+            }
+          },
+          "404": {
+            "description": "No such comparison in this organization.",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/Error" } }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/comparisons/{comparisonId}/export/{format}": {
+      "get": {
+        "operationId": "exportComparison",
+        "summary": "The parity report as a file: verdicts, tolerances, differences and who accepted them.",
+        "security": [{ "bearerKey": [] }, { "headerKey": [] }],
+        "x-required-scope": "runs:read",
+        "parameters": [
+          {
+            "name": "comparisonId",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "format",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "enum": ["html", "pdf"] }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The file, as an attachment.",
+            "content": {
+              "text/html": { "schema": { "type": "string" } },
+              "application/pdf": { "schema": { "type": "string", "format": "binary" } }
+            }
+          },
+          "400": {
+            "description": "Unknown format.",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/Error" } }
+            }
+          },
+          "401": {
+            "description": "No usable API key was sent.",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/Error" } }
+            }
+          },
+          "403": {
+            "description": "The key lacks the scope, or its account's role is below what the scope needs.",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/Error" } }
+            }
+          },
+          "404": {
+            "description": "No such comparison in this organization.",
             "content": {
               "application/json": { "schema": { "$ref": "#/components/schemas/Error" } }
             }
