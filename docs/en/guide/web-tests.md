@@ -606,6 +606,23 @@ To take back an approved repair of a test step, restore the version before it in
 (see [Organizing tests](./organizing#history-and-versions)). For a step group or a kept element,
 edit the selector back: the proposal keeps the selector it replaced.
 
+### Locator variants per environment {#element-variants}
+
+When an environment's build renders an element differently (a migrated front end compared with
+production, say), give the element a **variant** instead of a second element. In **Settings →
+Element repository**, **Add variant** on the element and fill in **Variant (uiVariant)** (letters,
+digits, `_`, `-` or `.`, up to 40 characters; at most 20 variants per element) and **Selector in
+that variant**.
+
+A run uses a variant when its `uiVariant` [variable](#variables-and-environments) has that name;
+set `uiVariant` on the environment and every run on it, a comparison's candidate included, uses
+the variant's selector. An element without that variant, and a run without `uiVariant`, use the
+element's own selector, so a variant changes only the environments that ask for it.
+
+Healing never repairs a variant: when a step found its element through a variant, no proposal is
+made for the element's default locator. The step's proposal says to correct the variant in the
+element repository by hand.
+
 ## Saving
 
 **Save Test** asks for a name and, optionally, a project (you can create one there). Saving again

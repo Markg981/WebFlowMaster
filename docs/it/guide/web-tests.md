@@ -634,6 +634,23 @@ nella cronologia del test (vedi [Organizzare i test](./organizing#cronologia-e-v
 gruppo di step o un elemento salvato, rimettete il selettore a mano: la proposta conserva quello
 che ha sostituito.
 
+### Varianti del locator per ambiente {#element-variants}
+
+Quando la build di un ambiente rende un elemento in modo diverso (per esempio un front end migrato
+confrontato con la produzione), dai all'elemento una **variante** invece di un secondo elemento. In
+**Settings → Repository degli elementi** usa **Aggiungi variante** sull'elemento e compila
+**Variante (uiVariant)** (lettere, cifre, `_`, `-` o `.`, fino a 40 caratteri; al massimo 20
+varianti per elemento) e **Selettore in quella variante**.
+
+Un run usa una variante quando la sua [variabile](#variabili-e-ambienti) `uiVariant` ha quel nome;
+imposta `uiVariant` sull'ambiente e ogni run su di esso, compreso il candidato di un confronto, usa
+il selettore della variante. Un elemento senza quella variante, e un run senza `uiVariant`, usano
+il selettore dell'elemento, quindi una variante cambia solo gli ambienti che la richiedono.
+
+L'healing non ripara mai una variante: se uno step ha trovato l'elemento tramite una variante, non
+viene proposta alcuna riparazione del locator predefinito dell'elemento. La proposta dello step
+indica di correggere la variante a mano nel repository degli elementi.
+
 ## Salvare
 
 **Salva test** chiede un nome e, facoltativamente, un progetto (lo si può creare lì). Salvare di

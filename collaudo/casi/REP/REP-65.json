@@ -1,0 +1,15 @@
+{
+  "id": "REP-65",
+  "area": "REP",
+  "title": "Confronto tra ambienti: wfm compare esce con codice 1 sulle regressioni",
+  "priority": "P2",
+  "actor": "editor.a",
+  "preconditions": "Un token API con scope runs:write e runs:read; un piano e due ambienti, il secondo dei quali dà un esito diverso su un test.",
+  "steps": [
+    "Eseguire wfm compare --plan <planId> --baseline <ambienteA> --candidate <ambienteB> --wait --fail-on different,outcome_mismatch --html parita.html --pdf parita.pdf e leggere il codice di uscita.",
+    "Eseguire lo stesso comando con due ambienti senza differenze e leggere il codice di uscita.",
+    "Eseguire wfm compare con --baseline e --candidate uguali, poi con --mode casuale e con un valore inesistente in --fail-on.",
+    "Nella pipeline Azure aggiungere il template webflowmaster-compare.yml con gli stessi parametri ed eseguirla sul caso con la differenza."
+  ],
+  "expected": "Con la differenza il comando stampa il riepilogo, scrive parita.html e parita.pdf ed esce con 1. Senza differenze esce con 0. Gli argomenti non validi sono rifiutati con un messaggio (ambienti diversi, --mode sequential o parallel, verdetti conosciuti) e il codice di uscita non è 0. Il passo della pipeline Azure fallisce sul caso con la differenza e passa sull'altro."
+}

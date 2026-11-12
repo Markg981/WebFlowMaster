@@ -372,6 +372,37 @@ see the project, and only those who can edit the project can add or delete it.
 - A web step's duration is not in the log, so the durations of web tests are compared for the whole
   test only.
 
+### Exporting the parity report {#exporting-comparison}
+
+On a finished comparison's report, **Export** offers **HTML parity report** (one file that opens
+anywhere: verdicts, tolerances and reviews) and **PDF** (to attach to a sign-off or file for an
+audit). Anyone who can read the comparison can export it. The CLI and the API write the same
+files, see [Running from CI](../integrations/ci#comparison) and the API below.
+
+The API v1 starts and reads comparisons with the same key as runs (`runs:write` to start,
+`runs:read` to read), documented in `GET /api/v1/openapi.json`:
+
+| Endpoint                                                    | What it does                                                                       |
+| ----------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| `POST /api/v1/plans/{planId}/comparisons`                   | Starts a comparison; answers `202` with the comparison and a `Location` header.    |
+| `GET /api/v1/comparisons/{comparisonId}`                    | Reads it: `status`, `verdict`, `summary`, both sides and their run ids, `failure`. |
+| `GET /api/v1/comparisons/{comparisonId}/export/{html\|pdf}` | Downloads the parity report.                                                       |
+
+The body takes `baselineEnvironmentId` and `candidateEnvironmentId` (two different environments),
+and optionally `mode` (`sequential`, the default, or `parallel`), `name` and `policy` (the
+tolerances). The optional `Idempotency-Key` header (at most 255 characters) makes a repeated
+request return the comparison it already started. `links` in the answer give the report and the
+two exports. `verdict` is `regressions`, `inconclusive`, `parity_with_accepted` or `parity`, and
+is null until the comparison has finished.
+
+A comparison sends **one** notification when it ends, instead of one per run: see
+[Plan settings](running#plan-settings). It follows the plan's notification settings: parity (with
+or without accepted differences) is a pass, regressions and an inconclusive comparison a failure,
+a comparison that could not run is "not executed". A cancelled comparison is announced only where
+a stopped run would be. The message names the plan, the two environments, the verdict and the
+counts per test verdict, with a link to the report; Slack and Teams get their own card, and the
+listed e-mail addresses are mailed too.
+
 ## Exporting a run
 
 **Export** downloads the run as:

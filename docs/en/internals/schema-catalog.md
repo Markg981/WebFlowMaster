@@ -4,7 +4,7 @@ Generated from `shared/schema/` (one file per domain) with `node scripts/generat
 
 Read the [domain schema](./database-schema) for explanations and relationships, then find the table here. Each row lists the TypeScript property, SQL name and complete builder: type, nullability, default and references declared on the column. Table callback constraints are not expanded here.
 
-**91 tables / 1114 declared columns.**
+**91 tables / 1115 declared columns.**
 
 ## Index
 
@@ -44,7 +44,7 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 | [step_groups](#step-groups)                                   | `stepGroups`                 | 9       |
 | [custom_actions](#custom-actions)                             | `customActions`              | 9       |
 | [test_data_sets](#test-data-sets)                             | `testDataSets`               | 8       |
-| [project_elements](#project-elements)                         | `projectElements`            | 14      |
+| [project_elements](#project-elements)                         | `projectElements`            | 15      |
 | [healing_proposals](#healing-proposals)                       | `healingProposals`           | 24      |
 | [tags](#tags)                                                 | `tags`                       | 4       |
 | [test_tags](#test-tags)                                       | `testTags`                   | 8       |
@@ -631,13 +631,14 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 | `elementType`      | `element_type`      | `text('element_type')`                                                                     |
 | `text`             | `text`              | `text('text')`                                                                             |
 | `attributes`       | `attributes`        | `jsonb('attributes')`                                                                      |
+| `variants`         | `variants`          | `jsonb('variants').$type<Record<string, unknown>>().notNull().default({})`                 |
 | `healedAt`         | `healed_at`         | `timestamp('healed_at')`                                                                   |
 | `createdAt`        | `created_at`        | `timestamp('created_at').defaultNow().notNull()`                                           |
 | `updatedAt`        | `updated_at`        | `timestamp('updated_at').defaultNow().notNull()`                                           |
 
 ## healing_proposals {#healing-proposals}
 
-`healingProposals` — `shared/schema/authoring.ts:308`
+`healingProposals` — `shared/schema/authoring.ts:313`
 
 | TS property         | SQL column           | Declaration                                                                                                 |
 | ------------------- | -------------------- | ----------------------------------------------------------------------------------------------------------- |
@@ -668,7 +669,7 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 
 ## tags {#tags}
 
-`tags` — `shared/schema/authoring.ts:373`
+`tags` — `shared/schema/authoring.ts:378`
 
 | TS property      | SQL column        | Declaration                                                                 |
 | ---------------- | ----------------- | --------------------------------------------------------------------------- |
@@ -679,7 +680,7 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 
 ## test_tags {#test-tags}
 
-`testTags` — `shared/schema/authoring.ts:397`
+`testTags` — `shared/schema/authoring.ts:402`
 
 | TS property      | SQL column        | Declaration                                                                     |
 | ---------------- | ----------------- | ------------------------------------------------------------------------------- |
@@ -694,7 +695,7 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 
 ## test_versions {#test-versions}
 
-`testVersions` — `shared/schema/authoring.ts:442`
+`testVersions` — `shared/schema/authoring.ts:447`
 
 | TS property           | SQL column              | Declaration                                                                                         |
 | --------------------- | ----------------------- | --------------------------------------------------------------------------------------------------- |
@@ -720,7 +721,7 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 
 ## test_publications {#test-publications}
 
-`testPublications` — `shared/schema/authoring.ts:506`
+`testPublications` — `shared/schema/authoring.ts:511`
 
 | TS property      | SQL column        | Declaration                                                                                         |
 | ---------------- | ----------------- | --------------------------------------------------------------------------------------------------- |
@@ -737,7 +738,7 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 
 ## test_reviews {#test-reviews}
 
-`testReviews` — `shared/schema/authoring.ts:550`
+`testReviews` — `shared/schema/authoring.ts:555`
 
 | TS property       | SQL column         | Declaration                                                                                         |
 | ----------------- | ------------------ | --------------------------------------------------------------------------------------------------- |
@@ -757,7 +758,7 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 
 ## mobile_tests {#mobile-tests}
 
-`mobileTests` — `shared/schema/authoring.ts:597`
+`mobileTests` — `shared/schema/authoring.ts:602`
 
 | TS property        | SQL column          | Declaration                                                                     |
 | ------------------ | ------------------- | ------------------------------------------------------------------------------- |
@@ -779,7 +780,7 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 
 ## mobile_step_groups {#mobile-step-groups}
 
-`mobileStepGroups` — `shared/schema/authoring.ts:627`
+`mobileStepGroups` — `shared/schema/authoring.ts:632`
 
 | TS property      | SQL column        | Declaration                                                                     |
 | ---------------- | ----------------- | ------------------------------------------------------------------------------- |
@@ -796,7 +797,7 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 
 ## load_tests {#load-tests}
 
-`loadTests` — `shared/schema/authoring.ts:662`
+`loadTests` — `shared/schema/authoring.ts:667`
 
 | TS property      | SQL column        | Declaration                                                                          |
 | ---------------- | ----------------- | ------------------------------------------------------------------------------------ |

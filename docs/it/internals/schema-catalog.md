@@ -4,7 +4,7 @@ Generato da `shared/schema/` (un file per dominio) con `node scripts/generate-sc
 
 Leggere prima lo [schema per dominio](./database-schema) per le spiegazioni e le relazioni, poi cercare qui la tabella. Ogni riga riporta la proprietà TypeScript, il nome SQL e il builder completo: tipo, nullabilità, default e riferimenti dichiarati nella colonna. I vincoli definiti nel callback della tabella non sono espansi qui.
 
-**91 tabelle / 1114 colonne dichiarate.**
+**91 tabelle / 1115 colonne dichiarate.**
 
 ## Indice
 
@@ -44,7 +44,7 @@ Leggere prima lo [schema per dominio](./database-schema) per le spiegazioni e le
 | [step_groups](#step-groups)                                   | `stepGroups`                 | 9       |
 | [custom_actions](#custom-actions)                             | `customActions`              | 9       |
 | [test_data_sets](#test-data-sets)                             | `testDataSets`               | 8       |
-| [project_elements](#project-elements)                         | `projectElements`            | 14      |
+| [project_elements](#project-elements)                         | `projectElements`            | 15      |
 | [healing_proposals](#healing-proposals)                       | `healingProposals`           | 24      |
 | [tags](#tags)                                                 | `tags`                       | 4       |
 | [test_tags](#test-tags)                                       | `testTags`                   | 8       |
@@ -631,13 +631,14 @@ Leggere prima lo [schema per dominio](./database-schema) per le spiegazioni e le
 | `elementType`      | `element_type`      | `text('element_type')`                                                                     |
 | `text`             | `text`              | `text('text')`                                                                             |
 | `attributes`       | `attributes`        | `jsonb('attributes')`                                                                      |
+| `variants`         | `variants`          | `jsonb('variants').$type<Record<string, unknown>>().notNull().default({})`                 |
 | `healedAt`         | `healed_at`         | `timestamp('healed_at')`                                                                   |
 | `createdAt`        | `created_at`        | `timestamp('created_at').defaultNow().notNull()`                                           |
 | `updatedAt`        | `updated_at`        | `timestamp('updated_at').defaultNow().notNull()`                                           |
 
 ## healing_proposals {#healing-proposals}
 
-`healingProposals` — `shared/schema/authoring.ts:308`
+`healingProposals` — `shared/schema/authoring.ts:313`
 
 | Proprietà TS        | Colonna SQL          | Dichiarazione                                                                                               |
 | ------------------- | -------------------- | ----------------------------------------------------------------------------------------------------------- |
@@ -668,7 +669,7 @@ Leggere prima lo [schema per dominio](./database-schema) per le spiegazioni e le
 
 ## tags {#tags}
 
-`tags` — `shared/schema/authoring.ts:373`
+`tags` — `shared/schema/authoring.ts:378`
 
 | Proprietà TS     | Colonna SQL       | Dichiarazione                                                               |
 | ---------------- | ----------------- | --------------------------------------------------------------------------- |
@@ -679,7 +680,7 @@ Leggere prima lo [schema per dominio](./database-schema) per le spiegazioni e le
 
 ## test_tags {#test-tags}
 
-`testTags` — `shared/schema/authoring.ts:397`
+`testTags` — `shared/schema/authoring.ts:402`
 
 | Proprietà TS     | Colonna SQL       | Dichiarazione                                                                   |
 | ---------------- | ----------------- | ------------------------------------------------------------------------------- |
@@ -694,7 +695,7 @@ Leggere prima lo [schema per dominio](./database-schema) per le spiegazioni e le
 
 ## test_versions {#test-versions}
 
-`testVersions` — `shared/schema/authoring.ts:442`
+`testVersions` — `shared/schema/authoring.ts:447`
 
 | Proprietà TS          | Colonna SQL             | Dichiarazione                                                                                       |
 | --------------------- | ----------------------- | --------------------------------------------------------------------------------------------------- |
@@ -720,7 +721,7 @@ Leggere prima lo [schema per dominio](./database-schema) per le spiegazioni e le
 
 ## test_publications {#test-publications}
 
-`testPublications` — `shared/schema/authoring.ts:506`
+`testPublications` — `shared/schema/authoring.ts:511`
 
 | Proprietà TS     | Colonna SQL       | Dichiarazione                                                                                       |
 | ---------------- | ----------------- | --------------------------------------------------------------------------------------------------- |
@@ -737,7 +738,7 @@ Leggere prima lo [schema per dominio](./database-schema) per le spiegazioni e le
 
 ## test_reviews {#test-reviews}
 
-`testReviews` — `shared/schema/authoring.ts:550`
+`testReviews` — `shared/schema/authoring.ts:555`
 
 | Proprietà TS      | Colonna SQL        | Dichiarazione                                                                                       |
 | ----------------- | ------------------ | --------------------------------------------------------------------------------------------------- |
@@ -757,7 +758,7 @@ Leggere prima lo [schema per dominio](./database-schema) per le spiegazioni e le
 
 ## mobile_tests {#mobile-tests}
 
-`mobileTests` — `shared/schema/authoring.ts:597`
+`mobileTests` — `shared/schema/authoring.ts:602`
 
 | Proprietà TS       | Colonna SQL         | Dichiarazione                                                                   |
 | ------------------ | ------------------- | ------------------------------------------------------------------------------- |
@@ -779,7 +780,7 @@ Leggere prima lo [schema per dominio](./database-schema) per le spiegazioni e le
 
 ## mobile_step_groups {#mobile-step-groups}
 
-`mobileStepGroups` — `shared/schema/authoring.ts:627`
+`mobileStepGroups` — `shared/schema/authoring.ts:632`
 
 | Proprietà TS     | Colonna SQL       | Dichiarazione                                                                   |
 | ---------------- | ----------------- | ------------------------------------------------------------------------------- |
@@ -796,7 +797,7 @@ Leggere prima lo [schema per dominio](./database-schema) per le spiegazioni e le
 
 ## load_tests {#load-tests}
 
-`loadTests` — `shared/schema/authoring.ts:662`
+`loadTests` — `shared/schema/authoring.ts:667`
 
 | Proprietà TS     | Colonna SQL       | Dichiarazione                                                                        |
 | ---------------- | ----------------- | ------------------------------------------------------------------------------------ |

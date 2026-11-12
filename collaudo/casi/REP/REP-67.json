@@ -1,0 +1,16 @@
+{
+  "id": "REP-67",
+  "area": "REP",
+  "title": "Confronto tra ambienti: varianti di selettore per ambiente con uiVariant",
+  "priority": "P2",
+  "actor": "editor.a",
+  "preconditions": "Un elemento del repertorio con il selettore predefinito; due ambienti, il candidato con la variabile uiVariant impostata a \"nuova\"; in quel candidato la pagina usa un altro selettore per l'elemento.",
+  "steps": [
+    "In Impostazioni → Repertorio elementi aprire l'elemento e fare clic su \"Aggiungi variante\".",
+    "Inserire \"nuova\" in \"Variante (uiVariant)\" e il nuovo selettore in \"Selettore in quella variante\", poi salvare.",
+    "Provare il nome \"nuova variante!\" e una variante senza selettore.",
+    "Avviare il confronto dei due ambienti per un piano che usa l'elemento e aprire il report.",
+    "Rimuovere la variante con \"Rimuovi la variante nuova\" e rieseguire il confronto."
+  ],
+  "expected": "Appare \"Varianti salvate\" con il testo che spiega uiVariant. Il nome non valido e la variante senza selettore sono rifiutati (\"Una variante richiede un selettore\"). Il lato candidato usa il selettore della variante e il lato baseline quello predefinito, senza differenze spurie. Un'esecuzione con la variante non propone mai la correzione (healing) del selettore predefinito. Senza la variante il candidato fallisce sull'elemento."
+}

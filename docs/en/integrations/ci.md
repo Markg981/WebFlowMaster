@@ -33,6 +33,7 @@ node wfm.mjs run <planId> --wait --junit junit.xml --html report.html
 | `wfm junit <runId> --junit <file>`                | Writes a finished run's JUnit XML.                                                              |
 | `wfm export <runId> --html/--pdf/--allure <file>` | Writes a finished run's reports.                                                                |
 | `wfm units <runId> [<unitId>]`                    | Lists a run's units; for one unit, each attempt and dataset row with links to its evidence.     |
+| `wfm compare --plan … --baseline … --candidate …` | Runs a plan on two environments and compares them; see [section 11](#comparison).               |
 
 Options: `--url` / `$WFM_URL`, `--key` / `$WFM_API_KEY`, `--environment <id>`, `--timeout <seconds>`
 (default 1800), `--junit`, `--html`, `--pdf`, `--allure <file>`, `--update-baselines`,
@@ -239,3 +240,49 @@ report. The server sets it, so it also works for a run started with `--no-wait`.
 A status that could not be set does not affect the run. The card says why the last one failed
 ("the token cannot set statuses on acme/shop"). Runs from Jenkins, Azure Pipelines and the other
 systems do not set a status: their repository may live anywhere.
+
+## 11. Gating a migration on run parity {#comparison}
+
+`wfm compare` runs a plan on two [environments](../guide/results#comparing-environments) and
+compares the results test by test:
+
+```bash
+node wfm.mjs compare --plan <planId> --baseline 3 --candidate 7 --wait \
+  --html parity.html --pdf parity.pdf
+```
+
+| Option                 | Meaning                                                                                                                                                                       |
+| ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--plan <id>`          | The plan to run on both environments.                                                                                                                                         |
+| `--baseline <id>`      | The environment that is the reference. Required.                                                                                                                              |
+| `--candidate <id>`     | The environment under judgement. Required, and different from the baseline.                                                                                                   |
+| `--mode <mode>`        | `sequential` (default) or `parallel`.                                                                                                                                         |
+| `--name <name>`        | A name for the comparison, such as the migration.                                                                                                                             |
+| `--fail-on <verdicts>` | Test verdicts that fail the step, comma separated, from `different`, `outcome_mismatch`, `both_failed`, `not_comparable`, `equivalent`. Default `different,outcome_mismatch`. |
+| `--wait`               | Wait for the comparison to finish and turn its verdict into the exit code.                                                                                                    |
+| `--html` / `--pdf`     | Write the parity report. These and `--fail-on` imply `--wait`.                                                                                                                |
+
+`--timeout`, `--poll`, `--idempotency-key` and `--json` work as for `wfm run`. The key needs
+`runs:write` to start and `runs:read` to read.
+
+With `--wait` the exit code is `0` when no test has a verdict in `--fail-on`, `1` when one has, when
+nothing could be compared, or when the comparison ended in error or was cancelled, and `2` when the
+step could not be carried out (no key, wrong URL, timed out waiting). `identical` never fails a
+step.
+
+For Azure Pipelines, `integrations/azure-pipelines/webflowmaster-compare.yml` is a steps template
+with the parameters `plan`, `baseline`, `candidate`, `mode`, `failOn`, `name` and `timeout`:
+
+```yaml
+steps:
+  - template: integrations/azure-pipelines/webflowmaster-compare.yml@webflowmaster
+    parameters:
+      plan: your-plan-id
+      baseline: 3 # the reference, for example production
+      candidate: 7 # the migrated stack
+```
+
+It uses the build id as the idempotency key, so a re-run of the job follows the comparison it
+already started, and keeps the HTML and PDF parity report as the `webflowmaster-parity-report`
+pipeline artifact whatever the result. Define `WFM_URL` and a secret `WFM_API_KEY` as in section 6.
+Without Node, use the API: see [Exporting the parity report](../guide/results#exporting-comparison).

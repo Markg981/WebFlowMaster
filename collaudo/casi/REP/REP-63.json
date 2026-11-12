@@ -1,0 +1,15 @@
+{
+  "id": "REP-63",
+  "area": "REP",
+  "title": "Confronto tra ambienti: il report di parità si esporta in HTML e PDF",
+  "priority": "P2",
+  "actor": "editor.a",
+  "preconditions": "Un confronto completato tra due ambienti (come in REP-58).",
+  "steps": [
+    "Aprire il report del confronto e fare clic su \"Esporta\".",
+    "Scegliere \"Report di parità HTML\" e aprire il file scaricato.",
+    "Fare di nuovo clic su \"Esporta\" e scegliere \"PDF\".",
+    "Con le API (cookie di editor.a) chiamare GET /api/comparisons/<id>/export/html e GET /api/comparisons/<id>/export/pdf."
+  ],
+  "expected": "Il menu mostra \"Scarica il report di parità come\" con le due voci. Il file HTML si apre senza il server e riporta i verdetti, le tolleranze e le revisioni; il PDF contiene lo stesso report e si può allegare a un collaudo. Le due chiamate API rispondono 200 con il contenuto del formato richiesto."
+}

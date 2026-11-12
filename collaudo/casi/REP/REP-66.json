@@ -1,0 +1,14 @@
+{
+  "id": "REP-66",
+  "area": "REP",
+  "title": "Confronto tra ambienti: una sola notifica per confronto",
+  "priority": "P2",
+  "actor": "editor.a",
+  "preconditions": "Un canale di notifica o la posta del progetto configurati per i report; un piano e due ambienti.",
+  "steps": [
+    "Avviare un confronto da \"Confronta ambienti\" e attendere \"Completato\".",
+    "Controllare i messaggi ricevuti sul canale e nella casella di posta.",
+    "Aprire l'elenco delle esecuzioni e verificare le due esecuzioni dei lati del confronto."
+  ],
+  "expected": "Arriva una sola notifica per l'intero confronto, con oggetto \"[WebFlowMaster] <piano> comparison: <esito>\" e il link al report del confronto. Le due esecuzioni dei lati, baseline e candidato, non generano notifiche proprie."
+}
