@@ -254,9 +254,13 @@ Release 3 adds `POST /api/v1/plans/:planId/comparisons` (`runs:write`) and `GET 
 2. Full comparison: table, chart and network checkpoints, policy and tolerances, known differences and review, side-by-side detail.
 3. Evidence and automation: parity report export, public API and `wfm compare`, single notification per comparison, locator variants per environment in the element repository.
 
+## Resolved before coding (2026-11-12)
+
+- Dataset rows: every dataset row is its own execution unit. `planLanes` expands `test.dataset` into units with `bddRowIndex` (`server/execution/plan-run/lanes.ts:103`), the manifest stores it as `coordinates.bddRow` (`server/execution/execution-units.ts:119`), and `run-unit.ts:276-293` runs that one row. Results carry `executionUnitId`. Rows are therefore paired through the unit's coordinates `(test, browser, bddRow)`, not through the result's name (which is `"<name> — Row N"`).
+- Locator variants: a frozen bundle is applied in `buildExecutableDefinition` → `resolveStepElements(actions.steps, bundle.elements)` (`server/authoring/executable-definition.ts:309`), and the selector is written in `server/authoring/step-elements.ts:87-94`. The live path (`resolveSequenceForRun`, `step-elements.ts:129`) uses the same function. Choosing a variant per environment belongs there, with the variant included in the bundle fingerprint (`executable-definition.ts:94`) and in `step-provenance.ts:75`.
+- Migration index: `0110` is free. `main` ends at `0109_scim_token_expiry.sql`, and no open PR adds a migration. Check again at merge time.
+
 ## Open questions
 
-- Dataset rows: confirm how per-row step results are stored, to pair them by row index (`server/execution/execution-units.ts`).
-- Locator variants: confirm where a frozen repository element is resolved to a selector (`server/authoring/executable-definition.ts`) before adding `project_elements.variants` and an environment variable such as `uiVariant`.
 - Visual masks: recording the rectangles of masked selectors with each screenshot would allow regions to be ignored; decide after release 1.
 - Windows integrated authentication of the application under test from a local agent: to be verified outside this feature.
