@@ -7,14 +7,24 @@ import { z } from 'zod';
 import { and, desc, eq, sql, type SQL } from 'drizzle-orm';
 import {
   AUDIT_ACTIONS,
+  comparisonRuns,
   testPlanExecutions,
   testPlans,
+  type ComparisonRun,
   type TestPlanExecution,
 } from '@shared/schema';
+import { CreateComparisonSchema } from '@shared/comparison';
+import { ComparisonError } from '../../execution/comparison-orchestrator';
+import { comparisonOrchestrator } from '../../integrations/comparisons';
+import {
+  COMPARISON_EXPORT_FORMATS,
+  isComparisonExportFormat,
+} from '../../reporting/comparison/comparison-report-model';
+import { exportComparison } from '../../reporting/comparison/comparison-export';
 import { auditActor, recordAudit } from '../../tenancy/audit';
 import { EXECUTION_STATUSES } from '@shared/execution-status';
 import { withTenantTransaction } from '../../platform/middleware/tenancy';
-import { apiError, requireScope } from '../middleware/require-scope';
+import { apiError, evidencePrincipalOf, requireScope } from '../middleware/require-scope';
 import {
   executionOrchestrator,
   ExecutionEnqueueError,
@@ -31,10 +41,11 @@ import {
 } from '../../reporting/report-export';
 import { openApiDocument } from '../api-v1/openapi';
 import { ciContextSchema } from '@shared/ci';
-import { reportUrlFor } from '../../platform/report-links';
+import { comparisonUrlFor, reportUrlFor } from '../../platform/report-links';
 import logger from '../../platform/logger';
 import { registerAuthoringRoutes } from '../api-v1/authoring';
 import { registerManagementRoutes } from '../api-v1/management';
+import { sessionRateLimit, sharedHeavyRateLimit } from '../middleware/rate-limits';
 
 /**
  * /api/v1 — the API a pipeline is meant to use, described by /api/v1/openapi.json.
@@ -318,6 +329,176 @@ router.get('/api/v1/runs/:runId/export/:format', requireScope('runs:read'), asyn
     return apiError(res, 500, 'export_failed', 'The report could not be exported.');
   }
 });
+
+/** A comparison as the API describes it: written out, like a run. */
+function toComparison(row: ComparisonRun, planName: string | null) {
+  return {
+    id: row.id,
+    planId: row.testPlanId,
+    planName,
+    name: row.name,
+    mode: row.mode,
+    status: row.status,
+    /** regressions, inconclusive, parity_with_accepted or parity; null until computed. */
+    verdict: row.verdict,
+    summary: row.summary,
+    baseline: {
+      environmentId: row.baselineEnvironmentId,
+      environmentName: row.baselineEnvironmentName,
+      runId: row.baselineExecutionId,
+    },
+    candidate: {
+      environmentId: row.candidateEnvironmentId,
+      environmentName: row.candidateEnvironmentName,
+      runId: row.candidateExecutionId,
+    },
+    failure: row.failureCode ? { code: row.failureCode, message: row.failureMessage } : null,
+    createdAt: row.createdAt,
+    completedAt: row.completedAt,
+    links: {
+      self: `/api/v1/comparisons/${row.id}`,
+      html: `/api/v1/comparisons/${row.id}/export/html`,
+      pdf: `/api/v1/comparisons/${row.id}/export/pdf`,
+      report: comparisonUrlFor(row.id) ?? null,
+    },
+  };
+}
+
+/**
+ * Keys are counted by apiRateLimit for every /api/v1 call. Starting a comparison (two runs) and
+ * rendering its parity report (a browser for the PDF) also share the budget of the expensive routes.
+ */
+const comparisonHeavyLimit = sharedHeavyRateLimit();
+const comparisonReadLimit = sessionRateLimit();
+
+router.post(
+  '/api/v1/plans/:planId/comparisons',
+  comparisonHeavyLimit,
+  requireScope('runs:write'),
+  async (req, res) => {
+    const parsed = CreateComparisonSchema.safeParse(req.body ?? {});
+    if (!parsed.success) {
+      return apiError(res, 400, 'invalid_request', 'The body does not match the schema.', {
+        details: flattenZodError(parsed.error),
+      });
+    }
+    const idempotencyKey = req.get('Idempotency-Key')?.trim() || null;
+    if (idempotencyKey && idempotencyKey.length > 255) {
+      return apiError(
+        res,
+        400,
+        'invalid_request',
+        'Idempotency-Key must be at most 255 characters.',
+      );
+    }
+    const input = parsed.data;
+    try {
+      const { comparison } = await comparisonOrchestrator.create({
+        planId: req.params.planId,
+        requestedByUserId: req.user!.id,
+        input,
+        idempotencyKey,
+        onCreated: (tx, row) =>
+          recordAudit(tx, {
+            action: AUDIT_ACTIONS.COMPARISON_CREATED,
+            actor: auditActor(req),
+            targetType: 'comparison',
+            targetId: row.id,
+            metadata: {
+              planId: row.testPlanId,
+              baselineEnvironmentId: input.baselineEnvironmentId,
+              candidateEnvironmentId: input.candidateEnvironmentId,
+              mode: input.mode,
+              via: 'api',
+            },
+          }),
+      });
+      // 202 also when the Idempotency-Key found an earlier one: the same answer to the same request.
+      res
+        .status(202)
+        .location(`/api/v1/comparisons/${comparison.id}`)
+        .json(toComparison(comparison, null));
+    } catch (error: unknown) {
+      if (error instanceof ComparisonError)
+        return apiError(res, error.status, error.code, error.message);
+      const quota = quotaErrorBody(error);
+      if (quota)
+        return apiError(
+          res,
+          quotaErrorStatus(error),
+          String(quota.code),
+          String(quota.error),
+          quota,
+        );
+      const message = error instanceof Error ? error.message : String(error);
+      const status = (error as { status?: unknown } | null)?.status;
+      if (typeof status === 'number' && status >= 400 && status < 500)
+        return apiError(res, status, 'refused', error instanceof Error ? message : 'Refused.');
+      logger.error({
+        message: 'Failed to start a comparison through /api/v1',
+        planId: req.params.planId,
+        error: message,
+      });
+      return apiError(res, 500, 'internal_error', 'The comparison could not be started.');
+    }
+  },
+);
+
+router.get(
+  '/api/v1/comparisons/:comparisonId',
+  comparisonReadLimit,
+  requireScope('runs:read'),
+  async (req, res) => {
+    const [row] = await withTenantTransaction((tx) =>
+      tx
+        .select({ comparison: comparisonRuns, planName: testPlans.name })
+        .from(comparisonRuns)
+        .leftJoin(testPlans, eq(testPlans.id, comparisonRuns.testPlanId))
+        .where(eq(comparisonRuns.id, req.params.comparisonId))
+        .limit(1),
+    );
+    if (!row)
+      return apiError(
+        res,
+        404,
+        'comparison_not_found',
+        'There is no such comparison in this organization.',
+      );
+    res.json(toComparison(row.comparison, row.planName));
+  },
+);
+
+router.get(
+  '/api/v1/comparisons/:comparisonId/export/:format',
+  comparisonHeavyLimit,
+  requireScope('runs:read'),
+  async (req, res) => {
+    const { comparisonId, format } = req.params;
+    if (!isComparisonExportFormat(format)) {
+      return apiError(
+        res,
+        400,
+        'invalid_format',
+        `Unknown format "${format}". Use one of: ${COMPARISON_EXPORT_FORMATS.join(', ')}.`,
+      );
+    }
+    try {
+      const exported = await exportComparison(comparisonId, format, evidencePrincipalOf(req));
+      if (!exported)
+        return apiError(
+          res,
+          404,
+          'comparison_not_found',
+          'There is no such comparison in this organization.',
+        );
+      sendExport(res, exported);
+    } catch (error) {
+      if (error instanceof ReportExportError)
+        return apiError(res, error.status, error.code, error.message);
+      return apiError(res, 500, 'export_failed', 'The parity report could not be exported.');
+    }
+  },
+);
 
 registerAuthoringRoutes(router);
 registerManagementRoutes(router);

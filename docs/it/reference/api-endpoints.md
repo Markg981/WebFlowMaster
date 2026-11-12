@@ -2,7 +2,7 @@
 
 Generata dal documento OpenAPI che il server espone in `/api/v1/openapi.json` (versione dell’API 1.2.0) con `npm run docs:api-reference`; non va modificata a mano. Le descrizioni restano in inglese, come nel documento. Autenticazione, scope, convenzioni e flussi completi sono spiegati nella [guida all’API REST](./api). Lo stesso documento si scarica come [openapi.json](/openapi.json) per importarlo in Postman, Insomnia o in un generatore di client.
 
-**68 operazioni.** Ognuna indica lo scope che la chiave API deve avere; una chiave senza riceve 403.
+**71 operazioni.** Ognuna indica lo scope che la chiave API deve avere; una chiave senza riceve 403.
 
 ## Projects
 
@@ -948,6 +948,75 @@ Scope `runs:read` · operation `exportRun`
 | 404    | No such run in this organization.                                                                   | [Error](#schema-error) (`application/json`)                                                        |
 | 503    | PDF was asked for and the server has no browser to render it; the HTML export has the same content. | [Error](#schema-error) (`application/json`)                                                        |
 
+### `POST /api/v1/plans/{planId}/comparisons` {#startComparison}
+
+Run a plan on two environments and compare the two runs.
+
+Freezes the plan once, runs it on the baseline environment and replays the same inputs on the candidate one, then compares the stored results. Answers at once; poll `Location` until `status` is completed, cancelled or error, then read `verdict`. Send an `Idempotency-Key` to make retrying the request safe: the same key returns the same comparison.
+
+Scope `runs:write` · operation `startComparison`
+
+| Parameter         | In     | Type   | Required | Description          |
+| ----------------- | ------ | ------ | -------- | -------------------- |
+| `planId`          | path   | string | yes      |                      |
+| `Idempotency-Key` | header | string |          | up to 255 characters |
+
+**Request body** (`application/json`)
+
+| Field                    | Type                            | Required | Description                                                                                           |
+| ------------------------ | ------------------------------- | -------- | ----------------------------------------------------------------------------------------------------- |
+| `baselineEnvironmentId`  | integer                         | yes      |                                                                                                       |
+| `candidateEnvironmentId` | integer                         | yes      | Must differ from the baseline.                                                                        |
+| `mode`                   | one of `sequential`, `parallel` |          | default `"sequential"`                                                                                |
+| `name`                   | string                          |          | up to 200 characters                                                                                  |
+| `policy`                 | object                          |          | Tolerances: text, numeric, network, visual and performance. Every field has a default; see the guide. |
+
+| Status | Meaning                                                                       | Body                                                  |
+| ------ | ----------------------------------------------------------------------------- | ----------------------------------------------------- |
+| 202    | Started, or found by its Idempotency-Key.                                     | [Comparison](#schema-comparison) (`application/json`) |
+| 400    | The body or a header is not valid.                                            | [Error](#schema-error) (`application/json`)           |
+| 401    | No usable API key was sent.                                                   | [Error](#schema-error) (`application/json`)           |
+| 403    | The key lacks the scope, or its account's role is below what the scope needs. | [Error](#schema-error) (`application/json`)           |
+| 404    | No such plan, or no such environment, in this organization.                   | [Error](#schema-error) (`application/json`)           |
+| 429    | The organization's queue is full (`queue_quota_exceeded`).                    | [Error](#schema-error) (`application/json`)           |
+
+### `GET /api/v1/comparisons/{comparisonId}` {#getComparison}
+
+One comparison: its status, its overall verdict and its counts.
+
+Scope `runs:read` · operation `getComparison`
+
+| Parameter      | In   | Type   | Required | Description |
+| -------------- | ---- | ------ | -------- | ----------- |
+| `comparisonId` | path | string | yes      |             |
+
+| Status | Meaning                                                                       | Body                                                  |
+| ------ | ----------------------------------------------------------------------------- | ----------------------------------------------------- |
+| 200    | The comparison.                                                               | [Comparison](#schema-comparison) (`application/json`) |
+| 401    | No usable API key was sent.                                                   | [Error](#schema-error) (`application/json`)           |
+| 403    | The key lacks the scope, or its account's role is below what the scope needs. | [Error](#schema-error) (`application/json`)           |
+| 404    | No such comparison in this organization.                                      | [Error](#schema-error) (`application/json`)           |
+
+### `GET /api/v1/comparisons/{comparisonId}/export/{format}` {#exportComparison}
+
+The parity report as a file: verdicts, tolerances, differences and who accepted them.
+
+Scope `runs:read` · operation `exportComparison`
+
+| Parameter      | In   | Type                 | Required | Description |
+| -------------- | ---- | -------------------- | -------- | ----------- |
+| `comparisonId` | path | string               | yes      |             |
+| `format`       | path | one of `html`, `pdf` | yes      |             |
+
+| Status | Meaning                                                                                             | Body                                                        |
+| ------ | --------------------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
+| 200    | The file, as an attachment.                                                                         | string (`text/html`)<br>string (binary) (`application/pdf`) |
+| 400    | Unknown format.                                                                                     | [Error](#schema-error) (`application/json`)                 |
+| 401    | No usable API key was sent.                                                                         | [Error](#schema-error) (`application/json`)                 |
+| 403    | The key lacks the scope, or its account's role is below what the scope needs.                       | [Error](#schema-error) (`application/json`)                 |
+| 404    | No such comparison in this organization.                                                            | [Error](#schema-error) (`application/json`)                 |
+| 503    | PDF was asked for and the server has no browser to render it; the HTML export has the same content. | [Error](#schema-error) (`application/json`)                 |
+
 ## Schedules
 
 ### `GET /api/v1/schedules` {#listSchedules}
@@ -1755,6 +1824,25 @@ The build that asked for a run. The wfm CLI fills it in from the CI system's env
 | `buildId`     | string                                                                          |          | up to 200 characters          |
 | `buildUrl`    | string (uri)                                                                    |          | http or https only.           |
 | `actor`       | string                                                                          |          | up to 200 characters          |
+
+### Comparison {#schema-comparison}
+
+| Field         | Type                                                                           | Required | Description                                                                                                                          |
+| ------------- | ------------------------------------------------------------------------------ | -------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `id`          | string                                                                         | yes      |                                                                                                                                      |
+| `planId`      | string                                                                         | yes      |                                                                                                                                      |
+| `planName`    | string \| null                                                                 |          |                                                                                                                                      |
+| `name`        | string \| null                                                                 |          |                                                                                                                                      |
+| `mode`        | one of `sequential`, `parallel`                                                |          |                                                                                                                                      |
+| `status`      | one of `queued`, `running`, `comparing`, `completed`, `error`, `cancelled`     | yes      |                                                                                                                                      |
+| `verdict`     | one of `regressions`, `inconclusive`, `parity_with_accepted`, `parity`, `null` |          | Null until both runs have ended and the comparison is computed.                                                                      |
+| `summary`     | object \| null                                                                 |          | total, byVerdict (identical, equivalent, different, outcome_mismatch, both_failed, not_comparable), byModule and droppedDifferences. |
+| `baseline`    | object { environmentId, environmentName, runId }                               | yes      |                                                                                                                                      |
+| `candidate`   | object { environmentId, environmentName, runId }                               | yes      |                                                                                                                                      |
+| `failure`     | object { code, message } \| null                                               |          |                                                                                                                                      |
+| `createdAt`   | string (date-time)                                                             |          |                                                                                                                                      |
+| `completedAt` | string (date-time) \| null                                                     |          |                                                                                                                                      |
+| `links`       | object { self, html, pdf, report }                                             | yes      |                                                                                                                                      |
 
 ### Dataset {#schema-dataset}
 

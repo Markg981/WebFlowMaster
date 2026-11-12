@@ -196,6 +196,14 @@ function where(kind: HealingTarget['kind'], index: number | null): string {
 export async function recordHealingProposal(input: ProposalInput): Promise<StepHealing> {
   const target = healingTarget(input.step);
   if (!target) return unrecorded(input, 'The step does not say where it is written.', 'no_source');
+  // A repair proposal writes the element's own locator, which is not what this step ran with.
+  const variant = input.step.provenance?.element?.variant;
+  if (target.kind === 'element' && variant)
+    return unrecorded(
+      input,
+      `The step found the element through its "${variant}" locator variant; correct the variant in the element repository.`,
+      'no_source',
+    );
   const fingerprint = sourceFingerprint(input.step, target);
   if (!fingerprint)
     return unrecorded(input, 'The shared element it names was not available.', 'absent');

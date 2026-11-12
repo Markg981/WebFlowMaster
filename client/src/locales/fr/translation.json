@@ -376,7 +376,18 @@
       "was": "avant",
       "healed": "réparé",
       "saveSelector": "Enregistrer le sélecteur",
-      "delete": "Supprimer l'élément"
+      "delete": "Supprimer l'élément",
+      "variants": {
+        "updated": "Variantes enregistrées. Une exécution dont l'environnement définit uiVariant sur l'une d'elles utilise son sélecteur.",
+        "badName": "Un nom de variante contient des lettres, des chiffres, \"_\", \"-\" ou \".\", 40 caractères au plus.",
+        "noSelector": "Une variante a besoin d'un sélecteur.",
+        "remove": "Supprimer la variante {{variant}}",
+        "name": "Variante (uiVariant)",
+        "nameFor": "Nom de variante pour {{name}}",
+        "selector": "Sélecteur dans cette variante",
+        "selectorFor": "Sélecteur de variante pour {{name}}",
+        "add": "Ajouter une variante"
+      }
     },
     "sourceHosts": {
       "title": "Statut du commit",
@@ -5802,6 +5813,20 @@
       "test": "Ce test",
       "project": "Tous les tests de son projet",
       "organization": "Tous les tests de l'organisation"
+    },
+    "export": {
+      "button": "Exporter",
+      "title": "Télécharger le rapport de parité en",
+      "formats": {
+        "html": {
+          "label": "Rapport de parité HTML",
+          "hint": "Un fichier qui s’ouvre partout : verdicts, tolérances et revues"
+        },
+        "pdf": {
+          "label": "PDF",
+          "hint": "À joindre à une recette ou à archiver pour un audit"
+        }
+      }
     }
   }
 }

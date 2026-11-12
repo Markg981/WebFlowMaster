@@ -13,6 +13,7 @@ pull requests (`npm run changelog:draft`) and are edited by hand before a releas
 ### Added
 
 - Compare environments: run one plan on a baseline and a candidate environment and get, test by test, what differs — outcome, checkpoint texts, screenshots and durations — with an overall verdict and parity by module. The new **Checkpoint text** action records texts for the comparison without ever failing a test.
+- Comparisons in pipelines and reports: the parity report exports as HTML and PDF, `/api/v1` starts and reads comparisons (`POST /api/v1/plans/{planId}/comparisons`, `GET /api/v1/comparisons/{id}` and its exports), `wfm compare` and an Azure Pipelines template gate a migration on the verdict, a comparison sends one notification instead of two, and **locator variants** let an element use another selector in the environments whose `uiVariant` variable names one (migration 0112; healing never proposes a repair of the default locator for a variant run).
 - Full environment comparison: **Checkpoint table**, **Checkpoint chart** (DevExtreme, ECharts or the application's `__wfmChartModel()`) and **Checkpoint network** (hashes only, never bodies), with tolerances for text, numbers, calls, screenshots and durations, and side-by-side table, chart and image diffs in the report. An editor reviews a test (accepted or defect) and can save its differences as known, for the test, its project or the organization; **Settings → Known differences** lists and manages them.
 
 ### Security

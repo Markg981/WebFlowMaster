@@ -1,0 +1,15 @@
+{
+  "id": "REP-64",
+  "area": "REP",
+  "title": "Confronto tra ambienti: avvio e lettura con le API /api/v1 e un token",
+  "priority": "P2",
+  "actor": "editor.a",
+  "preconditions": "Un token API con scope runs:write e runs:read, un token con il solo scope runs:read, un piano e due ambienti diversi del progetto.",
+  "steps": [
+    "Chiamare POST /api/v1/plans/<planId>/comparisons con il token runs:write, gli id degli ambienti baseline e candidate e l'intestazione Idempotency-Key.",
+    "Ripetere la stessa chiamata con la stessa Idempotency-Key.",
+    "Chiamare GET /api/v1/comparisons/<comparisonId> con il token runs:read fino allo stato completato.",
+    "Con il token di sola lettura chiamare POST /api/v1/plans/<planId>/comparisons; poi chiamare GET /api/v1/comparisons/<comparisonId> senza token."
+  ],
+  "expected": "La prima chiamata risponde 202 e avvia un solo confronto. La ripetizione risponde 202 con lo stesso confronto, senza avviarne un altro. La lettura riporta lo stato, il verdetto di ogni test e il link al report. Il token di sola lettura riceve 403 in avvio e la chiamata senza token riceve 401."
+}

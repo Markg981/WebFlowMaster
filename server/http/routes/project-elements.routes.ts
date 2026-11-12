@@ -9,6 +9,7 @@ import { requireRole } from '../middleware/require-role';
 import { referencedElementIds } from '../../authoring/step-elements';
 import logger from '../../platform/logger';
 import { partialUpdate } from '@shared/partial-update';
+import { ElementVariantsSchema } from '@shared/element-variants';
 
 /**
  * The elements of an application, kept once instead of once per test.
@@ -28,6 +29,8 @@ const elementBodySchema = z.object({
   elementType: z.string().trim().max(50).optional().nullable(),
   text: z.string().max(500).optional().nullable(),
   attributes: z.record(z.string(), z.string()).optional().nullable(),
+  /** Locator variants by name, chosen by a run's `uiVariant`; the whole map is replaced. */
+  variants: ElementVariantsSchema.optional(),
 });
 
 const updateElementBodySchema = partialUpdate(elementBodySchema);
@@ -95,6 +98,7 @@ router.post('/api/projects/:projectId/elements', requireRole('editor'), async (r
           elementType: parsed.data.elementType ?? null,
           text: parsed.data.text ?? null,
           attributes: parsed.data.attributes ?? null,
+          variants: parsed.data.variants ?? {},
         })
         .returning();
       return row;

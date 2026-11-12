@@ -1,0 +1,78 @@
+# WebFlowMaster run comparison for Azure Pipelines, as a steps template: a migration gate.
+#
+#   resources:
+#     repositories:
+#       - repository: webflowmaster
+#         type: github
+#         name: Markg981/WebFlowMaster
+#         endpoint: your-github-service-connection
+#
+#   steps:
+#     - template: integrations/azure-pipelines/webflowmaster-compare.yml@webflowmaster
+#       parameters:
+#         plan: your-plan-id
+#         baseline: 3     # the environment id of the reference, for example production
+#         candidate: 7    # the environment id under judgement, for example the migrated stack
+#
+# The plan runs on both environments and the results are compared test by test. The step fails
+# when a test has a verdict in failOn, when nothing could be compared, or when the comparison
+# ended in error. The parity report (HTML and PDF) is kept as a pipeline artifact either way.
+#
+# WFM_URL and WFM_API_KEY come from a variable group or the pipeline's variables, the key marked
+# secret; it needs the runs:write and runs:read scopes. The build id is the idempotency key, so a
+# re-run of the same job follows the comparison it already started.
+
+parameters:
+  - name: plan
+    type: string
+  - name: baseline
+    type: number
+  - name: candidate
+    type: number
+  - name: mode
+    type: string
+    default: sequential
+    values:
+      - sequential
+      - parallel
+  - name: failOn
+    type: string
+    default: different,outcome_mismatch
+  - name: name
+    type: string
+    default: ''
+  - name: timeout
+    type: number
+    default: 3600
+
+steps:
+  - script: |
+      set -u
+      node -e "fetch(process.env.WFM_URL.replace(/\/+$/, '') + '/cli/wfm.mjs').then((r) => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.text(); }).then((t) => require('fs').writeFileSync('wfm.mjs', t)).catch((e) => { console.error('Could not download the WebFlowMaster CLI: ' + e.message); process.exit(2); })" || exit 2
+      set -- compare --plan "$WFM_PLAN" --baseline "$WFM_BASELINE" --candidate "$WFM_CANDIDATE" \
+        --mode "$WFM_MODE" --fail-on "$WFM_FAIL_ON" --timeout "$WFM_TIMEOUT" \
+        --idempotency-key "compare-$BUILD_BUILDID-$WFM_PLAN" \
+        --html "$WFM_OUT/parity-report.html" --pdf "$WFM_OUT/parity-report.pdf"
+      [ -n "$WFM_NAME" ] && set -- "$@" --name "$WFM_NAME"
+      node wfm.mjs "$@"
+    displayName: WebFlowMaster run comparison
+    env:
+      WFM_URL: $(WFM_URL)
+      WFM_API_KEY: $(WFM_API_KEY)
+      WFM_PLAN: ${{ parameters.plan }}
+      WFM_BASELINE: ${{ parameters.baseline }}
+      WFM_CANDIDATE: ${{ parameters.candidate }}
+      WFM_MODE: ${{ parameters.mode }}
+      WFM_FAIL_ON: ${{ parameters.failOn }}
+      WFM_NAME: ${{ parameters.name }}
+      WFM_TIMEOUT: ${{ parameters.timeout }}
+      WFM_OUT: $(Build.ArtifactStagingDirectory)
+
+  - task: PublishPipelineArtifact@1
+    displayName: Keep the parity report
+    condition: always()
+    # No report when the comparison could not start; the step above already says why.
+    continueOnError: true
+    inputs:
+      targetPath: $(Build.ArtifactStagingDirectory)
+      artifact: webflowmaster-parity-report

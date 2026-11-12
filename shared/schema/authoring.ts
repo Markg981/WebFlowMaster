@@ -283,6 +283,11 @@ export const projectElements = pgTable(
     elementType: text('element_type'),
     text: text('text'),
     attributes: jsonb('attributes'),
+    /**
+     * Locator variants by name (shared/element-variants.ts), chosen by a run's `uiVariant`.
+     * Healing repairs `selector` only; a variant is corrected by hand. Migration 0112.
+     */
+    variants: jsonb('variants').$type<Record<string, unknown>>().notNull().default({}),
     /** Set when the healing pass repaired it: what the application has been moving underneath. */
     healedAt: timestamp('healed_at'),
     createdAt: timestamp('created_at').defaultNow().notNull(),

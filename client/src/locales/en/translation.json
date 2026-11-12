@@ -376,7 +376,18 @@
       "was": "was",
       "healed": "healed",
       "saveSelector": "Save selector",
-      "delete": "Delete element"
+      "delete": "Delete element",
+      "variants": {
+        "updated": "Variants saved. A run whose environment sets uiVariant to one of them uses its selector.",
+        "badName": "A variant name is letters, digits, \"_\", \"-\" or \".\", up to 40 characters.",
+        "noSelector": "A variant needs a selector.",
+        "remove": "Remove variant {{variant}}",
+        "name": "Variant (uiVariant)",
+        "nameFor": "Variant name for {{name}}",
+        "selector": "Selector in that variant",
+        "selectorFor": "Variant selector for {{name}}",
+        "add": "Add variant"
+      }
     },
     "sourceHosts": {
       "title": "Commit status",
@@ -5802,6 +5813,20 @@
       "test": "This test",
       "project": "Every test of its project",
       "organization": "Every test of the organization"
+    },
+    "export": {
+      "button": "Export",
+      "title": "Download the parity report as",
+      "formats": {
+        "html": {
+          "label": "HTML parity report",
+          "hint": "One file that opens anywhere: verdicts, tolerances and reviews"
+        },
+        "pdf": {
+          "label": "PDF",
+          "hint": "To attach to a sign-off or file for an audit"
+        }
+      }
     }
   }
 }

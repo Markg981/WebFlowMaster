@@ -376,7 +376,18 @@
       "was": "prima",
       "healed": "corretto",
       "saveSelector": "Salva selettore",
-      "delete": "Elimina elemento"
+      "delete": "Elimina elemento",
+      "variants": {
+        "updated": "Varianti salvate. Un'esecuzione il cui ambiente imposta uiVariant su una di esse usa il suo selettore.",
+        "badName": "Il nome di una variante contiene lettere, cifre, \"_\", \"-\" o \".\", fino a 40 caratteri.",
+        "noSelector": "Una variante richiede un selettore.",
+        "remove": "Rimuovi la variante {{variant}}",
+        "name": "Variante (uiVariant)",
+        "nameFor": "Nome della variante per {{name}}",
+        "selector": "Selettore in quella variante",
+        "selectorFor": "Selettore della variante per {{name}}",
+        "add": "Aggiungi variante"
+      }
     },
     "sourceHosts": {
       "title": "Stato del commit",
@@ -5802,6 +5813,20 @@
       "test": "Questo test",
       "project": "Tutti i test del suo progetto",
       "organization": "Tutti i test dell'organizzazione"
+    },
+    "export": {
+      "button": "Esporta",
+      "title": "Scarica il report di parità come",
+      "formats": {
+        "html": {
+          "label": "Report di parità HTML",
+          "hint": "Un file che si apre ovunque: verdetti, tolleranze e revisioni"
+        },
+        "pdf": {
+          "label": "PDF",
+          "hint": "Da allegare a un collaudo o archiviare per un audit"
+        }
+      }
     }
   }
 }

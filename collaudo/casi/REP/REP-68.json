@@ -1,0 +1,14 @@
+{
+  "id": "REP-68",
+  "area": "REP",
+  "title": "Confronto tra ambienti: due ambienti del demo shop, differenza solo nel test dell'ordine",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "Il demo shop con un test dell'ordine (/orders/{{orderId}}) e un test di health in un piano; due ambienti che differiscono solo per la variabile orderId.",
+  "steps": [
+    "In Piani di test aprire il piano con i due test e fare clic su \"Confronta ambienti\".",
+    "Scegliere il primo ambiente come baseline e il secondo come candidato e avviare il confronto.",
+    "Attendere \"Completato\" e leggere l'elenco dei test nel report."
+  ],
+  "expected": "Il test dell'ordine mostra \"Esito diverso\" perché con i due orderId la pagina dà esiti diversi. Il test di health non mostra \"Esito diverso\"."
+}

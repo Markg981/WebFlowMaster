@@ -32,6 +32,7 @@ import DiffChart from '@/components/comparisons/DiffChart';
 import DiffImage from '@/components/comparisons/DiffImage';
 import DiffTable from '@/components/comparisons/DiffTable';
 import ReviewDialog from '@/components/comparisons/ReviewDialog';
+import ExportComparisonMenu from '@/components/comparisons/ExportComparisonMenu';
 import {
   cancelComparison,
   getComparison,
@@ -432,6 +433,7 @@ export default function ComparisonReportPage() {
               side={comparison.candidate}
               label={t('comparisons.candidate', 'Candidate')}
             />
+            <ExportComparisonMenu comparisonId={comparison.id} />
             {canEdit && !isTerminalComparisonStatus(comparison.status) && (
               <Button variant="outline" size="sm" onClick={cancel} disabled={cancelling}>
                 {cancelling ? (

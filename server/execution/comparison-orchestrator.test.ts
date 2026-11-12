@@ -10,6 +10,7 @@ import {
   testPlans,
   tests as testsTable,
   users,
+  type ComparisonRun,
 } from '@shared/schema';
 import { emptyVerdictCounts, type ComparisonSummary } from '@shared/comparison';
 import { createTestOrganization } from '../tests/factories';
@@ -46,10 +47,11 @@ let prodId: number;
 let stagingId: number;
 let theirsId: number;
 let engine: ReturnType<typeof vi.fn<ComparisonEngine>>;
+let notify: ReturnType<typeof vi.fn<(comparison: ComparisonRun) => Promise<void>>>;
 
 const executions = () => createExecutionOrchestrator(queue as any);
 const orchestratorWith = (overrides: Partial<ReturnType<typeof executions>> = {}) =>
-  createComparisonOrchestrator({ executions: { ...executions(), ...overrides }, engine });
+  createComparisonOrchestrator({ executions: { ...executions(), ...overrides }, engine, notify });
 
 const asUs = <T>(fn: () => Promise<T>) => runWithTenant(organizationId, fn);
 
@@ -154,6 +156,7 @@ beforeEach(async () => {
   theirsId = theirs.id;
 
   engine = vi.fn<ComparisonEngine>(async () => ({ verdict: 'parity', summary }));
+  notify = vi.fn(async () => {});
 });
 
 describe('creating a comparison', () => {
@@ -337,6 +340,61 @@ describe('advancing a comparison', () => {
     expect(await asUs(() => orchestrator.advance(comparison.id))).toMatchObject({
       status: 'error',
       failureCode: 'candidate_refused',
+    });
+  });
+});
+
+describe('announcing a comparison', () => {
+  it('announces it once when it completes, whoever sees the second run end', async () => {
+    const orchestrator = orchestratorWith();
+    const { comparison } = await create(orchestrator, { mode: 'parallel' });
+    await endRun(comparison.baselineExecutionId!, 'completed');
+    await endRun(comparison.candidateExecutionId!, 'completed');
+
+    await Promise.all([
+      asUs(() => orchestrator.advance(comparison.id)),
+      asUs(() => orchestrator.advance(comparison.id)),
+    ]);
+    await asUs(() => orchestrator.advance(comparison.id));
+
+    expect(notify).toHaveBeenCalledTimes(1);
+    expect(notify.mock.calls[0][0]).toMatchObject({
+      id: comparison.id,
+      status: 'completed',
+      verdict: 'parity',
+    });
+  });
+
+  it('announces an error once, and a cancel not at all', async () => {
+    const orchestrator = orchestratorWith();
+    const failed = await create(orchestrator);
+    await endRun(failed.comparison.baselineExecutionId!, 'error');
+    await asUs(() => orchestrator.advance(failed.comparison.id));
+    await asUs(() => orchestrator.advance(failed.comparison.id));
+    expect(notify).toHaveBeenCalledTimes(1);
+    expect(notify.mock.calls[0][0]).toMatchObject({
+      status: 'error',
+      failureCode: 'baseline_error',
+    });
+
+    const stopped = await create(orchestrator);
+    await asUs(() => orchestrator.cancel(stopped.comparison.id));
+    const dropped = await create(orchestrator);
+    await endRun(dropped.comparison.baselineExecutionId!, 'cancelled');
+    await asUs(() => orchestrator.advance(dropped.comparison.id));
+    expect(notify).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps the verdict when the notification fails', async () => {
+    notify.mockRejectedValueOnce(new Error('smtp down'));
+    const orchestrator = orchestratorWith();
+    const { comparison } = await create(orchestrator, { mode: 'parallel' });
+    await endRun(comparison.baselineExecutionId!, 'completed');
+    await endRun(comparison.candidateExecutionId!, 'completed');
+
+    expect(await asUs(() => orchestrator.advance(comparison.id))).toMatchObject({
+      status: 'completed',
+      verdict: 'parity',
     });
   });
 });

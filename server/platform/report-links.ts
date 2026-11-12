@@ -48,6 +48,16 @@ export function reportPathFor(
   return `/test-plans/${encodeURIComponent(planId)}/executions/${encodeURIComponent(executionId)}/report`;
 }
 
+/** The page of a comparison of two runs; absolute when the public address is known. */
+export function comparisonUrlFor(comparisonId: string): string | undefined {
+  const base = publicBaseUrl();
+  return base ? `${base}${comparisonPathFor(comparisonId)}` : undefined;
+}
+
+export function comparisonPathFor(comparisonId: string): string {
+  return `/comparisons/${encodeURIComponent(comparisonId)}`;
+}
+
 /** A report reference for a text: the link, else the path and the run id. */
 export function reportReferenceFor(planId: string | null | undefined, executionId: string): string {
   const url = reportUrlFor(planId, executionId);

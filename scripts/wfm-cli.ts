@@ -23,7 +23,7 @@ export const EXIT_PASSED = 0;
 export const EXIT_RUN_FAILED = 1;
 export const EXIT_TOOL_ERROR = 2;
 
-type Command = 'run' | 'status' | 'junit' | 'export' | 'tests' | 'units' | 'help';
+type Command = 'run' | 'status' | 'junit' | 'export' | 'tests' | 'units' | 'compare' | 'help';
 
 export interface CliOptions {
   command: Command;
@@ -59,6 +59,13 @@ export interface CliOptions {
   changedFilesPath?: string;
   /** `wfm units <runId> <unitId>`: the unit whose attempts and rows to show. */
   unitId?: string;
+  /** `wfm compare`: the plan, the two environments, and what fails the step. */
+  planId?: string;
+  baselineEnvironmentId?: number;
+  candidateEnvironmentId?: number;
+  compareMode?: 'sequential' | 'parallel';
+  comparisonName?: string;
+  failOn?: string[];
 }
 
 export interface CliIo {
@@ -86,6 +93,9 @@ Usage:
   wfm junit <runId> [--junit <file>]
   wfm export <runId> [--html <file>] [--pdf <file>] [--allure <file>]
   wfm units <runId> [<unitId>] [--json]
+  wfm compare --plan <planId> --baseline <environmentId> --candidate <environmentId>
+              [--wait] [--fail-on different,outcome_mismatch] [--mode sequential|parallel]
+              [--name <name>] [--html <file>] [--pdf <file>]
   wfm tests export [--project <id|none>] [--format yaml|json|gherkin] [--out <file>]
   wfm tests import <file> [--project <id>] [--dry-run]
 
@@ -116,9 +126,21 @@ Options:
   --bdd-mode             tests import: manual or cucumber
   --bdd-profile          cucumber import: authorized destination profile UUID
   --bdd-revision         cucumber import: pinned destination support revision
+  --plan <id>            compare: the plan to run on both environments
+  --baseline <id>        compare: the environment that is the reference
+  --candidate <id>       compare: the environment under judgement
+  --mode <mode>          compare: sequential (default) or parallel
+  --name <name>          compare: a name for the comparison, such as the migration
+  --fail-on <verdicts>   compare: the test verdicts that fail the step, comma separated, from
+                         different, outcome_mismatch, both_failed, not_comparable, equivalent
+                         (default: different,outcome_mismatch)
 
 wfm units lists what a run expected — one unit per test, browser, language and device — and,
 given a unit, every attempt at it and every dataset row of each, with links to their evidence.
+
+wfm compare runs the plan on two environments and compares the results test by test. With --wait
+it exits 1 when a test has a verdict in --fail-on, when nothing could be compared, or when the
+comparison ended in error; --html and --pdf write the parity report.
 
 wfm tests keeps a project's tests in a repository: export them in a pipeline and commit the file,
 or import the file a pull request changed. It needs a full-access API key (one without scopes).
@@ -127,7 +149,7 @@ Gherkin exports web tests only; imported .feature prose becomes manual steps unl
 On GitHub Actions it also sets the step outputs run-id, status and report-url, and writes a
 summary of the run to the job's page.
 
-Exit codes: 0 passed · 1 the run failed · 2 the command could not be carried out
+Exit codes: 0 passed · 1 the run (or the comparison) failed · 2 the command could not be carried out
 `;
 
 const defaults = (command: Command): CliOptions => ({
@@ -153,7 +175,8 @@ export function parseArgs(
     command !== 'junit' &&
     command !== 'export' &&
     command !== 'tests' &&
-    command !== 'units'
+    command !== 'units' &&
+    command !== 'compare'
   ) {
     return { error: `Unknown command "${command}".` };
   }
@@ -239,6 +262,27 @@ export function parseArgs(
       case '--changed-files':
         options.changedFilesPath = value();
         break;
+      case '--plan':
+        options.planId = value();
+        break;
+      case '--baseline':
+        options.baselineEnvironmentId = Number(value());
+        break;
+      case '--candidate':
+        options.candidateEnvironmentId = Number(value());
+        break;
+      case '--mode':
+        options.compareMode = value() as CliOptions['compareMode'];
+        break;
+      case '--name':
+        options.comparisonName = value();
+        break;
+      case '--fail-on':
+        options.failOn = (value() ?? '')
+          .split(',')
+          .map((v) => v.trim())
+          .filter(Boolean);
+        break;
       default:
         if (argument.startsWith('-')) return { error: `Unknown option "${argument}".` };
         positional.push(argument);
@@ -275,6 +319,8 @@ export function parseArgs(
     if (action === 'import' && options.project === 'none') options.project = undefined;
     return { ...options, testsAction: action, target: file };
   }
+
+  if (command === 'compare') return compareOptions(options, positional);
 
   options.target = positional[0];
   if (!options.target) return { error: `${command} needs an id. See --help.` };
@@ -322,6 +368,54 @@ export function parseArgs(
     options.wait = true;
   }
   return options;
+}
+
+/** Test verdicts --fail-on accepts; `identical` never fails anything. Kept in step with shared/comparison.ts. */
+export const FAIL_ON_VERDICTS = [
+  'different',
+  'outcome_mismatch',
+  'both_failed',
+  'not_comparable',
+  'equivalent',
+] as const;
+export const DEFAULT_FAIL_ON = ['different', 'outcome_mismatch'];
+
+function compareOptions(options: CliOptions, positional: string[]): CliOptions | { error: string } {
+  if (positional.length)
+    return { error: 'compare takes --plan, --baseline and --candidate. See --help.' };
+  if (!options.planId?.trim()) return { error: 'compare needs --plan.' };
+  const isId = (n: number | undefined) => n !== undefined && Number.isInteger(n) && n > 0;
+  if (!isId(options.baselineEnvironmentId) || !isId(options.candidateEnvironmentId))
+    return { error: 'compare needs --baseline and --candidate environment ids.' };
+  if (options.baselineEnvironmentId === options.candidateEnvironmentId)
+    return { error: '--baseline and --candidate must be two different environments.' };
+  if (
+    options.compareMode &&
+    options.compareMode !== 'sequential' &&
+    options.compareMode !== 'parallel'
+  )
+    return { error: '--mode is sequential or parallel.' };
+  if (options.failOn) {
+    if (!options.failOn.length) return { error: '--fail-on needs at least one verdict.' };
+    const unknown = options.failOn.filter(
+      (v) => !(FAIL_ON_VERDICTS as readonly string[]).includes(v),
+    );
+    if (unknown.length)
+      return {
+        error: `--fail-on does not know ${unknown.join(', ')}. Use ${FAIL_ON_VERDICTS.join(', ')}.`,
+      };
+  }
+  if (!Number.isFinite(options.timeoutSeconds) || options.timeoutSeconds <= 0)
+    return { error: '--timeout must be a positive number of seconds.' };
+  if (!Number.isFinite(options.pollSeconds) || options.pollSeconds <= 0)
+    return { error: '--poll must be a positive number of seconds.' };
+  if (options.idempotencyKey !== undefined && !options.idempotencyKey.trim())
+    return { error: '--idempotency-key needs a value.' };
+  if (options.allurePath || options.junitPath)
+    return { error: 'compare writes --html and --pdf only.' };
+  // A verdict, or a report, means waiting for the comparison to end.
+  if (options.failOn || options.htmlPath || options.pdfPath) options.wait = true;
+  return { ...options, target: options.planId };
 }
 
 /**
@@ -541,6 +635,7 @@ export async function runCli(options: CliOptions, io: CliIo): Promise<number> {
       return await writeReports(options, io, call, options.target!);
     }
     if (options.command === 'units') return await showUnits(options, io, call);
+    if (options.command === 'compare') return await runCompare(options, io, call);
 
     let runId = options.target!;
     if (options.command === 'run') {
@@ -640,6 +735,144 @@ export async function runCli(options: CliOptions, io: CliIo): Promise<number> {
     io.error(`Could not reach ${options.baseUrl}: ${error?.message ?? String(error)}`);
     return EXIT_TOOL_ERROR;
   }
+}
+
+/** A comparison as /api/v1 describes it, as far as this reads it. */
+export interface ComparisonRecord {
+  id: string;
+  status: string;
+  verdict: string | null;
+  planName?: string | null;
+  name?: string | null;
+  summary?: { total: number; byVerdict: Record<string, number> } | null;
+  baseline?: { environmentName?: string; runId?: string | null };
+  candidate?: { environmentName?: string; runId?: string | null };
+  failure?: { code?: string | null; message?: string | null } | null;
+  links?: { report?: string | null };
+}
+
+/** Kept in step with TERMINAL_COMPARISON_STATUSES in shared/comparison.ts. */
+const COMPARISON_IN_PROGRESS = new Set(['queued', 'running', 'comparing']);
+
+export function describeComparison(comparison: ComparisonRecord): string {
+  const counts = comparison.summary?.byVerdict ?? {};
+  const listed = Object.entries(counts)
+    .filter(([, n]) => n > 0)
+    .map(([verdict, n]) => `${n} ${verdict.replace(/_/g, ' ')}`)
+    .join(', ');
+  const sides = `${comparison.baseline?.environmentName ?? 'baseline'} → ${comparison.candidate?.environmentName ?? 'candidate'}`;
+  const verdict = comparison.verdict ? comparison.verdict.replace(/_/g, ' ') : comparison.status;
+  const failure = comparison.failure?.message ? ` (${comparison.failure.message})` : '';
+  const link = comparison.links?.report ? ` — ${comparison.links.report}` : '';
+  const name = comparison.name || comparison.planName || 'Comparison';
+  return `${name} ${sides}: ${verdict}${failure}${listed ? ` — ${listed}` : ''}${link}`;
+}
+
+/**
+ * The step's verdict from the comparison's: the tests whose verdict is in failOn. A comparison
+ * that compared nothing, or ended in error or cancelled, proves no parity and fails too.
+ */
+export function comparisonExitCode(comparison: ComparisonRecord, failOn: string[]): number {
+  if (comparison.status !== 'completed') return EXIT_RUN_FAILED;
+  const summary = comparison.summary;
+  if (!summary || summary.total === 0) return EXIT_RUN_FAILED;
+  return failOn.some((verdict) => (summary.byVerdict[verdict] ?? 0) > 0)
+    ? EXIT_RUN_FAILED
+    : EXIT_PASSED;
+}
+
+/** `wfm compare`: start a comparison and, with --wait, turn its verdict into the exit code. */
+async function runCompare(options: CliOptions, io: CliIo, call: Call): Promise<number> {
+  const response = await call(`/api/v1/plans/${encodeURIComponent(options.planId!)}/comparisons`, {
+    method: 'POST',
+    ...(options.idempotencyKey ? { headers: { 'Idempotency-Key': options.idempotencyKey } } : {}),
+    body: JSON.stringify({
+      baselineEnvironmentId: options.baselineEnvironmentId,
+      candidateEnvironmentId: options.candidateEnvironmentId,
+      ...(options.compareMode ? { mode: options.compareMode } : {}),
+      ...(options.comparisonName ? { name: options.comparisonName } : {}),
+    }),
+  });
+  if (!response.ok) {
+    io.error(`Could not start the comparison: ${response.status} ${await errorText(response)}`);
+    return EXIT_TOOL_ERROR;
+  }
+  const started: ComparisonRecord = await response.json();
+  if (!started?.id) {
+    io.error('The server started a comparison but did not say which one.');
+    return EXIT_TOOL_ERROR;
+  }
+  io.log(`Started comparison ${started.id}.`);
+  await comparisonOutputs(io, started);
+  if (!options.wait) return EXIT_PASSED;
+
+  const path = `/api/v1/comparisons/${encodeURIComponent(started.id)}`;
+  const deadline = io.now() + options.timeoutSeconds * 1000;
+  let lastStatus: string | undefined;
+  let comparison: ComparisonRecord;
+  for (;;) {
+    const polled = await call(path);
+    if (!polled.ok)
+      throw new Error(
+        `Asking about the comparison failed: ${polled.status} ${await errorText(polled)}`,
+      );
+    comparison = await polled.json();
+    if (comparison.status !== lastStatus) {
+      lastStatus = comparison.status;
+      io.log(`Comparison ${started.id}: ${comparison.status}`);
+    }
+    if (!COMPARISON_IN_PROGRESS.has(comparison.status)) break;
+    if (io.now() >= deadline) {
+      io.error(`Timed out after ${options.timeoutSeconds}s waiting for comparison ${started.id}.`);
+      return EXIT_TOOL_ERROR;
+    }
+    await io.sleep(options.pollSeconds * 1000);
+  }
+
+  // Written whatever the verdict: a failed comparison is when the parity report is read. A failed
+  // download is warned about and does not hide the verdict.
+  const wanted: Array<['html' | 'pdf', string | undefined]> = [
+    ['html', options.htmlPath],
+    ['pdf', options.pdfPath],
+  ];
+  for (const [format, target] of wanted) {
+    if (!target) continue;
+    const file = await call(`${path}/export/${format}`);
+    if (!file.ok) {
+      io.error(
+        `Warning: the ${format.toUpperCase()} parity report was not written: ${file.status} ${await errorText(file)}`,
+      );
+      continue;
+    }
+    await io.writeFile(
+      target,
+      format === 'html' ? await file.text() : new Uint8Array(await file.arrayBuffer()),
+    );
+    io.log(`Wrote ${target}.`);
+  }
+
+  if (options.json) io.log(JSON.stringify(comparison, null, 2));
+  else io.log(describeComparison(comparison));
+  await comparisonOutputs(io, comparison);
+  const exit = comparisonExitCode(comparison, options.failOn ?? DEFAULT_FAIL_ON);
+  if (exit !== EXIT_PASSED && io.env.GITHUB_ACTIONS === 'true')
+    io.log(
+      `::error title=WebFlowMaster::${describeComparison(comparison).replace(/[\r\n%]/g, ' ')}`,
+    );
+  return exit;
+}
+
+/** Step outputs for a comparison: comparison-id, status, verdict, report-url. Only on GitHub Actions. */
+async function comparisonOutputs(io: CliIo, comparison: ComparisonRecord): Promise<void> {
+  const file = io.env.GITHUB_OUTPUT;
+  if (io.env.GITHUB_ACTIONS !== 'true' || !file) return;
+  const lines = [
+    `comparison-id=${comparison.id}`,
+    `status=${comparison.status}`,
+    `verdict=${comparison.verdict ?? ''}`,
+    `report-url=${comparison.links?.report ?? ''}`,
+  ];
+  await io.appendFile(file, lines.join('\n') + '\n');
 }
 
 /** A unit of a run as /api/v1 describes it, as far as this reads it. */

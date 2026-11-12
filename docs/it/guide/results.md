@@ -384,6 +384,37 @@ chi può vedere il progetto, e solo chi può modificare il progetto può aggiung
 - La durata di uno step web non è nel log, quindi per i test web si confronta solo la durata
   dell'intero test.
 
+### Esportare il report di parità {#exporting-comparison}
+
+Nel report di un confronto concluso, **Esporta** offre **Report di parità HTML** (un solo file che
+si apre ovunque: verdetti, tolleranze e revisioni) e **PDF** (da allegare a un'approvazione o da
+archiviare per un audit). Lo può esportare chiunque possa leggere il confronto. La CLI e l'API
+scrivono gli stessi file, vedi [Eseguire da CI](../integrations/ci#comparison) e l'API qui sotto.
+
+L'API v1 avvia e legge i confronti con la stessa chiave dei run (`runs:write` per avviare,
+`runs:read` per leggere), documentata in `GET /api/v1/openapi.json`:
+
+| Endpoint                                                    | Cosa fa                                                                         |
+| ----------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| `POST /api/v1/plans/{planId}/comparisons`                   | Avvia un confronto; risponde `202` con il confronto e un header `Location`.     |
+| `GET /api/v1/comparisons/{comparisonId}`                    | Lo legge: `status`, `verdict`, `summary`, i due lati con i loro run, `failure`. |
+| `GET /api/v1/comparisons/{comparisonId}/export/{html\|pdf}` | Scarica il report di parità.                                                    |
+
+Il corpo prende `baselineEnvironmentId` e `candidateEnvironmentId` (due ambienti diversi) e,
+facoltativi, `mode` (`sequential`, il predefinito, oppure `parallel`), `name` e `policy` (le
+tolleranze). L'header facoltativo `Idempotency-Key` (al massimo 255 caratteri) fa sì che una
+richiesta ripetuta restituisca il confronto già avviato. `links` nella risposta indica il report e
+le due esportazioni. `verdict` è `regressions`, `inconclusive`, `parity_with_accepted` o `parity`,
+ed è nullo finché il confronto non è concluso.
+
+Un confronto invia **una** notifica quando termina, invece di una per run: vedi
+[Impostazioni del piano](running#impostazioni-del-piano). Segue le impostazioni di notifica del piano: la
+parità (con o senza differenze accettate) è un successo, le regressioni e un confronto inconcludente
+un fallimento, un confronto che non ha potuto girare è "non eseguito". Un confronto annullato è
+annunciato solo dove lo sarebbe un run interrotto. Il messaggio riporta il piano, i due ambienti,
+il verdetto e i conteggi per verdetto dei test, con il link al report; Slack e Teams ricevono la
+loro card e gli indirizzi e-mail elencati ricevono anche una mail.
+
 ## Esportare un run
 
 **Esporta** scarica il run come:

@@ -37,7 +37,7 @@ import { closeConsumers } from './runtime/worker-shutdown';
 import { registerCommitStatus } from './integrations/commit-status';
 import { registerRunPromotion } from './execution/run-promotion';
 import { registerComparisonFinalizer } from './execution/comparison-finalizer';
-import { comparisonOrchestrator } from './reporting/comparison/comparisons';
+import { comparisonOrchestrator } from './integrations/comparisons';
 import { installWorkerLogEmitter } from './http/websocket';
 import { publicBaseUrl } from './platform/report-links';
 import 'dotenv/config';

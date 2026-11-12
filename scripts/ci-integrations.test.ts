@@ -17,6 +17,7 @@ const files = [
   'gitlab/webflowmaster.gitlab-ci.yml',
   'jenkins/vars/webflowmaster.groovy',
   'azure-pipelines/webflowmaster.yml',
+  'azure-pipelines/webflowmaster-compare.yml',
   'bitbucket/bitbucket-pipelines.yml',
   'circleci/webflowmaster-orb.yml',
 ].map((file) => ({ file, text: fs.readFileSync(path.join(root, file), 'utf8') }));
@@ -57,6 +58,43 @@ describe('the CI integrations', () => {
       junitPath: 'j.xml',
       htmlPath: 'r.html',
       environmentId: 3,
+    });
+  });
+
+  it('Azure comparison: parses into a comparison that waits, gates and writes the parity report', () => {
+    // The command line webflowmaster-compare.yml builds, with its placeholders filled in.
+    const parsed = parseArgs(
+      [
+        'compare',
+        '--plan',
+        'plan-1',
+        '--baseline',
+        '3',
+        '--candidate',
+        '7',
+        '--mode',
+        'sequential',
+        '--fail-on',
+        'different,outcome_mismatch',
+        '--timeout',
+        '3600',
+        '--idempotency-key',
+        'compare-42-plan-1',
+        '--html',
+        'p.html',
+        '--pdf',
+        'p.pdf',
+      ],
+      {} as NodeJS.ProcessEnv,
+    );
+    expect(parsed).toMatchObject({
+      command: 'compare',
+      wait: true,
+      baselineEnvironmentId: 3,
+      candidateEnvironmentId: 7,
+      failOn: ['different', 'outcome_mismatch'],
+      htmlPath: 'p.html',
+      pdfPath: 'p.pdf',
     });
   });
 

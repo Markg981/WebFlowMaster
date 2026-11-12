@@ -164,3 +164,46 @@ export function runFinishedMail(
     ].join('\n'),
   };
 }
+
+/**
+ * The one mail a comparison sends when it ends, in place of one per run. Its purpose is
+ * `run_finished`, so an organization's own template for run mails covers it too.
+ */
+export function comparisonFinishedMail(
+  to: string,
+  comparison: { planName: string; outcome: string; line: string; url: string | undefined },
+  organizationId?: number | null,
+): MailMessage {
+  let link: string | undefined;
+  if (comparison.url) {
+    try {
+      safeBase(comparison.url);
+      link = comparison.url;
+    } catch {
+      /* An invalid operator public URL must never become an HTML action. */
+    }
+  }
+  return {
+    organizationId,
+    purpose: 'run_finished',
+    templateVariables: {
+      planName: comparison.planName,
+      status: comparison.outcome,
+      summary: comparison.line,
+      actionUrl: link ?? '',
+    },
+    to,
+    subject: `[WebFlowMaster] ${comparison.planName.replace(/[\r\n]/g, ' ')} comparison: ${comparison.outcome}`,
+    html: htmlMail(
+      'Your comparison has finished',
+      [comparison.line, "You receive this because of your notification settings, or the plan's."],
+      link ? { label: 'View parity report', url: link } : undefined,
+    ),
+    text: [
+      comparison.line,
+      '',
+      ...(link ? ['Parity report:', link, ''] : []),
+      "You receive this because of your notification settings, or the plan's.",
+    ].join('\n'),
+  };
+}
