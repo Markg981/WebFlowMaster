@@ -401,19 +401,20 @@ router.post('/api/v1/plans/:planId/comparisons', requireScope('runs:write'), asy
       .status(202)
       .location(`/api/v1/comparisons/${comparison.id}`)
       .json(toComparison(comparison, null));
-  } catch (error: any) {
+  } catch (error: unknown) {
     if (error instanceof ComparisonError)
       return apiError(res, error.status, error.code, error.message);
     const quota = quotaErrorBody(error);
     if (quota)
       return apiError(res, quotaErrorStatus(error), String(quota.code), String(quota.error), quota);
+    const message = error instanceof Error ? error.message : String(error);
     const status = (error as { status?: unknown } | null)?.status;
     if (typeof status === 'number' && status >= 400 && status < 500)
-      return apiError(res, status, 'refused', String(error?.message ?? 'Refused.'));
+      return apiError(res, status, 'refused', error instanceof Error ? message : 'Refused.');
     logger.error({
       message: 'Failed to start a comparison through /api/v1',
       planId: req.params.planId,
-      error: error?.message ?? String(error),
+      error: message,
     });
     return apiError(res, 500, 'internal_error', 'The comparison could not be started.');
   }

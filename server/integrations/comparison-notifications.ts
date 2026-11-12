@@ -173,9 +173,9 @@ export async function notifyComparisonFinished(comparison: ComparisonRun): Promi
             message: `Comparison notification not e-mailed to ${outcome.to}: ${outcome.error}`,
             ...context,
           });
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.warn({
-        message: `Comparison notification e-mail could not be attempted: ${error?.message ?? error}`,
+        message: `Comparison notification e-mail could not be attempted: ${error instanceof Error ? error.message : String(error)}`,
         ...context,
       });
     }
@@ -215,9 +215,9 @@ export async function notifyComparisonFinished(comparison: ComparisonRun): Promi
             : 'Comparison notification not delivered yet: it will be retried.',
         ...context,
       });
-  } catch (error: any) {
+  } catch (error: unknown) {
     logger.warn({
-      message: `Comparison notification could not be attempted: ${error?.message ?? error}`,
+      message: `Comparison notification could not be attempted: ${error instanceof Error ? error.message : String(error)}`,
       ...context,
     });
   }
