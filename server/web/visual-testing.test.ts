@@ -6,6 +6,7 @@ import { PNG } from 'pngjs';
 import {
   baselinePathFor,
   compareStepScreenshot,
+  diffPng,
   isVisualError,
   isVisualFailure,
   stableScreenshot,
@@ -64,6 +65,36 @@ beforeEach(async () => {
 
 afterAll(async () => {
   await fs.remove(workDir);
+});
+
+describe('diffPng', () => {
+  const decode = (buffer: Buffer) => PNG.sync.read(buffer);
+  const white: [number, number, number] = [255, 255, 255];
+
+  it('calls identical images a match with no differing pixels', () => {
+    const result = diffPng(decode(png(10, 10, white)), decode(png(10, 10, white)), {
+      threshold: 0,
+    });
+    expect(result).toMatchObject({ kind: 'match', diffRatio: 0, differingPixels: 0 });
+  });
+
+  it('measures the changed fraction against the threshold', () => {
+    const a = decode(png(10, 10, white));
+    const b = decode(png(10, 10, white, { x: 0, y: 0, w: 5, h: 5 }));
+    expect(diffPng(a, b, { threshold: 0.01 })).toMatchObject({
+      kind: 'diff',
+      differingPixels: 25,
+      totalPixels: 100,
+    });
+    expect(diffPng(a, b, { threshold: 0.25 }).kind).toBe('match');
+  });
+
+  it('reports a size change as fully different', () => {
+    const result = diffPng(decode(png(10, 10, white)), decode(png(10, 12, white)), {
+      threshold: 1,
+    });
+    expect(result).toEqual({ kind: 'size-mismatch', diffRatio: 1 });
+  });
 });
 
 describe('compareStepScreenshot', () => {

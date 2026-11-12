@@ -265,10 +265,9 @@ export async function compareStepScreenshot(
     const baselinePng = await stage('baseline-corrupt', () => PNG.sync.read(baselineBuffer));
     const actualPng = await stage('screenshot-unavailable', () => PNG.sync.read(actual));
     const threshold = ctx.threshold ?? visualThresholdFromEnv();
+    const result = diffPng(baselinePng, actualPng, { threshold });
 
-    if (baselinePng.width !== actualPng.width || baselinePng.height !== actualPng.height) {
-      // Two images of different sizes cannot be compared pixel by pixel, and the size change
-      // is itself the finding — a layout that reflowed, or a page that grew a banner.
+    if (result.kind === 'size-mismatch') {
       const artifacts = await writeArtifacts(ctx, stepIndex, baselineBuffer, actual, undefined);
       return {
         kind: 'diff',
@@ -282,19 +281,9 @@ export async function compareStepScreenshot(
       };
     }
 
-    const diff = new PNG({ width: baselinePng.width, height: baselinePng.height });
-    const differingPixels = pixelmatch(
-      baselinePng.data,
-      actualPng.data,
-      diff.data,
-      baselinePng.width,
-      baselinePng.height,
-      { threshold: PIXEL_TOLERANCE },
-    );
-    const totalPixels = baselinePng.width * baselinePng.height;
-    const diffRatio = totalPixels > 0 ? differingPixels / totalPixels : 0;
+    const { diffRatio, differingPixels, totalPixels } = result;
 
-    if (diffRatio <= threshold) {
+    if (result.kind === 'match') {
       return {
         kind: 'match',
         diffRatio,
@@ -307,7 +296,7 @@ export async function compareStepScreenshot(
       stepIndex,
       baselineBuffer,
       actual,
-      PNG.sync.write(diff),
+      PNG.sync.write(result.diff),
     );
     return {
       kind: 'diff',
@@ -326,6 +315,41 @@ export async function compareStepScreenshot(
       ? visualError(error.visualCause, error)
       : visualError('comparison-failed', error);
   }
+}
+
+export type PngDiff =
+  | { kind: 'size-mismatch'; diffRatio: 1 }
+  | {
+      kind: 'match' | 'diff';
+      diffRatio: number;
+      differingPixels: number;
+      totalPixels: number;
+      /** Differing pixels highlighted, the size of the inputs. */
+      diff: PNG;
+    };
+
+/**
+ * Pixel comparison of two decoded images.
+ *
+ * `threshold` is the fraction of differing pixels tolerated before the result is a `diff`.
+ * Two images of different sizes cannot be compared pixel by pixel, and the size change is itself
+ * the finding — a layout that reflowed, or a page that grew a banner — so it counts as fully different.
+ */
+export function diffPng(a: PNG, b: PNG, { threshold }: { threshold: number }): PngDiff {
+  if (a.width !== b.width || a.height !== b.height) return { kind: 'size-mismatch', diffRatio: 1 };
+  const diff = new PNG({ width: a.width, height: a.height });
+  const differingPixels = pixelmatch(a.data, b.data, diff.data, a.width, a.height, {
+    threshold: PIXEL_TOLERANCE,
+  });
+  const totalPixels = a.width * a.height;
+  const diffRatio = totalPixels > 0 ? differingPixels / totalPixels : 0;
+  return {
+    kind: diffRatio <= threshold ? 'match' : 'diff',
+    diffRatio,
+    differingPixels,
+    totalPixels,
+    diff,
+  };
 }
 
 async function writeArtifacts(
