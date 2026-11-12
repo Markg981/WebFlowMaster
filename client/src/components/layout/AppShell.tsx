@@ -18,6 +18,7 @@ import {
   LogOut,
   Menu,
   ClipboardCheck,
+  GitCompareArrows,
   Layers,
   Target,
   Smartphone,
@@ -87,6 +88,11 @@ function useNav(): NavSection[] {
         { href: '/test-data', label: t('nav.testData', 'Test data'), icon: Database },
         { href: '/test-plans', label: t('nav.suites'), icon: ListChecks },
         { href: '/reviews', label: t('nav.reviews', 'Reviews'), icon: ClipboardCheck },
+        {
+          href: '/comparisons',
+          label: t('nav.comparisons', 'Comparisons'),
+          icon: GitCompareArrows,
+        },
       ],
     },
     {

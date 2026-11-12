@@ -179,10 +179,15 @@ export function reproducibilitySummary(value: unknown): ReproducibilitySummary {
  */
 export function publicExecution<T extends { configurationSnapshot: unknown }>(row: T) {
   const { configurationSnapshot, ...metadata } = row;
-  const comparison = readExecutionSnapshot(configurationSnapshot)?.comparison;
   return {
     ...metadata,
     reproducibility: reproducibilitySummary(configurationSnapshot),
-    comparison: comparison ? { id: comparison.id, role: comparison.role } : null,
+    comparison: comparisonRefOf(configurationSnapshot),
   };
+}
+
+/** The comparison a run is one side of, as safe to show: an id and a role, or null. */
+export function comparisonRefOf(configurationSnapshot: unknown) {
+  const comparison = readExecutionSnapshot(configurationSnapshot)?.comparison;
+  return comparison ? { id: comparison.id, role: comparison.role } : null;
 }

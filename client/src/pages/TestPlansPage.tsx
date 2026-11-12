@@ -30,12 +30,14 @@ import {
   Link2,
   Layers,
   Eye,
+  GitCompareArrows,
 } from 'lucide-react';
 import type { TestPlan } from '@shared/schema';
 import CreateTestPlanWizard from '@/components/dashboard/CreateTestPlanWizard';
 import WebhooksModal from '@/components/dashboard/WebhooksModal';
 import EditTestPlanSettingsModal from '@/components/dashboard/EditTestPlanSettingsModal';
 import PlanSuitesDialog from '@/components/suites/PlanSuitesDialog';
+import CompareEnvironmentsDialog from '@/components/comparisons/CompareEnvironmentsDialog';
 import { fetchFullTestPlansAPI as fetchAllTestPlans } from '@/lib/api/test-plans';
 import { useAuth } from '@/hooks/use-auth';
 
@@ -59,6 +61,8 @@ const TestPlansPage: React.FC = () => {
   const [planBeingEdited, setPlanBeingEdited] = useState<TestPlan | null>(null);
   /** The plan whose included suites are open for editing, if any. */
   const [planForSuites, setPlanForSuites] = useState<{ id: string; name: string } | null>(null);
+  /** The plan being compared across two environments, if any. */
+  const [planToCompare, setPlanToCompare] = useState<{ id: string; name: string } | null>(null);
 
   const [runningPlanId] = useState<string | null>(null);
   const itemsPerPage = 5;
@@ -299,6 +303,16 @@ const TestPlansPage: React.FC = () => {
                                 {t('testSuitesPage.open.button', 'Open')}
                               </Button>
                             )}
+                            {canEdit && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setPlanToCompare({ id: item.id, name: item.name })}
+                              >
+                                <GitCompareArrows size={16} className="mr-1" />{' '}
+                                {t('comparisons.compareButton', 'Compare environments')}
+                              </Button>
+                            )}
                             <Button variant="outline" size="sm" asChild>
                               <Link href={`/reports?planId=${item.id}`}>
                                 <FileText size={16} className="mr-1" />{' '}
@@ -351,6 +365,8 @@ const TestPlansPage: React.FC = () => {
         />
 
         <PlanSuitesDialog plan={planForSuites} onClose={() => setPlanForSuites(null)} />
+
+        <CompareEnvironmentsDialog plan={planToCompare} onClose={() => setPlanToCompare(null)} />
 
         {selectedPlanForWebhooks && (
           <WebhooksModal

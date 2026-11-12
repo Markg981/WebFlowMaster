@@ -608,6 +608,7 @@
     "scheduling": "Planification",
     "executionReport": "Rapport d’exécution",
     "runTestPlan": "Exécution du plan",
+    "comparisons": "Comparaisons",
     "reviews": "Relectures",
     "testSuites": "Suites",
     "section": {
@@ -5585,5 +5586,104 @@
     "description": "Quelqu'un a enregistré ce test après votre ouverture. Continuez à modifier pour relire votre brouillon (fermez l'éditeur et rouvrez-le pour charger sa version), ou écrasez ses modifications par les vôtres.",
     "overwrite": "Écraser",
     "keepEditing": "Continuer à modifier"
+  },
+  "comparisons": {
+    "title": "Comparaisons d'environnements",
+    "description": "Un plan exécuté sur deux environnements et comparé test par test : résultat, textes des checkpoints et captures d'écran. Lancez-en une depuis un plan avec « Comparer les environnements ».",
+    "filteredByPlan": "Un seul plan affiché.",
+    "showAll": "Tout afficher",
+    "loading": "Chargement…",
+    "error": "Impossible de charger les comparaisons.",
+    "empty": "Aucune comparaison pour l'instant.",
+    "baseline": "Référence",
+    "candidate": "Candidat",
+    "compareButton": "Comparer les environnements",
+    "columns": {
+      "name": "Comparaison",
+      "environments": "Environnements",
+      "status": "Statut",
+      "verdict": "Verdict",
+      "started": "Lancée",
+      "module": "Module",
+      "tests": "Tests",
+      "parity": "Parité",
+      "differing": "Différents",
+      "test": "Test",
+      "browser": "Navigateur",
+      "differences": "Différences"
+    },
+    "dialog": {
+      "title": "Comparer les environnements : {{name}}",
+      "description": "Le plan s'exécute sur la référence, puis les mêmes tests sont rejoués sur le candidat. Le rapport montre, test par test, ce qui diffère.",
+      "pick": "Choisissez un environnement",
+      "needTwo": "Une comparaison demande deux environnements. Ajoutez-les dans Paramètres → Environnements.",
+      "same": "Choisissez deux environnements différents.",
+      "mode": "Ordre",
+      "name": "Nom (facultatif)",
+      "namePlaceholder": "ex. Passage à Angular 22",
+      "start": "Lancer la comparaison"
+    },
+    "modes": {
+      "sequential": "La référence d'abord, puis le candidat",
+      "parallel": "Les deux en même temps"
+    },
+    "statuses": {
+      "queued": "En file",
+      "running": "En cours",
+      "comparing": "Comparaison en cours",
+      "completed": "Terminée",
+      "error": "Erreur",
+      "cancelled": "Annulée"
+    },
+    "verdicts": {
+      "regressions": "Régressions",
+      "inconclusive": "Non concluant",
+      "parity_with_accepted": "Parité avec différences acceptées",
+      "parity": "Parité"
+    },
+    "resultVerdicts": {
+      "identical": "Identique",
+      "equivalent": "Équivalent",
+      "different": "Différent",
+      "outcome_mismatch": "Résultat différent",
+      "both_failed": "Échec des deux côtés",
+      "not_comparable": "Non comparable"
+    },
+    "kinds": {
+      "outcome": "Résultat",
+      "text": "Texte",
+      "table": "Tableau",
+      "chart": "Graphique",
+      "network": "Réseau",
+      "visual": "Capture d'écran",
+      "performance": "Durée"
+    },
+    "report": {
+      "back": "Toutes les comparaisons",
+      "openRun": "Ouvrir son exécution",
+      "notStarted": "Pas encore lancée",
+      "cancel": "Annuler la comparaison",
+      "inProgress": "Les exécutions ne sont pas terminées ; les résultats apparaissent ici quand la comparaison est terminée.",
+      "notFound": "Comparaison introuvable.",
+      "dropped": "{{n}} autres différences trouvées mais non conservées : un test en avait trop.",
+      "byModule": "Parité par module",
+      "noModule": "Sans module",
+      "tests": "Tests",
+      "filterVerdict": "Filtrer par verdict",
+      "allVerdicts": "Tous les tests",
+      "noTests": "Aucun test avec ce verdict.",
+      "resultError": "Impossible de charger ce test.",
+      "hidden": "Vous ne pouvez pas voir le détail de ce test.",
+      "noDifferences": "Aucune différence entre les deux exécutions.",
+      "step": "étape {{n}}",
+      "checkpoint": "checkpoint « {{name}} »",
+      "blocking": "bloquante",
+      "informative": "informative",
+      "screenshotOf": "Capture sur {{side}}",
+      "noScreenshot": "Aucune capture que vous pouvez ouvrir.",
+      "partOf": "Comparaison",
+      "asBaseline": "cette exécution est la référence",
+      "asCandidate": "cette exécution est le candidat"
+    }
   }
 }
