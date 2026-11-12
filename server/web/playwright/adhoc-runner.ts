@@ -359,6 +359,7 @@ export class AdhocRunner {
           let stepPerformance: PerformanceFinding | undefined;
           let stepLighthouse: LighthouseFinding | undefined;
           let stepDownload: DownloadFinding | undefined;
+          let stepCheckpoint: StepResult['checkpoint'];
           const actionId = step.action?.id;
           const actionName = step.action?.name || 'Unnamed Action';
           resolvedLogger.verbose({
@@ -402,6 +403,7 @@ export class AdhocRunner {
             stepPerformance = outcome.performance;
             stepLighthouse = outcome.lighthouse;
             stepDownload = outcome.download;
+            stepCheckpoint = outcome.checkpoint;
             if (!leavesPageAlone(actionId)) {
               // Let the UI settle before capturing: a click often dismisses a menu and opens a
               // dialog with an animation, and may fire XHRs. Without this the screenshot catches a
@@ -524,6 +526,7 @@ export class AdhocRunner {
             performance: stepPerformance,
             lighthouse: stepLighthouse,
             download: stepDownload,
+            checkpoint: stepCheckpoint,
           });
           if (!overallSuccess) {
             resolvedLogger.info({

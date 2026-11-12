@@ -1,5 +1,6 @@
 import type { AccessibilityFinding } from '@shared/accessibility';
 import type { DownloadFinding } from '@shared/downloads';
+import type { CheckpointCapture } from '@shared/comparison';
 import { type MatrixEvidence } from '@shared/matrix-evidence';
 import type { Cleanup, Precondition } from '@shared/schema';
 import type { LighthouseFinding, PerformanceFinding } from '@shared/web-performance';
@@ -135,6 +136,8 @@ export interface StepResult {
   lighthouse?: LighthouseFinding;
   /** The file an expectDownload step checked (shared/downloads.ts). */
   download?: DownloadFinding;
+  /** What a checkpoint step captured, for a run comparison (shared/comparison.ts). */
+  checkpoint?: CheckpointCapture;
 }
 
 /**

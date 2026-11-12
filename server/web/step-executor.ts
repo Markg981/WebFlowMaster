@@ -31,6 +31,8 @@ import {
   type SmsQuery,
 } from '../messaging/sms-inbox';
 import { inspectDownload } from '../runtime/download-check';
+import { textCheckpoint } from '../runtime/checkpoint';
+import type { CheckpointCapture } from '@shared/comparison';
 import {
   parseDownloadChecks,
   parseGeolocation,
@@ -142,6 +144,8 @@ export interface StepOutcome {
   lighthouse?: LighthouseFinding;
   /** The file an `expectDownload` step took, and its checks (shared/downloads.ts). */
   download?: DownloadFinding;
+  /** What a checkpoint step captured, for a run comparison to pair by name (shared/comparison.ts). */
+  checkpoint?: CheckpointCapture;
   /**
    * The tab the rest of the test runs in, when this step moved it (`switchTab`, `closeTab`).
    *
@@ -1310,6 +1314,39 @@ const HANDLERS: Record<AdhocActionId, StepHandler> = {
     return {
       status: 'passed',
       detail: `{{${name}}} = ${read.secret ? '(a password field, not shown)' : `"${excerpt(value)}"`}`,
+    };
+  },
+
+  // Records what the page says for a run comparison; judging it is the comparison's job, so the
+  // step fails only when there is nothing to read.
+  checkpointText: async (rt) => {
+    const target = requireSelector(rt, 'checkpointText');
+    if ('error' in target) return failed(target.error);
+    const name = typeof rt.raw === 'string' ? rt.raw.trim() : '';
+    if (name === '')
+      return failed('Value missing for checkpointText action: the name of the checkpoint.');
+
+    const matches = rt.locator(target.selector);
+    await matches.first().waitFor({ state: 'attached', timeout: rt.timeoutMs });
+    const texts = await matches.evaluateAll((nodes) =>
+      nodes.map((node) =>
+        node instanceof HTMLInputElement ||
+        node instanceof HTMLTextAreaElement ||
+        node instanceof HTMLSelectElement
+          ? node instanceof HTMLInputElement && node.type === 'password'
+            ? ''
+            : node.value
+          : ((node as HTMLElement).innerText ?? node.textContent ?? ''),
+      ),
+    );
+    const checkpoint = textCheckpoint(name, texts);
+    const kept = (checkpoint.data as { texts: string[] }).texts.length;
+    return {
+      status: 'passed',
+      checkpoint,
+      detail:
+        `Checkpoint "${name}": ${kept} text${kept === 1 ? '' : 's'}` +
+        (checkpoint.truncated ? ` (cut from ${texts.length} matches).` : '.'),
     };
   },
 

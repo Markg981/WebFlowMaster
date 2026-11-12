@@ -142,6 +142,7 @@ letteralmente è un rilievo — in modalità strict l'esportazione è rifiutata,
 | `endLoop`            | supported   | } e {{loopIndex}} torna al ciclo esterno                                                                          |
 | `waitForEmail`       | unsupported | legge la casella di test dell'ambiente (Mailpit)                                                                  |
 | `waitForSms`         | unsupported | legge la casella SMS dell'organizzazione                                                                          |
+| `checkpointText`     | unsupported | una cattura per il confronto di run, che solo WebFlowMaster abbina e confronta                                    |
 | `queryDatabase`      | unsupported | interroga il database dell'ambiente tramite WebFlowMaster                                                         |
 | `assertAccessible`   | unsupported | la scansione axe-core e le sue soglie girano in WebFlowMaster                                                     |
 | `measurePerformance` | unsupported | la raccolta dei Web Vitals gira in WebFlowMaster                                                                  |

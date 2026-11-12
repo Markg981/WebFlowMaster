@@ -116,6 +116,9 @@ export const ADHOC_ACTION_IDS = [
   // Fails the test unless a comparison of values holds, as an `if` without an element reads
   // one: "{{db.value}} == 1", "{{total}} > 0", "{{email.subject}} contains Welcome".
   'assertCondition',
+  // Records what the page shows, under a name the author picks, for a run comparison to set
+  // beside the same name on another environment (shared/comparison.ts). It checks nothing.
+  'checkpointText',
   // Blocks — see shared/flow.ts, which pairs them. `if` and `repeatWhile` take a condition:
   // with an element, a state it is in now (visible, hidden, checked, contains:text…); without
   // one, a comparison of values ("{{status}} == Paid").
@@ -300,6 +303,8 @@ export const ACTION_REQUIREMENTS: Record<
   waitForEmail: { target: false, value: true, valueRequired: true },
   queryDatabase: { target: false, value: true, valueRequired: true },
   assertCondition: { target: false, value: true, valueRequired: true },
+  // The value is the checkpoint's name, unique within the test.
+  checkpointText: { target: true, value: true, valueRequired: true },
   if: { target: false, value: true, valueRequired: true, optionalTarget: true },
   else: { target: false, value: false, valueRequired: false },
   endIf: { target: false, value: false, valueRequired: false },
@@ -569,6 +574,11 @@ export const ACTION_I18N: Record<
     description: 'dashboardPageNew.actions.assertCondition.description',
     icon: 'CheckCheck',
   },
+  checkpointText: {
+    name: 'dashboardPageNew.actions.checkpointText.name',
+    description: 'dashboardPageNew.actions.checkpointText.description',
+    icon: 'Bookmark',
+  },
   if: {
     name: 'dashboardPageNew.actions.if.name',
     description: 'dashboardPageNew.actions.if.description',
@@ -629,6 +639,7 @@ export const ACTION_VALUE_HINTS: Partial<Record<AdhocActionId, string>> = {
   waitForEmail: 'dashboardPageNew.actions.waitForEmail.valueHint',
   queryDatabase: 'dashboardPageNew.actions.queryDatabase.valueHint',
   assertCondition: 'dashboardPageNew.actions.assertCondition.valueHint',
+  checkpointText: 'dashboardPageNew.actions.checkpointText.valueHint',
   if: 'dashboardPageNew.actions.if.valueHint',
   repeat: 'dashboardPageNew.actions.repeat.valueHint',
   repeatWhile: 'dashboardPageNew.actions.repeatWhile.valueHint',

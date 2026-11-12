@@ -1495,6 +1495,11 @@
         "description": "Fa fallire il test se un confronto di valori non è vero: il risultato di una query, un testo salvato, l'oggetto di un'email.",
         "valueHint": "a == b, a != b, a > 3, a contains b — es. la variabile db.value == 1"
       },
+      "checkpointText": {
+        "name": "Checkpoint di testo",
+        "description": "Registra con un nome il testo di ogni elemento trovato, perché un confronto di run lo metta a fianco dello stesso checkpoint su un altro ambiente. Non fa mai fallire il test per ciò che il testo dice.",
+        "valueHint": "il nome del checkpoint, unico nel test — es. totale-ordine"
+      },
       "mockRequest": {
         "name": "Simula richiesta",
         "description": "Da qui in poi le richieste della pagina a questo indirizzo ricevono questa risposta, non quella del server: un errore, una lista vuota, una risposta lenta o un backend non ancora pronto. Una simulazione successiva dello stesso indirizzo la sostituisce; vale in tutte le schede.",

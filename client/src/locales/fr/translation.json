@@ -1495,6 +1495,11 @@
         "description": "Fait échouer le test si une comparaison de valeurs n'est pas vraie : le résultat d'une requête, un texte enregistré, l'objet d'un e-mail.",
         "valueHint": "a == b, a != b, a > 3, a contains b — p. ex. la variable db.value == 1"
       },
+      "checkpointText": {
+        "name": "Point de contrôle texte",
+        "description": "Enregistre sous un nom le texte de chaque élément trouvé, pour qu'une comparaison d'exécutions le mette en regard du même point de contrôle sur un autre environnement. Ne fait jamais échouer le test sur ce que dit le texte.",
+        "valueHint": "le nom du point de contrôle, unique dans le test — p. ex. total-commande"
+      },
       "mockRequest": {
         "name": "Simuler une requête",
         "description": "Désormais les requêtes de la page vers cette adresse reçoivent cette réponse au lieu de celle du serveur : une erreur, une liste vide, une réponse lente ou un backend pas encore prêt. Une simulation ultérieure de la même adresse la remplace ; elle vaut dans tous les onglets.",

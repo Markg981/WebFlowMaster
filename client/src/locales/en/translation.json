@@ -1495,6 +1495,11 @@
         "description": "Fails the test unless a comparison of values holds, such as the result of a query, a stored text or an email subject.",
         "valueHint": "a == b, a != b, a > 3, a contains b — e.g. the db.value variable == 1"
       },
+      "checkpointText": {
+        "name": "Checkpoint text",
+        "description": "Records the text of every matching element under a name, for a run comparison to set against the same checkpoint on another environment. It never fails the test on what the text says.",
+        "valueHint": "the checkpoint name, unique in the test — e.g. order-total"
+      },
       "mockRequest": {
         "name": "Mock request",
         "description": "From now on the page's requests to this address are answered here, not by the server: an error, an empty list, a slow answer, or a backend that is not ready. A later mock of the same address replaces it; it holds in every tab.",

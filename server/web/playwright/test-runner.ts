@@ -578,6 +578,7 @@ export class TestRunner {
           let stepLighthouse: LighthouseFinding | undefined;
           let stepDownload: DownloadFinding | undefined;
           let stepVisual: StepResult['visual'];
+          let stepCheckpoint: StepResult['checkpoint'];
           const actionId = step.action?.id;
           const actionName = step.action?.name || 'Unnamed Action';
 
@@ -680,6 +681,7 @@ export class TestRunner {
                 stepPerformance = outcome.performance;
                 stepLighthouse = outcome.lighthouse;
                 stepDownload = outcome.download;
+                stepCheckpoint = outcome.checkpoint;
 
                 // One screenshot, used twice: as the step's evidence when the plan keeps it, and —
                 // when the plan asked for visual testing — as the image compared against this
@@ -853,6 +855,7 @@ export class TestRunner {
             performance: stepPerformance,
             lighthouse: stepLighthouse,
             download: stepDownload,
+            checkpoint: stepCheckpoint,
           });
 
           if (!overallSuccess) break;
