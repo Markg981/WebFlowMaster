@@ -197,6 +197,74 @@ describe('creating a comparison', () => {
     });
   });
 
+  it('compares two addresses: no environment needed, each run carries its own target', async () => {
+    const orchestrator = orchestratorWith();
+    const { comparison } = await asUs(() =>
+      orchestrator.create({
+        planId,
+        requestedByUserId: userId,
+        input: {
+          baselineUrl: 'https://old.example.test',
+          candidateUrl: 'https://new.example.test/app',
+          recordedUrl: 'https://example.test',
+          mode: 'parallel',
+        },
+      }),
+    );
+
+    expect(comparison).toMatchObject({
+      baselineEnvironmentId: null,
+      candidateEnvironmentId: null,
+      baselineEnvironmentName: 'old.example.test',
+      candidateEnvironmentName: 'new.example.test/app',
+      baselineUrl: 'https://old.example.test',
+      candidateUrl: 'https://new.example.test/app',
+      recordedUrl: 'https://example.test',
+    });
+    const baseline = readExecutionSnapshot(
+      (await executionRow(comparison.baselineExecutionId!)).configurationSnapshot,
+    )!;
+    const candidate = readExecutionSnapshot(
+      (await executionRow(comparison.candidateExecutionId!)).configurationSnapshot,
+    )!;
+    expect(baseline.environmentId ?? null).toBeNull();
+    expect(baseline.comparison).toEqual({
+      id: comparison.id,
+      role: 'baseline',
+      target: {
+        url: 'https://old.example.test',
+        rewriteFrom: ['https://new.example.test/app', 'https://example.test'],
+      },
+    });
+    expect(candidate.comparison?.target).toEqual({
+      url: 'https://new.example.test/app',
+      rewriteFrom: ['https://old.example.test', 'https://example.test'],
+    });
+    // The frozen tests are the same on both sides: the rewrite happens on the runner's copy.
+    expect(candidate.provenance?.definitions.map((d) => d.fingerprint)).toEqual(
+      baseline.provenance?.definitions.map((d) => d.fingerprint),
+    );
+  });
+
+  it("runs a candidate without an environment on the baseline's", async () => {
+    const { comparison } = await asUs(() =>
+      orchestratorWith().create({
+        planId,
+        requestedByUserId: userId,
+        input: {
+          baselineEnvironmentId: prodId,
+          baselineUrl: 'https://old.example.test',
+          candidateUrl: 'https://new.example.test',
+          mode: 'parallel',
+        },
+      }),
+    );
+    expect(comparison.baselineEnvironmentName).toBe('prod');
+    expect(comparison.candidateEnvironmentName).toBe('new.example.test');
+    const candidate = await executionRow(comparison.candidateExecutionId!);
+    expect(candidate.environment).toBe(String(prodId));
+  });
+
   it('leaves nothing behind when the baseline is refused', async () => {
     const refused = Object.assign(new Error('The organization queue is full.'), { status: 429 });
     const orchestrator = orchestratorWith({ enqueue: async () => Promise.reject(refused) });

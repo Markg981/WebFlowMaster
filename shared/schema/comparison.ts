@@ -42,6 +42,14 @@ export const comparisonRuns = pgTable(
     }),
     baselineEnvironmentName: text('baseline_environment_name').notNull(),
     candidateEnvironmentName: text('candidate_environment_name').notNull(),
+    /**
+     * The addresses the sides run against (migration 0113), null for a side that runs where its
+     * environment's `baseUrl` points. `recordedUrl` is where the tests were recorded, when it is
+     * neither side. See docs/superpowers/specs/2026-11-16-comparison-urls-design.md.
+     */
+    baselineUrl: text('baseline_url'),
+    candidateUrl: text('candidate_url'),
+    recordedUrl: text('recorded_url'),
     baselineExecutionId: text('baseline_execution_id').references(() => testPlanExecutions.id, {
       onDelete: 'set null',
     }),

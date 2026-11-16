@@ -21,7 +21,10 @@ import type {
 
 export interface ComparisonSide {
   environmentId: number | null;
+  /** The environment's name, or the URL's host when the side has no environment. */
   environmentName: string;
+  /** The address the side runs against, when the comparison names one. */
+  url?: string | null;
   executionId: string | null;
 }
 
@@ -36,6 +39,8 @@ export interface ComparisonView {
   summary: ComparisonSummary | null;
   baseline: ComparisonSide;
   candidate: ComparisonSide;
+  /** The address the tests were recorded on, replaced on both sides. */
+  recordedUrl?: string | null;
   failureCode: string | null;
   failureMessage: string | null;
   createdAt: string;
@@ -139,8 +144,11 @@ export const getComparisonResult = (id: string, resultId: string) =>
 export const startComparison = (
   planId: string,
   body: {
-    baselineEnvironmentId: number;
-    candidateEnvironmentId: number;
+    baselineEnvironmentId?: number | null;
+    candidateEnvironmentId?: number | null;
+    baselineUrl?: string | null;
+    candidateUrl?: string | null;
+    recordedUrl?: string | null;
     mode: ComparisonMode;
     name?: string;
     policy?: ComparisonPolicy;

@@ -14,7 +14,17 @@
 #         baseline: 3     # the environment id of the reference, for example production
 #         candidate: 7    # the environment id under judgement, for example the migrated stack
 #
-# The plan runs on both environments and the results are compared test by test. The step fails
+# Or by address, for two installations of the same application (a port, an upgrade):
+#
+#       parameters:
+#         plan: your-plan-id
+#         baseline: 3     # optional: the environment that holds credentials and variables
+#         baselineUrl: https://old.example.com
+#         candidateUrl: https://new.example.com
+#         recordedUrl: http://localhost:4200   # optional: the address the tests were recorded on
+#
+# Each side needs an environment, a URL, or both; a candidate without an environment uses the
+# baseline's. The plan runs on both sides and the results are compared test by test. The step fails
 # when a test has a verdict in failOn, when nothing could be compared, or when the comparison
 # ended in error. The parity report (HTML and PDF) is kept as a pipeline artifact either way.
 #
@@ -26,9 +36,20 @@ parameters:
   - name: plan
     type: string
   - name: baseline
-    type: number
+    type: string
+    default: ''
   - name: candidate
-    type: number
+    type: string
+    default: ''
+  - name: baselineUrl
+    type: string
+    default: ''
+  - name: candidateUrl
+    type: string
+    default: ''
+  - name: recordedUrl
+    type: string
+    default: ''
   - name: mode
     type: string
     default: sequential
@@ -49,10 +70,15 @@ steps:
   - script: |
       set -u
       node -e "fetch(process.env.WFM_URL.replace(/\/+$/, '') + '/cli/wfm.mjs').then((r) => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.text(); }).then((t) => require('fs').writeFileSync('wfm.mjs', t)).catch((e) => { console.error('Could not download the WebFlowMaster CLI: ' + e.message); process.exit(2); })" || exit 2
-      set -- compare --plan "$WFM_PLAN" --baseline "$WFM_BASELINE" --candidate "$WFM_CANDIDATE" \
+      set -- compare --plan "$WFM_PLAN" \
         --mode "$WFM_MODE" --fail-on "$WFM_FAIL_ON" --timeout "$WFM_TIMEOUT" \
         --idempotency-key "compare-$BUILD_BUILDID-$WFM_PLAN" \
         --html "$WFM_OUT/parity-report.html" --pdf "$WFM_OUT/parity-report.pdf"
+      [ -n "$WFM_BASELINE" ] && set -- "$@" --baseline "$WFM_BASELINE"
+      [ -n "$WFM_CANDIDATE" ] && set -- "$@" --candidate "$WFM_CANDIDATE"
+      [ -n "$WFM_BASELINE_URL" ] && set -- "$@" --baseline-url "$WFM_BASELINE_URL"
+      [ -n "$WFM_CANDIDATE_URL" ] && set -- "$@" --candidate-url "$WFM_CANDIDATE_URL"
+      [ -n "$WFM_RECORDED_URL" ] && set -- "$@" --recorded-url "$WFM_RECORDED_URL"
       [ -n "$WFM_NAME" ] && set -- "$@" --name "$WFM_NAME"
       node wfm.mjs "$@"
     displayName: WebFlowMaster run comparison
@@ -62,6 +88,9 @@ steps:
       WFM_PLAN: ${{ parameters.plan }}
       WFM_BASELINE: ${{ parameters.baseline }}
       WFM_CANDIDATE: ${{ parameters.candidate }}
+      WFM_BASELINE_URL: ${{ parameters.baselineUrl }}
+      WFM_CANDIDATE_URL: ${{ parameters.candidateUrl }}
+      WFM_RECORDED_URL: ${{ parameters.recordedUrl }}
       WFM_MODE: ${{ parameters.mode }}
       WFM_FAIL_ON: ${{ parameters.failOn }}
       WFM_NAME: ${{ parameters.name }}

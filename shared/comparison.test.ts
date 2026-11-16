@@ -51,6 +51,66 @@ describe('CreateComparisonSchema', () => {
     });
     expect(parsed.success).toBe(false);
   });
+
+  it('takes a URL per side, normalized, with or without environments', () => {
+    const body = CreateComparisonSchema.parse({
+      baselineEnvironmentId: 1,
+      baselineUrl: ' https://old.example.com/ ',
+      candidateUrl: 'https://new.example.com',
+      recordedUrl: 'http://localhost:4200/',
+    });
+    expect(body).toMatchObject({
+      baselineUrl: 'https://old.example.com',
+      candidateUrl: 'https://new.example.com',
+      recordedUrl: 'http://localhost:4200',
+    });
+    expect(
+      CreateComparisonSchema.safeParse({
+        baselineUrl: 'https://old.example.com',
+        candidateUrl: 'https://new.example.com',
+      }).success,
+    ).toBe(true);
+  });
+
+  it('allows the same environment when the URLs differ, and not the same URL twice', () => {
+    expect(
+      CreateComparisonSchema.safeParse({
+        baselineEnvironmentId: 3,
+        candidateEnvironmentId: 3,
+        baselineUrl: 'https://old.example.com',
+        candidateUrl: 'https://new.example.com',
+      }).success,
+    ).toBe(true);
+    expect(
+      CreateComparisonSchema.safeParse({
+        baselineEnvironmentId: 3,
+        baselineUrl: 'https://a.example.com/',
+        candidateUrl: 'https://a.example.com',
+      }).success,
+    ).toBe(false);
+  });
+
+  it('refuses a side with neither, a bad URL, and a recorded URL without both sides', () => {
+    for (const body of [
+      { baselineEnvironmentId: 1 },
+      { candidateUrl: 'https://new.example.com' },
+      { baselineUrl: 'ftp://old.example.com', candidateUrl: 'https://new.example.com' },
+      { baselineUrl: 'https://user:pw@old.example.com', candidateUrl: 'https://new.example.com' },
+      {
+        baselineUrl: `https://a.test/${'x'.repeat(2050)}`,
+        candidateUrl: 'https://new.example.com',
+      },
+      {
+        baselineEnvironmentId: 1,
+        candidateUrl: 'https://new.example.com',
+        recordedUrl: 'https://dev.example.com',
+      },
+    ])
+      expect(
+        CreateComparisonSchema.safeParse(body).success,
+        JSON.stringify(body).slice(0, 80),
+      ).toBe(false);
+  });
 });
 
 describe('helpers', () => {

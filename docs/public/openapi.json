@@ -1260,7 +1260,14 @@
             "type": "object",
             "properties": {
               "environmentId": { "type": ["integer", "null"] },
-              "environmentName": { "type": "string" },
+              "environmentName": {
+                "type": "string",
+                "description": "The environment's name, or the URL's host when the side has no environment."
+              },
+              "url": {
+                "type": ["string", "null"],
+                "description": "The address this side ran against, when the comparison names one."
+              },
               "runId": {
                 "type": ["string", "null"],
                 "description": "Null until the run is queued."
@@ -1271,12 +1278,23 @@
             "type": "object",
             "properties": {
               "environmentId": { "type": ["integer", "null"] },
-              "environmentName": { "type": "string" },
+              "environmentName": {
+                "type": "string",
+                "description": "The environment's name, or the URL's host when the side has no environment."
+              },
+              "url": {
+                "type": ["string", "null"],
+                "description": "The address this side ran against, when the comparison names one."
+              },
               "runId": {
                 "type": ["string", "null"],
                 "description": "Null until the run is queued."
               }
             }
+          },
+          "recordedUrl": {
+            "type": ["string", "null"],
+            "description": "The address the tests were recorded on, replaced on both sides."
           },
           "failure": {
             "type": ["object", "null"],
@@ -6006,12 +6024,27 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["baselineEnvironmentId", "candidateEnvironmentId"],
+                "description": "Each side needs an environment, a URL, or both; the two sides must differ by one of them.",
                 "properties": {
-                  "baselineEnvironmentId": { "type": "integer" },
+                  "baselineEnvironmentId": { "type": ["integer", "null"] },
                   "candidateEnvironmentId": {
-                    "type": "integer",
-                    "description": "Must differ from the baseline."
+                    "type": ["integer", "null"],
+                    "description": "Without one, the candidate runs with the baseline's environment."
+                  },
+                  "baselineUrl": {
+                    "type": ["string", "null"],
+                    "maxLength": 2048,
+                    "description": "Where the baseline answers (http or https). `{{baseUrl}}` is this address, and the candidate URL and the recorded URL written in the tests are replaced by it."
+                  },
+                  "candidateUrl": {
+                    "type": ["string", "null"],
+                    "maxLength": 2048,
+                    "description": "Where the candidate answers; the same rewrite, the other way."
+                  },
+                  "recordedUrl": {
+                    "type": ["string", "null"],
+                    "maxLength": 2048,
+                    "description": "The address the tests were recorded on, when neither side: replaced on both. Needs both URLs."
                   },
                   "mode": {
                     "type": "string",

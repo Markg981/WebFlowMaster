@@ -4,7 +4,7 @@ Generato da `shared/schema/` (un file per dominio) con `node scripts/generate-sc
 
 Leggere prima lo [schema per dominio](./database-schema) per le spiegazioni e le relazioni, poi cercare qui la tabella. Ogni riga riporta la proprietà TypeScript, il nome SQL e il builder completo: tipo, nullabilità, default e riferimenti dichiarati nella colonna. I vincoli definiti nel callback della tabella non sono espansi qui.
 
-**91 tabelle / 1115 colonne dichiarate.**
+**91 tabelle / 1118 colonne dichiarate.**
 
 ## Indice
 
@@ -75,7 +75,7 @@ Leggere prima lo [schema per dominio](./database-schema) per le spiegazioni e le
 | [test_quarantines](#test-quarantines)                         | `testQuarantines`            | 12      |
 | [mobile_test_runs](#mobile-test-runs)                         | `mobileTestRuns`             | 18      |
 | [load_test_runs](#load-test-runs)                             | `loadTestRuns`               | 17      |
-| [comparison_runs](#comparison-runs)                           | `comparisonRuns`             | 22      |
+| [comparison_runs](#comparison-runs)                           | `comparisonRuns`             | 25      |
 | [comparison_results](#comparison-results)                     | `comparisonResults`          | 24      |
 | [comparison_known_differences](#comparison-known-differences) | `comparisonKnownDifferences` | 12      |
 | [runners](#runners)                                           | `runners`                    | 12      |
@@ -1292,6 +1292,9 @@ Leggere prima lo [schema per dominio](./database-schema) per le spiegazioni e le
 | `candidateEnvironmentId`   | `candidate_environment_id`   | `integer('candidate_environment_id').references(() => environments.id, { onDelete: 'set null', })`  |
 | `baselineEnvironmentName`  | `baseline_environment_name`  | `text('baseline_environment_name').notNull()`                                                       |
 | `candidateEnvironmentName` | `candidate_environment_name` | `text('candidate_environment_name').notNull()`                                                      |
+| `baselineUrl`              | `baseline_url`               | `text('baseline_url')`                                                                              |
+| `candidateUrl`             | `candidate_url`              | `text('candidate_url')`                                                                             |
+| `recordedUrl`              | `recorded_url`               | `text('recorded_url')`                                                                              |
 | `baselineExecutionId`      | `baseline_execution_id`      | `text('baseline_execution_id').references(() => testPlanExecutions.id, { onDelete: 'set null', })`  |
 | `candidateExecutionId`     | `candidate_execution_id`     | `text('candidate_execution_id').references(() => testPlanExecutions.id, { onDelete: 'set null', })` |
 | `mode`                     | `mode`                       | `text('mode').$type<ComparisonMode>().notNull().default('sequential')`                              |
@@ -1309,7 +1312,7 @@ Leggere prima lo [schema per dominio](./database-schema) per le spiegazioni e le
 
 ## comparison_results {#comparison-results}
 
-`comparisonResults` — `shared/schema/comparison.ts:84`
+`comparisonResults` — `shared/schema/comparison.ts:92`
 
 | Proprietà TS          | Colonna SQL             | Dichiarazione                                                                                        |
 | --------------------- | ----------------------- | ---------------------------------------------------------------------------------------------------- |
@@ -1340,7 +1343,7 @@ Leggere prima lo [schema per dominio](./database-schema) per le spiegazioni e le
 
 ## comparison_known_differences {#comparison-known-differences}
 
-`comparisonKnownDifferences` — `shared/schema/comparison.ts:133`
+`comparisonKnownDifferences` — `shared/schema/comparison.ts:141`
 
 | Proprietà TS       | Colonna SQL           | Dichiarazione                                                                          |
 | ------------------ | --------------------- | -------------------------------------------------------------------------------------- |

@@ -96,7 +96,14 @@ export default function ComparisonsPage() {
                         )}
                       </TableCell>
                       <TableCell>
-                        <span className="inline-flex items-center gap-1">
+                        <span
+                          className="inline-flex items-center gap-1"
+                          title={
+                            row.baseline.url || row.candidate.url
+                              ? `${row.baseline.url ?? row.baseline.environmentName} → ${row.candidate.url ?? row.candidate.environmentName}`
+                              : undefined
+                          }
+                        >
                           {row.baseline.environmentName}
                           <ArrowRight className="h-3 w-3" aria-hidden />
                           {row.candidate.environmentName}

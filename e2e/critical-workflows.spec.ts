@@ -425,9 +425,9 @@ test('comparing a plan across two environments of the demo shop flags only the c
     .getByRole('button', { name: 'Compare environments', exact: true })
     .click();
   const dialog = page.getByRole('dialog');
-  await dialog.getByRole('combobox', { name: 'Baseline', exact: true }).click();
+  await dialog.getByRole('combobox', { name: 'Baseline: Environment', exact: true }).click();
   await page.getByRole('option', { name: baseline, exact: true }).click();
-  await dialog.getByRole('combobox', { name: 'Candidate', exact: true }).click();
+  await dialog.getByRole('combobox', { name: 'Candidate: Environment', exact: true }).click();
   await page.getByRole('option', { name: candidate, exact: true }).click();
   await dialog.getByRole('button', { name: 'Start comparison', exact: true }).click();
   await expect(page).toHaveURL(/\/comparisons\/[0-9a-f-]+$/);

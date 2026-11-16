@@ -319,6 +319,29 @@ What is compared, checkpoint by checkpoint, matched by name:
 
 A test keeps at most 200 differences; the report says how many more were found.
 
+### Comparing two addresses {#comparing-urls}
+
+To check a port or an upgrade, compare two installations of the same application, for example the
+old and the new version each with its own database. Give each side a **URL**, with or without an
+environment:
+
+- the **environment** brings credentials, variables and the captured login, as in any run. On the
+  candidate, **None: the baseline's** reuses the baseline's environment, so the two installations
+  log in the same way;
+- the **URL** is where that side's version answers. The tests open it instead of the address they
+  were recorded on: a step that navigates to the recorded address, and an API test that calls it,
+  go to the side's URL, keeping the path and the query.
+
+Each side needs an environment, a URL, or both, and the two sides must differ. When the tests were
+recorded on a third address (for example `http://localhost:4200`), give it as **Address used in the
+tests**: it is replaced on both sides too, and needs a URL on both.
+
+The rewrite happens only while the run executes: the frozen tests stay identical on both sides, so
+the comparison still pairs them. The report and the list show each side's URL. From a pipeline the
+same works with `wfm compare --baseline-url --candidate-url --recorded-url`
+([CLI](../reference/cli.md)) or the `baselineUrl`, `candidateUrl` and `recordedUrl` fields of
+`POST /api/v1/plans/{id}/comparisons`.
+
 ### Tolerances
 
 **Tolerances**, in the **Compare environments** dialog, set how strict the comparison is. The API

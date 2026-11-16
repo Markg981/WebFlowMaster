@@ -96,6 +96,35 @@ describe('the CI integrations', () => {
       htmlPath: 'p.html',
       pdfPath: 'p.pdf',
     });
+
+    // The same template by address, with its optional parameters filled in.
+    const byUrl = parseArgs(
+      [
+        'compare',
+        '--plan',
+        'plan-1',
+        '--mode',
+        'sequential',
+        '--idempotency-key',
+        'compare-42-plan-1',
+        '--baseline',
+        '3',
+        '--baseline-url',
+        'https://old.example.com',
+        '--candidate-url',
+        'https://new.example.com',
+        '--recorded-url',
+        'http://localhost:4200',
+      ],
+      {} as NodeJS.ProcessEnv,
+    );
+    expect(byUrl).toMatchObject({
+      command: 'compare',
+      baselineEnvironmentId: 3,
+      baselineUrl: 'https://old.example.com',
+      candidateUrl: 'https://new.example.com',
+      recordedUrl: 'http://localhost:4200',
+    });
   });
 
   it('fetch the CLI from the server they talk to, instead of expecting it installed', () => {

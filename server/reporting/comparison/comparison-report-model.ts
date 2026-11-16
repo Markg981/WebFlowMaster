@@ -45,6 +45,8 @@ export const MAX_REPORT_DIFFERENCES_PER_TEST = 25;
 
 export interface ComparisonReportSide {
   environmentName: string;
+  /** The address the side ran against, when the comparison names one. */
+  url: string | null;
   executionId: string | null;
   status: string | null;
   startedAt: Date | null;
@@ -87,6 +89,8 @@ export interface ComparisonReportModel {
   completedAt: Date | null;
   baseline: ComparisonReportSide;
   candidate: ComparisonReportSide;
+  /** The address the tests were recorded on, replaced on both sides; null when none. */
+  recordedUrl: string | null;
   results: ComparisonReportResult[];
   /** Results beyond MAX_REPORT_RESULTS, not listed. */
   omittedResults: number;
@@ -141,10 +145,15 @@ export async function loadComparisonReportModel(
           .from(testPlanExecutions)
           .where(inArray(testPlanExecutions.id, executionIds))
       : [];
-    const side = (environmentName: string, executionId: string | null): ComparisonReportSide => {
+    const side = (
+      environmentName: string,
+      url: string | null,
+      executionId: string | null,
+    ): ComparisonReportSide => {
       const run = runs.find((r) => r.id === executionId);
       return {
         environmentName,
+        url,
         executionId,
         status: run?.status ?? null,
         startedAt: run?.startedAt ?? null,
@@ -220,8 +229,17 @@ export async function loadComparisonReportModel(
       requestedBy: row.requestedBy,
       createdAt: comparison.createdAt,
       completedAt: comparison.completedAt,
-      baseline: side(comparison.baselineEnvironmentName, comparison.baselineExecutionId),
-      candidate: side(comparison.candidateEnvironmentName, comparison.candidateExecutionId),
+      baseline: side(
+        comparison.baselineEnvironmentName,
+        comparison.baselineUrl ?? null,
+        comparison.baselineExecutionId,
+      ),
+      candidate: side(
+        comparison.candidateEnvironmentName,
+        comparison.candidateUrl ?? null,
+        comparison.candidateExecutionId,
+      ),
+      recordedUrl: comparison.recordedUrl ?? null,
       results,
       omittedResults,
     };

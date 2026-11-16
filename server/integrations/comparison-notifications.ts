@@ -67,6 +67,11 @@ export function comparisonLine(comparison: ComparisonRun, planName: string): str
   return `${planName}${name}, ${sides}: ${outcomeOf(comparison)}${tail}.`;
 }
 
+/** A side as a fact: its name, and the address it ran against when the comparison names one. */
+function sideFact(name: string, url: string | null | undefined): string {
+  return url && url !== name ? `${name} (${url})` : name;
+}
+
 /** The POST body: `text` for Slack and Teams, the numbers for a receiver that wants them. */
 export function buildComparisonPayload(
   comparison: ComparisonRun,
@@ -78,8 +83,8 @@ export function buildComparisonPayload(
   const status = comparisonRunStatus(comparison);
   const tone: Tone = status === 'completed' ? 'good' : 'bad';
   const facts: Array<[string, string]> = [
-    ['Baseline', comparison.baselineEnvironmentName],
-    ['Candidate', comparison.candidateEnvironmentName],
+    ['Baseline', sideFact(comparison.baselineEnvironmentName, comparison.baselineUrl)],
+    ['Candidate', sideFact(comparison.candidateEnvironmentName, comparison.candidateUrl)],
   ];
   if (comparison.summary) {
     facts.push(['Tests compared', String(comparison.summary.total)]);
@@ -101,10 +106,12 @@ export function buildComparisonPayload(
       verdict: comparison.verdict ?? null,
       baseline: {
         environmentName: comparison.baselineEnvironmentName,
+        url: comparison.baselineUrl ?? null,
         runId: comparison.baselineExecutionId ?? null,
       },
       candidate: {
         environmentName: comparison.candidateEnvironmentName,
+        url: comparison.candidateUrl ?? null,
         runId: comparison.candidateExecutionId ?? null,
       },
       summary: comparison.summary

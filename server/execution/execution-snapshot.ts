@@ -126,7 +126,16 @@ export function asComparisonRun(
 ): ExecutionSnapshot {
   return {
     ...snapshot,
-    comparison: { id: comparison.id, role: comparison.role },
+    comparison: {
+      id: comparison.id,
+      role: comparison.role,
+      // Where this side runs, when the comparison names addresses (shared/comparison-target.ts).
+      ...(comparison.target
+        ? {
+            target: { url: comparison.target.url, rewriteFrom: [...comparison.target.rewriteFrom] },
+          }
+        : {}),
+    },
     captureScreenshots: 'always',
     visualTesting: { enabled: false, updateBaselines: false },
     issues: { ...snapshot.issues, createOnFailure: false },

@@ -963,13 +963,16 @@ Scope `runs:write` · operation `startComparison`
 
 **Request body** (`application/json`)
 
-| Field                    | Type                            | Required | Description                                                                                           |
-| ------------------------ | ------------------------------- | -------- | ----------------------------------------------------------------------------------------------------- |
-| `baselineEnvironmentId`  | integer                         | yes      |                                                                                                       |
-| `candidateEnvironmentId` | integer                         | yes      | Must differ from the baseline.                                                                        |
-| `mode`                   | one of `sequential`, `parallel` |          | default `"sequential"`                                                                                |
-| `name`                   | string                          |          | up to 200 characters                                                                                  |
-| `policy`                 | object                          |          | Tolerances: text, numeric, network, visual and performance. Every field has a default; see the guide. |
+| Field                    | Type                            | Required | Description                                                                                                                                                                          |
+| ------------------------ | ------------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `baselineEnvironmentId`  | integer \| null                 |          |                                                                                                                                                                                      |
+| `candidateEnvironmentId` | integer \| null                 |          | Without one, the candidate runs with the baseline's environment.                                                                                                                     |
+| `baselineUrl`            | string \| null                  |          | Where the baseline answers (http or https). `{{baseUrl}}` is this address, and the candidate URL and the recorded URL written in the tests are replaced by it. up to 2048 characters |
+| `candidateUrl`           | string \| null                  |          | Where the candidate answers; the same rewrite, the other way. up to 2048 characters                                                                                                  |
+| `recordedUrl`            | string \| null                  |          | The address the tests were recorded on, when neither side: replaced on both. Needs both URLs. up to 2048 characters                                                                  |
+| `mode`                   | one of `sequential`, `parallel` |          | default `"sequential"`                                                                                                                                                               |
+| `name`                   | string                          |          | up to 200 characters                                                                                                                                                                 |
+| `policy`                 | object                          |          | Tolerances: text, numeric, network, visual and performance. Every field has a default; see the guide.                                                                                |
 
 | Status | Meaning                                                                       | Body                                                  |
 | ------ | ----------------------------------------------------------------------------- | ----------------------------------------------------- |
@@ -1837,8 +1840,9 @@ The build that asked for a run. The wfm CLI fills it in from the CI system's env
 | `status`      | one of `queued`, `running`, `comparing`, `completed`, `error`, `cancelled`     | yes      |                                                                                                                                      |
 | `verdict`     | one of `regressions`, `inconclusive`, `parity_with_accepted`, `parity`, `null` |          | Null until both runs have ended and the comparison is computed.                                                                      |
 | `summary`     | object \| null                                                                 |          | total, byVerdict (identical, equivalent, different, outcome_mismatch, both_failed, not_comparable), byModule and droppedDifferences. |
-| `baseline`    | object { environmentId, environmentName, runId }                               | yes      |                                                                                                                                      |
-| `candidate`   | object { environmentId, environmentName, runId }                               | yes      |                                                                                                                                      |
+| `baseline`    | object { environmentId, environmentName, url, runId }                          | yes      |                                                                                                                                      |
+| `candidate`   | object { environmentId, environmentName, url, runId }                          | yes      |                                                                                                                                      |
+| `recordedUrl` | string \| null                                                                 |          | The address the tests were recorded on, replaced on both sides.                                                                      |
 | `failure`     | object { code, message } \| null                                               |          |                                                                                                                                      |
 | `createdAt`   | string (date-time)                                                             |          |                                                                                                                                      |
 | `completedAt` | string (date-time) \| null                                                     |          |                                                                                                                                      |

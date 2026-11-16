@@ -281,16 +281,28 @@ node wfm.mjs compare --plan <planId> --baseline 3 --candidate 7 --wait \
   --html parity.html --pdf parity.pdf
 ```
 
-| Opzione                | Significato                                                                                                                                                                                     |
-| ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `--plan <id>`          | Il piano da eseguire sui due ambienti.                                                                                                                                                          |
-| `--baseline <id>`      | L'ambiente di riferimento. Obbligatorio.                                                                                                                                                        |
-| `--candidate <id>`     | L'ambiente sotto giudizio. Obbligatorio, diverso dalla baseline.                                                                                                                                |
-| `--mode <mode>`        | `sequential` (predefinito) oppure `parallel`.                                                                                                                                                   |
-| `--name <name>`        | Un nome per il confronto, per esempio la migrazione.                                                                                                                                            |
-| `--fail-on <verdicts>` | Verdetti dei test che fanno fallire lo step, separati da virgola, tra `different`, `outcome_mismatch`, `both_failed`, `not_comparable`, `equivalent`. Predefinito `different,outcome_mismatch`. |
-| `--wait`               | Attende la fine del confronto e ne trasforma il verdetto nel codice di uscita.                                                                                                                  |
-| `--html` / `--pdf`     | Scrivono il report di parità. Questi e `--fail-on` implicano `--wait`.                                                                                                                          |
+Per confrontare due installazioni della stessa applicazione (un porting, un aggiornamento), dai a
+ogni lato il suo indirizzo: i test lo aprono al posto di quello su cui sono stati registrati, vedi
+[Confrontare due indirizzi](../guide/results#comparing-urls).
+
+```bash
+node wfm.mjs compare --plan <planId> --baseline 3 \
+  --baseline-url https://old.example.com --candidate-url https://new.example.com --wait
+```
+
+| Opzione                 | Significato                                                                                                                                                                                     |
+| ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--plan <id>`           | Il piano da eseguire sui due ambienti.                                                                                                                                                          |
+| `--baseline <id>`       | L'ambiente di riferimento.                                                                                                                                                                      |
+| `--candidate <id>`      | L'ambiente sotto giudizio. Senza, il candidato usa quello della baseline.                                                                                                                       |
+| `--baseline-url <url>`  | Dove risponde la versione di riferimento. Ogni lato vuole un ambiente, un URL o entrambi.                                                                                                       |
+| `--candidate-url <url>` | Dove risponde la versione sotto giudizio. I due lati devono essere diversi.                                                                                                                     |
+| `--recorded-url <url>`  | L'indirizzo su cui sono stati registrati i test, sostituito su entrambi i lati. Richiede i due URL.                                                                                             |
+| `--mode <mode>`         | `sequential` (predefinito) oppure `parallel`.                                                                                                                                                   |
+| `--name <name>`         | Un nome per il confronto, per esempio la migrazione.                                                                                                                                            |
+| `--fail-on <verdicts>`  | Verdetti dei test che fanno fallire lo step, separati da virgola, tra `different`, `outcome_mismatch`, `both_failed`, `not_comparable`, `equivalent`. Predefinito `different,outcome_mismatch`. |
+| `--wait`                | Attende la fine del confronto e ne trasforma il verdetto nel codice di uscita.                                                                                                                  |
+| `--html` / `--pdf`      | Scrivono il report di parità. Questi e `--fail-on` implicano `--wait`.                                                                                                                          |
 
 `--timeout`, `--poll`, `--idempotency-key` e `--json` funzionano come per `wfm run`. La chiave
 richiede `runs:write` per avviare e `runs:read` per leggere.
@@ -301,7 +313,8 @@ annullato, e `2` se lo step non ha potuto essere eseguito (nessuna chiave, URL e
 dell'attesa). `identical` non fa mai fallire uno step.
 
 Per Azure Pipelines, `integrations/azure-pipelines/webflowmaster-compare.yml` è un template di step
-con i parametri `plan`, `baseline`, `candidate`, `mode`, `failOn`, `name` e `timeout`:
+con i parametri `plan`, `baseline`, `candidate`, `baselineUrl`, `candidateUrl`, `recordedUrl`,
+`mode`, `failOn`, `name` e `timeout`:
 
 ```yaml
 steps:

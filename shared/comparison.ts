@@ -200,19 +200,91 @@ export function comparisonPolicyOf(value: unknown): ComparisonPolicy {
   return parsed.success ? parsed.data : ComparisonPolicySchema.parse({});
 }
 
-/** What a request to start a comparison carries. */
+/** The longest address a comparison side takes. */
+export const MAX_COMPARISON_URL_LENGTH = 2048;
+
+/**
+ * An address a comparison side runs against: http or https, without credentials. Kept without
+ * its trailing `/`, so `https://a/app/` and `https://a/app` are the same side.
+ */
+export const ComparisonUrlSchema = z
+  .string()
+  .trim()
+  .min(1)
+  .max(MAX_COMPARISON_URL_LENGTH)
+  .refine((value) => {
+    try {
+      const url = new URL(value);
+      return (
+        (url.protocol === 'http:' || url.protocol === 'https:') && !url.username && !url.password
+      );
+    } catch {
+      return false;
+    }
+  }, 'Enter an http or https address without a user name or password.')
+  .transform(normalizeComparisonUrl);
+
+/** An address as a comparison keeps it: trimmed, without trailing slashes. */
+export function normalizeComparisonUrl(value: string): string {
+  return value.trim().replace(/\/+$/, '');
+}
+
+/**
+ * What a request to start a comparison carries. Each side names an environment, an address, or
+ * both; a candidate without an environment runs with the baseline's. The sides must differ.
+ */
 export const CreateComparisonSchema = z
   .object({
-    baselineEnvironmentId: z.number().int().positive(),
-    candidateEnvironmentId: z.number().int().positive(),
+    baselineEnvironmentId: z.number().int().positive().nullable().optional(),
+    candidateEnvironmentId: z.number().int().positive().nullable().optional(),
+    baselineUrl: ComparisonUrlSchema.nullable().optional(),
+    candidateUrl: ComparisonUrlSchema.nullable().optional(),
+    /** Where the tests were recorded, when it is neither side: also replaced by each side's URL. */
+    recordedUrl: ComparisonUrlSchema.nullable().optional(),
     mode: z.enum(COMPARISON_MODES).default('sequential'),
     name: z.string().trim().max(200).optional(),
     policy: ComparisonPolicySchema.optional(),
   })
-  .refine((body) => body.baselineEnvironmentId !== body.candidateEnvironmentId, {
-    message: 'The two environments must differ.',
-    path: ['candidateEnvironmentId'],
+  .refine((body) => body.baselineEnvironmentId != null || !!body.baselineUrl, {
+    message: 'Choose an environment or enter an address for the baseline.',
+    path: ['baselineUrl'],
+  })
+  .refine((body) => body.candidateEnvironmentId != null || !!body.candidateUrl, {
+    message: 'Choose an environment or enter an address for the candidate.',
+    path: ['candidateUrl'],
+  })
+  .refine((body) => !body.recordedUrl || (!!body.baselineUrl && !!body.candidateUrl), {
+    message: 'The address used in the tests needs an address on both sides.',
+    path: ['recordedUrl'],
+  })
+  .superRefine((body, ctx) => {
+    if (comparisonSidesDiffer(body)) return;
+    ctx.addIssue({
+      code: 'custom',
+      message: 'The two sides must differ: another environment or another address.',
+      // Two environments and no address: the field to change is the candidate environment.
+      path: [body.baselineUrl || body.candidateUrl ? 'candidateUrl' : 'candidateEnvironmentId'],
+    });
   });
+
+/**
+ * Whether two sides would run against something different. A candidate without an environment
+ * runs with the baseline's, so the environments are compared as the runs will see them.
+ */
+export function comparisonSidesDiffer(body: {
+  baselineEnvironmentId?: number | null;
+  candidateEnvironmentId?: number | null;
+  baselineUrl?: string | null;
+  candidateUrl?: string | null;
+}): boolean {
+  const baselineEnvironment = body.baselineEnvironmentId ?? null;
+  const candidateEnvironment = body.candidateEnvironmentId ?? baselineEnvironment;
+  const baselineUrl = body.baselineUrl ? normalizeComparisonUrl(body.baselineUrl) : null;
+  const candidateUrl = body.candidateUrl ? normalizeComparisonUrl(body.candidateUrl) : null;
+  if (baselineUrl || candidateUrl)
+    return baselineUrl !== candidateUrl || baselineEnvironment !== candidateEnvironment;
+  return baselineEnvironment !== candidateEnvironment;
+}
 export type CreateComparisonInput = z.infer<typeof CreateComparisonSchema>;
 
 /** How far a known difference reaches: the one test, its project, or the whole organization. */
@@ -290,9 +362,21 @@ export function emptyVerdictCounts(): VerdictCounts {
 export interface ExecutionComparisonRef {
   id: string;
   role: ComparisonRole;
+  /** The address this side runs against, when the comparison names one (shared/comparison-target.ts). */
+  target?: ComparisonTarget;
+}
+
+/**
+ * Where one side of a comparison runs: `{{baseUrl}}` is `url`, and every address in
+ * `rewriteFrom` found in a test's definition is replaced by `url` before the test runs.
+ */
+export interface ComparisonTarget {
+  url: string;
+  rewriteFrom: string[];
 }
 
 export const ExecutionComparisonRefSchema = z.object({
   id: z.string().min(1),
   role: z.enum(COMPARISON_ROLES),
+  target: z.object({ url: z.string().min(1), rewriteFrom: z.array(z.string().min(1)) }).optional(),
 });

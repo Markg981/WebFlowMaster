@@ -6,7 +6,7 @@ export default defineConfig({
   test: {
     globals: true, // To use describe, it, expect, etc. globally
     environment: 'node', // Crucial for backend testing
-    include: ['server/**/*.test.ts', 'scripts/**/*.test.ts'], // Pattern to find test files
+    include: ['server/**/*.test.ts', 'scripts/**/*.test.ts', 'shared/**/*.test.ts'], // Pattern to find test files
     // Real child-process acceptance runs separately with its own deadline and no database setup.
     exclude: ['scripts/bdd-runtime.test.ts'],
     // Each test file gets its own in-memory PGlite database — see server/tests/setup.ts, which

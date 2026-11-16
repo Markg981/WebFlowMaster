@@ -329,6 +329,30 @@ Cosa si confronta, checkpoint per checkpoint, abbinati per nome:
 
 Un test conserva al massimo 200 differenze; il report dice quante altre ne ha trovate.
 
+### Confrontare due indirizzi {#comparing-urls}
+
+Per verificare un porting o un aggiornamento, confronta due installazioni della stessa
+applicazione, per esempio la versione vecchia e quella nuova, ognuna con il suo database. Dai a
+ogni lato un **URL**, con o senza un ambiente:
+
+- l'**ambiente** porta credenziali, variabili e il login catturato, come in ogni run. Sul
+  candidato, **Nessuno: quello del riferimento** riusa l'ambiente della baseline, così le due
+  installazioni fanno il login nello stesso modo;
+- l'**URL** è dove risponde la versione di quel lato. I test lo aprono al posto dell'indirizzo su
+  cui sono stati registrati: uno step che naviga all'indirizzo registrato, e un test API che lo
+  chiama, vanno all'URL del lato, mantenendo percorso e query.
+
+Ogni lato vuole un ambiente, un URL o entrambi, e i due lati devono essere diversi. Se i test sono
+stati registrati su un terzo indirizzo (per esempio `http://localhost:4200`), indicalo in
+**Indirizzo usato nei test**: viene sostituito anche lui su entrambi i lati, e richiede un URL su
+tutti e due.
+
+La sostituzione avviene solo mentre il run è in esecuzione: i test congelati restano identici sui
+due lati, così il confronto continua ad abbinarli. Il report e l'elenco mostrano l'URL di ogni
+lato. Da una pipeline si fa lo stesso con `wfm compare --baseline-url --candidate-url
+--recorded-url` ([CLI](../reference/cli.md)) o con i campi `baselineUrl`, `candidateUrl` e
+`recordedUrl` di `POST /api/v1/plans/{id}/comparisons`.
+
 ### Tolleranze
 
 **Tolleranze**, nella finestra **Confronta ambienti**, stabilisce quanto è severo il confronto.
