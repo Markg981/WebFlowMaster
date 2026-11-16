@@ -66,7 +66,12 @@ export function DraggableAction({
   const isDropTarget = Boolean(stepId && onDropElement);
 
   return (
-    <div ref={(node) => drag(drop(node))} className="mb-2">
+    <div
+      ref={(node) => {
+        drag(drop(node));
+      }}
+      className="mb-2"
+    >
       {' '}
       {/* Attach both drag and drop refs */}
       <Card
