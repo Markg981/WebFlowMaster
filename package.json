@@ -122,7 +122,7 @@
     "@tanstack/react-virtual": "^3.14.26",
     "@xmldom/xmldom": "^0.8.15",
     "axe-core": "^4.14.0",
-    "bullmq": "^5.76.4",
+    "bullmq": "^6.7.6",
     "connect-redis": "^10.0.0",
     "cron-parser": "^5.10.4",
     "dotenv": "^18.0.9",
