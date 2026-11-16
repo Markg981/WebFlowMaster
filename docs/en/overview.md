@@ -20,8 +20,8 @@ A team uses it to:
    matrix and a locale matrix, in parallel, on the platform's own workers, on cloud grids
    (BrowserStack, LambdaTest), or on **local agents** inside a customer's network.
 4. **Understand** the results — steps, screenshots, video, trace, network capture, visual comparison,
-   accessibility findings, an AI explanation of a failure, flaky-test detection, trends; exports to HTML,
-   PDF, JUnit and Allure.
+   accessibility findings, an AI explanation of a failure, flaky-test detection, trends, the comparison of
+   a plan on two environments with a parity report; exports to HTML, PDF, JUnit and Allure.
 5. **Connect** it to the rest of the toolchain — commit statuses in GitHub and GitLab, issues in Jira and
    Azure DevOps, publication to TestRail, Xray and Zephyr Scale, notifications to Slack, Teams or a webhook,
    single sign-on, GitHub Actions, GitLab, Jenkins, Azure Pipelines, Bitbucket Pipelines and CircleCI templates, a command-line client.

@@ -61,6 +61,7 @@ Die Seitenleiste enthält alles:
 | **Prüfungen**      | Änderungen, die auf Freigabe warten, wenn Ihre Organisation Tests vor dem Ausführen prüft.                                                                                 |
 | **Planung**        | Pläne, die von selbst laufen.                                                                                                                                              |
 | **Berichte**       | Jeder abgeschlossene Lauf, instabile Tests und die Quarantäne. Siehe [Ergebnisse](./results).                                                                              |
+| **Vergleiche**     | Ein Plan auf zwei Umgebungen nebeneinander, mit dem Paritätsbericht. Siehe [Zwei Umgebungen vergleichen](./results#comparing-environments).                                |
 | **Einstellungen**  | Ihre Vorlieben und Ihr Passwort und, je nach Rolle, Umgebungen, Projekte, Mitglieder, Schlüssel und der Rest.                                                              |
 
 **Strg+K** (**⌘K** auf dem Mac) oder **Suchen** in der oberen Leiste öffnet von jeder Seite aus die

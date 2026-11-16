@@ -21,8 +21,8 @@ Un team la usa per:
    lingue, in parallelo, sui worker della piattaforma, su griglie cloud (BrowserStack, LambdaTest) o su **agenti
    locali** dentro la rete di un cliente.
 4. **Capire** i risultati — step, screenshot, video, trace, cattura di rete, confronto visivo, problemi di
-   accessibilità, una spiegazione AI di un fallimento, rilevamento dei test instabili, andamenti; esportazioni in
-   HTML, PDF, JUnit e Allure.
+   accessibilità, una spiegazione AI di un fallimento, rilevamento dei test instabili, andamenti, il confronto di
+   un piano su due ambienti con un report di parità; esportazioni in HTML, PDF, JUnit e Allure.
 5. **Collegarla** al resto degli strumenti — stati dei commit in GitHub e GitLab, issue in Jira e Azure DevOps,
    pubblicazione su TestRail, Xray e Zephyr Scale, notifiche a Slack, Teams o a un webhook, single sign-on,
    template per GitHub Actions, GitLab, Jenkins, Azure Pipelines, Bitbucket Pipelines e CircleCI, un client a riga di comando.

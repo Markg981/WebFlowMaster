@@ -400,6 +400,23 @@ its content type; a path outside the run's directory is `400`, a missing file `4
 artifact_not_found`, an unreachable store `502 artifact_store_unavailable`. The run object links to
 the list as `links.evidence`.
 
+### Comparisons
+
+`POST /api/v1/plans/{planId}/comparisons` · scope `runs:write`
+
+Runs the plan on two environments and compares the two runs test by test. The body takes
+`baselineEnvironmentId` and `candidateEnvironmentId` (two different environments) and, optionally,
+`mode` (`sequential` or `parallel`), `name` and `policy` (the tolerances). The answer is `202` with
+the comparison and a `Location` header; an `Idempotency-Key` header makes a repeated request return
+the comparison already started.
+
+`GET /api/v1/comparisons/{comparisonId}` · scope `runs:read`
+
+Its `status`, `verdict` (`regressions`, `inconclusive`, `parity_with_accepted` or `parity`, null
+until it finishes), `summary`, both sides with their runs and `failure`.
+`GET /api/v1/comparisons/{comparisonId}/export/{html|pdf}` downloads the parity report. See
+[Exporting the parity report](../guide/results#exporting-comparison).
+
 ## Schedules
 
 `GET|POST /api/v1/schedules`, `GET|PATCH|DELETE /api/v1/schedules/{scheduleId}`,

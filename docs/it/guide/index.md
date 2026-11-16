@@ -61,6 +61,7 @@ La barra laterale contiene tutto:
 | **Revisioni**         | Le modifiche in attesa di approvazione, se l'organizzazione revisiona i test prima che girino.                                                                       |
 | **Schedulazione**     | I piani che girano da soli.                                                                                                                                          |
 | **Report**            | Ogni run concluso, i test instabili e la quarantena. Vedi [Risultati](./results).                                                                                    |
+| **Confronti**         | Un piano eseguito su due ambienti, fianco a fianco, con il report di parità. Vedi [Confrontare due ambienti](./results#comparing-environments).                      |
 | **Impostazioni**      | Preferenze e password e, a seconda del ruolo, ambienti, progetti, membri, chiavi e il resto.                                                                         |
 
 **Ctrl+K** (**⌘K** su Mac), oppure **Cerca** nella barra in alto, apre da qualsiasi pagina la palette dei
