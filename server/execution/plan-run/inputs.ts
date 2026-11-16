@@ -231,6 +231,8 @@ export async function loadVariables(run: PlanRun, inputs: RunInputs): Promise<Ru
       ...defaultVariables(),
       ...dataVariables,
       ...secrets,
+      // A comparison side that names its address runs there, whatever the environment says.
+      ...(snapshot.comparison?.target ? { baseUrl: snapshot.comparison.target.url } : {}),
       // Values captured by tests that already ran in this pass. Last write wins, so a later
       // request can refresh a token an earlier one obtained.
       ...captured,

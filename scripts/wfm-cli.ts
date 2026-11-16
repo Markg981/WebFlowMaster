@@ -63,6 +63,10 @@ export interface CliOptions {
   planId?: string;
   baselineEnvironmentId?: number;
   candidateEnvironmentId?: number;
+  /** `wfm compare`: where each version answers, and where the tests were recorded. */
+  baselineUrl?: string;
+  candidateUrl?: string;
+  recordedUrl?: string;
   compareMode?: 'sequential' | 'parallel';
   comparisonName?: string;
   failOn?: string[];
@@ -93,7 +97,8 @@ Usage:
   wfm junit <runId> [--junit <file>]
   wfm export <runId> [--html <file>] [--pdf <file>] [--allure <file>]
   wfm units <runId> [<unitId>] [--json]
-  wfm compare --plan <planId> --baseline <environmentId> --candidate <environmentId>
+  wfm compare --plan <planId> [--baseline <environmentId>] [--candidate <environmentId>]
+              [--baseline-url <url>] [--candidate-url <url>] [--recorded-url <url>]
               [--wait] [--fail-on different,outcome_mismatch] [--mode sequential|parallel]
               [--name <name>] [--html <file>] [--pdf <file>]
   wfm tests export [--project <id|none>] [--format yaml|json|gherkin] [--out <file>]
@@ -128,7 +133,10 @@ Options:
   --bdd-revision         cucumber import: pinned destination support revision
   --plan <id>            compare: the plan to run on both environments
   --baseline <id>        compare: the environment that is the reference
-  --candidate <id>       compare: the environment under judgement
+  --candidate <id>       compare: the environment under judgement (default: the baseline's)
+  --baseline-url <url>   compare: where the reference version answers
+  --candidate-url <url>  compare: where the version under judgement answers
+  --recorded-url <url>   compare: the address the tests were recorded on, replaced on both sides
   --mode <mode>          compare: sequential (default) or parallel
   --name <name>          compare: a name for the comparison, such as the migration
   --fail-on <verdicts>   compare: the test verdicts that fail the step, comma separated, from
@@ -271,6 +279,15 @@ export function parseArgs(
       case '--candidate':
         options.candidateEnvironmentId = Number(value());
         break;
+      case '--baseline-url':
+        options.baselineUrl = value();
+        break;
+      case '--candidate-url':
+        options.candidateUrl = value();
+        break;
+      case '--recorded-url':
+        options.recordedUrl = value();
+        break;
       case '--mode':
         options.compareMode = value() as CliOptions['compareMode'];
         break;
@@ -382,13 +399,37 @@ export const DEFAULT_FAIL_ON = ['different', 'outcome_mismatch'];
 
 function compareOptions(options: CliOptions, positional: string[]): CliOptions | { error: string } {
   if (positional.length)
-    return { error: 'compare takes --plan, --baseline and --candidate. See --help.' };
+    return { error: 'compare takes --plan and its sides as options. See --help.' };
   if (!options.planId?.trim()) return { error: 'compare needs --plan.' };
   const isId = (n: number | undefined) => n !== undefined && Number.isInteger(n) && n > 0;
-  if (!isId(options.baselineEnvironmentId) || !isId(options.candidateEnvironmentId))
-    return { error: 'compare needs --baseline and --candidate environment ids.' };
-  if (options.baselineEnvironmentId === options.candidateEnvironmentId)
-    return { error: '--baseline and --candidate must be two different environments.' };
+  for (const [flag, id] of [
+    ['--baseline', options.baselineEnvironmentId],
+    ['--candidate', options.candidateEnvironmentId],
+  ] as const)
+    if (id !== undefined && !isId(id)) return { error: `${flag} takes an environment id.` };
+  for (const [flag, url] of [
+    ['--baseline-url', options.baselineUrl],
+    ['--candidate-url', options.candidateUrl],
+    ['--recorded-url', options.recordedUrl],
+  ] as const)
+    if (url !== undefined && !/^https?:\/\/\S+$/i.test(url.trim()))
+      return { error: `${flag} takes an http or https address.` };
+  if (options.baselineEnvironmentId === undefined && !options.baselineUrl)
+    return { error: 'compare needs --baseline, --baseline-url, or both.' };
+  if (options.candidateEnvironmentId === undefined && !options.candidateUrl)
+    return { error: 'compare needs --candidate, --candidate-url, or both.' };
+  if (options.recordedUrl && (!options.baselineUrl || !options.candidateUrl))
+    return { error: '--recorded-url needs --baseline-url and --candidate-url.' };
+  // As the server decides it (comparisonSidesDiffer in shared/comparison.ts): without its own
+  // environment the candidate runs with the baseline's.
+  const trimmed = (url: string | undefined) => url?.trim().replace(/\/+$/, '') || null;
+  const baselineEnvironment = options.baselineEnvironmentId ?? null;
+  const candidateEnvironment = options.candidateEnvironmentId ?? baselineEnvironment;
+  if (
+    baselineEnvironment === candidateEnvironment &&
+    trimmed(options.baselineUrl) === trimmed(options.candidateUrl)
+  )
+    return { error: 'The two sides must differ: another environment or another URL.' };
   if (
     options.compareMode &&
     options.compareMode !== 'sequential' &&
@@ -789,6 +830,9 @@ async function runCompare(options: CliOptions, io: CliIo, call: Call): Promise<n
     body: JSON.stringify({
       baselineEnvironmentId: options.baselineEnvironmentId,
       candidateEnvironmentId: options.candidateEnvironmentId,
+      ...(options.baselineUrl ? { baselineUrl: options.baselineUrl.trim() } : {}),
+      ...(options.candidateUrl ? { candidateUrl: options.candidateUrl.trim() } : {}),
+      ...(options.recordedUrl ? { recordedUrl: options.recordedUrl.trim() } : {}),
       ...(options.compareMode ? { mode: options.compareMode } : {}),
       ...(options.comparisonName ? { name: options.comparisonName } : {}),
     }),

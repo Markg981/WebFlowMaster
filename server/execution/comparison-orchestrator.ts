@@ -14,8 +14,11 @@ import {
   isTerminalComparisonStatus,
   type ComparisonSummary,
   type ComparisonVerdict,
+  type ComparisonRole,
   type CreateComparisonInput,
+  type ExecutionComparisonRef,
 } from '@shared/comparison';
+import { comparisonSideLabel, comparisonTargetFor } from '@shared/comparison-target';
 import logger from '../platform/logger';
 import { withTenantTransaction, type TenantTx } from '../platform/middleware/tenancy';
 import { executionOrchestrator } from './execution-orchestrator';
@@ -193,8 +196,16 @@ export function createComparisonOrchestrator({
       await stopRun(executionId, 'The comparison this run belonged to has ended.');
   }
 
+  /** The ref a side's run carries: which comparison, which side, and where it runs. */
+  function comparisonRef(comparison: ComparisonRun, role: ComparisonRole): ExecutionComparisonRef {
+    const target = comparisonTargetFor(role, comparison);
+    return { id: comparison.id, role, ...(target ? { target } : {}) };
+  }
+
   async function startBaseline(comparison: ComparisonRun, rethrowRefusal: boolean) {
-    if (comparison.baselineEnvironmentId == null)
+    // A side that names its address runs without an environment; one that named only an
+    // environment, now deleted, has nothing left to run against.
+    if (comparison.baselineEnvironmentId == null && !comparison.baselineUrl)
       return end(
         comparison.id,
         'error',
@@ -211,7 +222,7 @@ export function createComparisonOrchestrator({
         trigger: 'manual',
         environmentId: comparison.baselineEnvironmentId,
         idempotencyKey: `cmp-${comparison.id}-baseline`,
-        comparison: { id: comparison.id, role: 'baseline' },
+        comparison: comparisonRef(comparison, 'baseline'),
       });
     } catch (error) {
       const status = statusOf(error);
@@ -230,7 +241,7 @@ export function createComparisonOrchestrator({
   }
 
   async function startCandidate(comparison: ComparisonRun, baseline: TestPlanExecution) {
-    if (comparison.candidateEnvironmentId == null)
+    if (comparison.candidateEnvironmentId == null && !comparison.candidateUrl)
       return end(
         comparison.id,
         'error',
@@ -246,8 +257,9 @@ export function createComparisonOrchestrator({
         comparison.requestedByUserId,
         `cmp-${comparison.id}-candidate`,
         {
-          environmentId: comparison.candidateEnvironmentId,
-          comparison: { id: comparison.id, role: 'candidate' },
+          // Without its own environment the candidate keeps the baseline's (the replay's source).
+          environmentId: comparison.candidateEnvironmentId ?? undefined,
+          comparison: comparisonRef(comparison, 'candidate'),
         },
       );
     } catch (error) {
@@ -428,7 +440,11 @@ export function createComparisonOrchestrator({
             .limit(1);
           if (existing) return { comparison: existing, created: false };
         }
-        const environmentName = async (environmentId: number) => {
+        const environmentName = async (
+          environmentId: number | null | undefined,
+          url?: string | null,
+        ) => {
+          if (environmentId == null) return comparisonSideLabel(url ?? '');
           // Under RLS: another organization's environment is not found.
           const [row] = await tx
             .select({ name: environments.name })
@@ -439,8 +455,14 @@ export function createComparisonOrchestrator({
             throw new ComparisonError('environment_not_found', 'Environment not found', 404);
           return row.name;
         };
-        const baselineEnvironmentName = await environmentName(input.baselineEnvironmentId);
-        const candidateEnvironmentName = await environmentName(input.candidateEnvironmentId);
+        const baselineEnvironmentName = await environmentName(
+          input.baselineEnvironmentId,
+          input.baselineUrl,
+        );
+        const candidateEnvironmentName =
+          input.candidateEnvironmentId == null && !input.candidateUrl
+            ? baselineEnvironmentName
+            : await environmentName(input.candidateEnvironmentId, input.candidateUrl);
         const [comparison] = await tx
           .insert(comparisonRuns)
           .values({
@@ -448,10 +470,13 @@ export function createComparisonOrchestrator({
             organizationId: plan.organizationId,
             testPlanId: plan.id,
             name: input.name || null,
-            baselineEnvironmentId: input.baselineEnvironmentId,
-            candidateEnvironmentId: input.candidateEnvironmentId,
+            baselineEnvironmentId: input.baselineEnvironmentId ?? null,
+            candidateEnvironmentId: input.candidateEnvironmentId ?? null,
             baselineEnvironmentName,
             candidateEnvironmentName,
+            baselineUrl: input.baselineUrl ?? null,
+            candidateUrl: input.candidateUrl ?? null,
+            recordedUrl: input.recordedUrl ?? null,
             mode: input.mode,
             policy: ComparisonPolicySchema.parse(input.policy ?? {}),
             status: 'queued',

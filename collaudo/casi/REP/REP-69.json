@@ -1,0 +1,15 @@
+{
+  "id": "REP-69",
+  "area": "REP",
+  "title": "Confronto per indirizzo: stessi test su due installazioni, candidato senza ambiente",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "Un piano con un test web registrato su http://localhost:4200; un ambiente con le credenziali; due installazioni della stessa applicazione raggiungibili a due URL diversi (vecchia e nuova versione).",
+  "steps": [
+    "In Piani di test aprire il piano e fare clic su \"Confronta ambienti\".",
+    "Nella baseline scegliere l'ambiente e scrivere l'URL della vecchia versione; nel candidato lasciare \"Nessuno: quello del riferimento\" e scrivere l'URL della nuova versione.",
+    "In \"Indirizzo usato nei test\" scrivere http://localhost:4200 e avviare il confronto.",
+    "Attendere \"Completato\", aprire il report e i due run collegati."
+  ],
+  "expected": "Il report mostra sotto baseline e candidato i due URL; ogni run ha aperto le pagine sul proprio URL (non su localhost:4200) usando le credenziali dello stesso ambiente; i test sono abbinati e hanno un verdetto. Con lo stesso URL sui due lati il pulsante di avvio resta disabilitato."
+}

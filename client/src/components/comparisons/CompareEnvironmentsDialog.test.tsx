@@ -25,7 +25,7 @@ vi.mock('@/hooks/use-environments', () => ({
 }));
 
 /**
- * Starting a comparison from a plan: two different environments are needed before it can start,
+ * Starting a comparison from a plan: each side needs an environment or a URL, and the sides differ,
  * the request carries an idempotency key, and a started comparison opens its report.
  */
 
@@ -67,12 +67,14 @@ describe('CompareEnvironmentsDialog', () => {
     const start = screen.getByRole('button', { name: 'Start comparison' });
     expect(start).toBeDisabled();
 
-    await pick('Baseline', 'prod');
-    await pick('Candidate', 'prod');
-    expect(screen.getByText('Choose two different environments.')).toBeInTheDocument();
+    await pick('Baseline: Environment', 'prod');
+    await pick('Candidate: Environment', 'prod');
+    expect(
+      screen.getByText('The two sides must differ: another environment or another URL.'),
+    ).toBeInTheDocument();
     expect(start).toBeDisabled();
 
-    await pick('Candidate', 'staging');
+    await pick('Candidate: Environment', 'staging');
     fireEvent.change(screen.getByLabelText('Name (optional)'), {
       target: { value: ' Angular 22 ' },
     });
@@ -85,6 +87,9 @@ describe('CompareEnvironmentsDialog', () => {
     expect(JSON.parse(init.body)).toEqual({
       baselineEnvironmentId: 1,
       candidateEnvironmentId: 2,
+      baselineUrl: null,
+      candidateUrl: null,
+      recordedUrl: null,
       mode: 'sequential',
       name: 'Angular 22',
       policy: defaultPolicy(),
@@ -98,18 +103,64 @@ describe('CompareEnvironmentsDialog', () => {
       json: async () => ({ error: 'The plan has no tests to run.' }),
     });
     const onClose = renderDialog();
-    await pick('Baseline', 'prod');
-    await pick('Candidate', 'staging');
+    await pick('Baseline: Environment', 'prod');
+    await pick('Candidate: Environment', 'staging');
     fireEvent.click(screen.getByRole('button', { name: 'Start comparison' }));
     expect(await screen.findByText('The plan has no tests to run.')).toBeInTheDocument();
     expect(onClose).not.toHaveBeenCalled();
     expect(navigate).not.toHaveBeenCalled();
   });
 
-  it('explains that a comparison needs two environments', () => {
+  it('starts by URL alone: the candidate keeps the baseline environment', async () => {
     environments = [{ id: 1, name: 'prod', description: null, loginStateCapturedAt: null }];
+    fetchMock.mockResolvedValue({
+      ok: true,
+      json: async () => ({ id: 'cmp-2', status: 'running', created: true }),
+    });
     renderDialog();
-    expect(screen.getByText(/needs two environments/)).toBeInTheDocument();
+    const start = screen.getByRole('button', { name: 'Start comparison' });
+    expect(screen.getByText('Give each side an environment, a URL, or both.')).toBeInTheDocument();
+
+    const baselineUrl = screen.getByRole('textbox', { name: 'Baseline: URL' });
+    const candidateUrl = screen.getByRole('textbox', { name: 'Candidate: URL' });
+    fireEvent.change(baselineUrl, { target: { value: 'https://old.example.test' } });
+    fireEvent.change(candidateUrl, { target: { value: 'https://old.example.test/' } });
+    expect(
+      screen.getByText('The two sides must differ: another environment or another URL.'),
+    ).toBeInTheDocument();
+    expect(start).toBeDisabled();
+
+    fireEvent.change(candidateUrl, { target: { value: 'ftp://new.example.test' } });
+    expect(screen.getByText('An http or https address, without a user name.')).toBeInTheDocument();
+    expect(start).toBeDisabled();
+
+    fireEvent.change(candidateUrl, { target: { value: 'https://new.example.test' } });
+    expect(start).toBeEnabled();
+    fireEvent.click(start);
+
+    await waitFor(() => expect(navigate).toHaveBeenCalledWith('/comparisons/cmp-2'));
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toMatchObject({
+      baselineEnvironmentId: null,
+      candidateEnvironmentId: null,
+      baselineUrl: 'https://old.example.test',
+      candidateUrl: 'https://new.example.test',
+      recordedUrl: null,
+    });
+  });
+
+  it('wants a URL on both sides before replacing the recorded address', async () => {
+    renderDialog();
+    await pick('Baseline: Environment', 'prod');
+    await pick('Candidate: Environment', 'staging');
+    fireEvent.change(
+      screen.getByRole('textbox', { name: 'Address used in the tests (optional)' }),
+      {
+        target: { value: 'http://localhost:4200' },
+      },
+    );
+    expect(
+      screen.getByText('The address used in the tests needs a URL on both sides.'),
+    ).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Start comparison' })).toBeDisabled();
   });
 });

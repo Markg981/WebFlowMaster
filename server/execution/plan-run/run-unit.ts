@@ -5,6 +5,7 @@
  * running the same flow each create their own records, and one pass reading the id the other
  * captured is how a parallel run quietly tests the wrong thing.
  */
+import { retargetDefinition } from '@shared/comparison-target';
 import fs from 'fs-extra';
 import path from 'path';
 import type { ApiTest, Assertion, Test } from '@shared/schema';
@@ -455,6 +456,9 @@ async function runDefinition(
   const { run, inputs, settings, variables, agentHttp } = scope;
   const { policies } = settings;
   if (testType === 'ui') parseTextColumns(run, definition as Test);
+  // A comparison side that names its address: the other version's addresses in this test become
+  // this side's, on a copy, so the frozen definition and its fingerprint stay as they were.
+  const retargeted = retargetDefinition(definition, inputs.snapshot.comparison?.target);
 
   // The request itself (URL, query, headers, body, auth) is resolved by the API runner from
   // the same variable map as everything else, secrets included, so captured values keep
@@ -462,8 +466,8 @@ async function runDefinition(
   // they name is substituted here; the test's name, selectors and properties are left alone.
   const test =
     testType === 'api' && Object.keys(variables.secrets).length > 0
-      ? withSecretTargets(definition as ApiTest, variables.secrets)
-      : definition;
+      ? withSecretTargets(retargeted as ApiTest, variables.secrets)
+      : retargeted;
 
   const attemptOnce = () =>
     attempt(context, runTestOnce, async (result) => {

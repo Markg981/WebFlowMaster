@@ -122,9 +122,75 @@ describe('parsing wfm compare', () => {
       [...base, '--fail-on', ''],
       [...base, '--junit', 'out.xml'],
       [...base, 'extra'],
+      ['compare', '--plan', 'p', '--baseline-url', 'https://old.test'],
+      [
+        'compare',
+        '--plan',
+        'p',
+        '--baseline-url',
+        'ftp://old.test',
+        '--candidate-url',
+        'https://new.test',
+      ],
+      [
+        'compare',
+        '--plan',
+        'p',
+        '--baseline-url',
+        'https://a.test/',
+        '--candidate-url',
+        'https://a.test',
+      ],
+      [
+        'compare',
+        '--plan',
+        'p',
+        '--baseline',
+        '1',
+        '--candidate-url',
+        'https://new.test',
+        '--recorded-url',
+        'https://dev.test',
+      ],
     ]) {
       expect(parsed(argv), argv.join(' ')).toHaveProperty('error');
     }
+  });
+});
+
+describe('parsing wfm compare by URL', () => {
+  it('takes a URL per side, with or without environments', () => {
+    expect(
+      parsed([
+        'compare',
+        '--plan',
+        'p',
+        '--baseline',
+        '1',
+        '--baseline-url',
+        'https://old.test',
+        '--candidate-url',
+        'https://new.test',
+        '--recorded-url',
+        'https://dev.test',
+      ]),
+    ).toMatchObject({
+      baselineEnvironmentId: 1,
+      baselineUrl: 'https://old.test',
+      candidateUrl: 'https://new.test',
+      recordedUrl: 'https://dev.test',
+    });
+    expect(
+      parsed([
+        'compare',
+        '--plan',
+        'p',
+        '--baseline-url',
+        'https://old.test',
+        '--candidate-url',
+        'https://new.test',
+      ]),
+    ).not.toHaveProperty('error');
   });
 });
 
@@ -186,6 +252,24 @@ describe('running wfm compare', () => {
     expect(init.headers['Idempotency-Key']).toBe('build-9');
     expect(JSON.parse(init.body)).toEqual({ baselineEnvironmentId: 1, candidateEnvironmentId: 2 });
     expect(fetchImpl).toHaveBeenCalledTimes(1);
+  });
+
+  it('sends the URLs of the two sides', async () => {
+    const fetchImpl = vi.fn().mockResolvedValue(jsonResponse(comparison('running'), 202));
+    await runCli(
+      options({
+        baselineEnvironmentId: 1,
+        candidateEnvironmentId: undefined,
+        baselineUrl: 'https://old.test',
+        candidateUrl: ' https://new.test ',
+      }),
+      io(fetchImpl),
+    );
+    expect(JSON.parse(fetchImpl.mock.calls[0][1].body)).toEqual({
+      baselineEnvironmentId: 1,
+      baselineUrl: 'https://old.test',
+      candidateUrl: 'https://new.test',
+    });
   });
 
   it('waits for the verdict, writes the parity report whatever it is, and fails on a regression', async () => {

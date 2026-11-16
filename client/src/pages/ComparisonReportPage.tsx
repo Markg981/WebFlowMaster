@@ -71,6 +71,9 @@ function RunLink({ planId, side, label }: { planId: string; side: ComparisonSide
     <div className="space-y-0.5">
       <div className="text-xs text-muted-foreground">{label}</div>
       <div className="font-medium">{side.environmentName}</div>
+      {side.url && side.url !== side.environmentName && (
+        <div className="text-xs font-mono text-muted-foreground break-all">{side.url}</div>
+      )}
       {side.executionId ? (
         <Link
           href={`/test-plans/${planId}/executions/${side.executionId}/report`}

@@ -150,7 +150,7 @@ export function renderComparisonReportHtml(
     (r) => r.verdict !== 'identical' && r.verdict !== 'equivalent',
   );
   const sideRow = (label: string, side: ComparisonReportModel['baseline']) =>
-    `<dt>${label}</dt><dd>${escapeHtml(side.environmentName)} · <span class="mono">${escapeHtml(side.executionId ?? 'not started')}</span>${side.status ? ` · ${escapeHtml(side.status)}` : ''}${side.startedAt ? ` · ${when(side.startedAt)} → ${when(side.completedAt)}` : ''}</dd>`;
+    `<dt>${label}</dt><dd>${escapeHtml(side.environmentName)}${side.url ? ` · <span class="mono">${escapeHtml(side.url)}</span>` : ''} · <span class="mono">${escapeHtml(side.executionId ?? 'not started')}</span>${side.status ? ` · ${escapeHtml(side.status)}` : ''}${side.startedAt ? ` · ${when(side.startedAt)} → ${when(side.completedAt)}` : ''}</dd>`;
 
   return `<!doctype html>
 <html lang="en">
@@ -170,6 +170,7 @@ export function renderComparisonReportHtml(
     <dt>Comparison</dt><dd class="mono">${escapeHtml(model.comparisonId)}</dd>
     ${sideRow('Baseline', model.baseline)}
     ${sideRow('Candidate', model.candidate)}
+    ${model.recordedUrl ? `<dt>Recorded on</dt><dd class="mono">${escapeHtml(model.recordedUrl)}</dd>` : ''}
     <dt>Mode</dt><dd>${escapeHtml(model.mode)}</dd>
     <dt>Status</dt><dd>${escapeHtml(model.status)}</dd>
     <dt>Requested by</dt><dd>${escapeHtml(model.requestedBy ?? '—')}</dd>

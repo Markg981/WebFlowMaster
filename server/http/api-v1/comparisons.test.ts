@@ -203,6 +203,25 @@ describe('comparisons through /api/v1', () => {
     await request(app).get(`/api/v1/comparisons/${uuidv4()}`).set(bearer(writeOnly)).expect(403);
   });
 
+  it('starts one by address, and returns the URLs of both sides', async () => {
+    const key = await keyFor(editor, org, ['runs:write', 'runs:read']);
+    const started = await request(app)
+      .post(`/api/v1/plans/${plan}/comparisons`)
+      .set(bearer(key))
+      .send({
+        baselineEnvironmentId: prod,
+        baselineUrl: 'https://old.example.test',
+        candidateUrl: 'https://new.example.test',
+        recordedUrl: 'http://localhost:4200/',
+      })
+      .expect(202);
+    expect(started.body).toMatchObject({
+      baseline: { environmentId: prod, environmentName: 'prod', url: 'https://old.example.test' },
+      candidate: { environmentId: null, url: 'https://new.example.test' },
+      recordedUrl: 'http://localhost:4200',
+    });
+  });
+
   it('rejects a body it does not understand', async () => {
     const key = await keyFor(editor, org, ['runs:write']);
     const refused = await request(app)

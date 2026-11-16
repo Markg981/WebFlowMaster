@@ -96,13 +96,16 @@ function view(row: ComparisonRun, planName?: string | null) {
     baseline: {
       environmentId: row.baselineEnvironmentId,
       environmentName: row.baselineEnvironmentName,
+      url: row.baselineUrl,
       executionId: row.baselineExecutionId,
     },
     candidate: {
       environmentId: row.candidateEnvironmentId,
       environmentName: row.candidateEnvironmentName,
+      url: row.candidateUrl,
       executionId: row.candidateExecutionId,
     },
+    recordedUrl: row.recordedUrl,
     failureCode: row.failureCode,
     failureMessage: row.failureMessage,
     requestedByUserId: row.requestedByUserId,
@@ -210,7 +213,7 @@ function resultView(row: Omit<ComparisonResult, 'differences'>, differenceCount:
   };
 }
 
-// POST /api/test-plans/:planId/comparisons { baselineEnvironmentId, candidateEnvironmentId, mode?, name?, policy? }
+// POST /api/test-plans/:planId/comparisons { baselineEnvironmentId?, candidateEnvironmentId?, baselineUrl?, candidateUrl?, recordedUrl?, mode?, name?, policy? }
 router.post(
   '/api/test-plans/:planId/comparisons',
   comparisonsLimit,
@@ -239,8 +242,10 @@ router.post(
             targetId: row.id,
             metadata: {
               planId: row.testPlanId,
-              baselineEnvironmentId: input.baselineEnvironmentId,
-              candidateEnvironmentId: input.candidateEnvironmentId,
+              baselineEnvironmentId: input.baselineEnvironmentId ?? null,
+              candidateEnvironmentId: input.candidateEnvironmentId ?? null,
+              baselineUrl: input.baselineUrl ?? null,
+              candidateUrl: input.candidateUrl ?? null,
               mode: input.mode,
             },
           }),

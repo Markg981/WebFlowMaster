@@ -176,6 +176,35 @@ describe('starting a comparison', () => {
       .send({ baselineEnvironmentId: prodId, candidateEnvironmentId: stagingId })
       .expect(404);
   });
+
+  it('starts one by address, and shows each side with its URL', async () => {
+    const { body } = await request(app)
+      .post(`/api/test-plans/${planId}/comparisons`)
+      .send({
+        baselineEnvironmentId: prodId,
+        baselineUrl: 'https://old.example.test/',
+        candidateUrl: 'https://new.example.test',
+      })
+      .expect(202);
+    const one = await request(app).get(`/api/comparisons/${body.id}`).expect(200);
+    expect(one.body).toMatchObject({
+      baseline: { environmentId: prodId, environmentName: 'prod', url: 'https://old.example.test' },
+      candidate: {
+        environmentId: null,
+        environmentName: 'new.example.test',
+        url: 'https://new.example.test',
+      },
+      recordedUrl: null,
+    });
+    const entries = await audits('comparison.created', body.id);
+    expect(entries[0].metadata).toMatchObject({ candidateUrl: 'https://new.example.test' });
+
+    const same = await request(app)
+      .post(`/api/test-plans/${planId}/comparisons`)
+      .send({ baselineUrl: 'https://a.example.test', candidateUrl: 'https://a.example.test/' })
+      .expect(400);
+    expect(JSON.stringify(same.body.details)).toContain('candidateUrl');
+  });
 });
 
 describe('reading comparisons', () => {

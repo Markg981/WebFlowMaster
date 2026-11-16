@@ -251,16 +251,28 @@ node wfm.mjs compare --plan <planId> --baseline 3 --candidate 7 --wait \
   --html parity.html --pdf parity.pdf
 ```
 
-| Option                 | Meaning                                                                                                                                                                       |
-| ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `--plan <id>`          | The plan to run on both environments.                                                                                                                                         |
-| `--baseline <id>`      | The environment that is the reference. Required.                                                                                                                              |
-| `--candidate <id>`     | The environment under judgement. Required, and different from the baseline.                                                                                                   |
-| `--mode <mode>`        | `sequential` (default) or `parallel`.                                                                                                                                         |
-| `--name <name>`        | A name for the comparison, such as the migration.                                                                                                                             |
-| `--fail-on <verdicts>` | Test verdicts that fail the step, comma separated, from `different`, `outcome_mismatch`, `both_failed`, `not_comparable`, `equivalent`. Default `different,outcome_mismatch`. |
-| `--wait`               | Wait for the comparison to finish and turn its verdict into the exit code.                                                                                                    |
-| `--html` / `--pdf`     | Write the parity report. These and `--fail-on` imply `--wait`.                                                                                                                |
+To compare two installations of the same application (a port, an upgrade), give each side its
+address: the tests open it instead of the one they were recorded on, see
+[Comparing two addresses](../guide/results#comparing-urls).
+
+```bash
+node wfm.mjs compare --plan <planId> --baseline 3 \
+  --baseline-url https://old.example.com --candidate-url https://new.example.com --wait
+```
+
+| Option                  | Meaning                                                                                                                                                                       |
+| ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--plan <id>`           | The plan to run on both environments.                                                                                                                                         |
+| `--baseline <id>`       | The environment that is the reference.                                                                                                                                        |
+| `--candidate <id>`      | The environment under judgement. Without it the candidate uses the baseline's.                                                                                                |
+| `--baseline-url <url>`  | Where the reference version answers. Each side needs an environment, a URL, or both.                                                                                          |
+| `--candidate-url <url>` | Where the version under judgement answers. The two sides must differ.                                                                                                         |
+| `--recorded-url <url>`  | The address the tests were recorded on, replaced on both sides. Needs both URLs.                                                                                              |
+| `--mode <mode>`         | `sequential` (default) or `parallel`.                                                                                                                                         |
+| `--name <name>`         | A name for the comparison, such as the migration.                                                                                                                             |
+| `--fail-on <verdicts>`  | Test verdicts that fail the step, comma separated, from `different`, `outcome_mismatch`, `both_failed`, `not_comparable`, `equivalent`. Default `different,outcome_mismatch`. |
+| `--wait`                | Wait for the comparison to finish and turn its verdict into the exit code.                                                                                                    |
+| `--html` / `--pdf`      | Write the parity report. These and `--fail-on` imply `--wait`.                                                                                                                |
 
 `--timeout`, `--poll`, `--idempotency-key` and `--json` work as for `wfm run`. The key needs
 `runs:write` to start and `runs:read` to read.
@@ -271,7 +283,8 @@ step could not be carried out (no key, wrong URL, timed out waiting). `identical
 step.
 
 For Azure Pipelines, `integrations/azure-pipelines/webflowmaster-compare.yml` is a steps template
-with the parameters `plan`, `baseline`, `candidate`, `mode`, `failOn`, `name` and `timeout`:
+with the parameters `plan`, `baseline`, `candidate`, `baselineUrl`, `candidateUrl`, `recordedUrl`,
+`mode`, `failOn`, `name` and `timeout`:
 
 ```yaml
 steps:
