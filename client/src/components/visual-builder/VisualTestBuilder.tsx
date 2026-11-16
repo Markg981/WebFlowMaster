@@ -281,7 +281,9 @@ export function VisualTestBuilder({
       )}
 
       <div
-        ref={dropRef}
+        ref={(node) => {
+          dropRef(node);
+        }}
         className={`flex-1 border rounded-lg overflow-hidden transition-colors ${isOver ? 'border-primary bg-primary/5' : 'bg-muted/20'}`}
       >
         <ReactFlow

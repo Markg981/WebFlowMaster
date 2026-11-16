@@ -89,7 +89,9 @@ export function DraggableElement({ element, onHover, onKeep, onAssign }: Draggab
 
   return (
     <Card
-      ref={drag}
+      ref={(node) => {
+        drag(node);
+      }}
       className={`p-3 cursor-pointer hover:border-primary hover:bg-blue-50 transition-colors ${
         isDragging ? 'opacity-50' : ''
       }`}
