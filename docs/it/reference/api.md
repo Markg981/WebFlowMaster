@@ -410,6 +410,23 @@ fuori dalla cartella del run è `400`, un file assente `404 artifact_not_found`,
 raggiungibile `502 artifact_store_unavailable`. L'oggetto run rimanda all'elenco in
 `links.evidence`.
 
+### Confronti
+
+`POST /api/v1/plans/{planId}/comparisons` · scope `runs:write`
+
+Esegue il piano su due ambienti e confronta i due run test per test. Il body prende
+`baselineEnvironmentId` e `candidateEnvironmentId` (due ambienti diversi) e, facoltativi, `mode`
+(`sequential` o `parallel`), `name` e `policy` (le tolleranze). La risposta è `202` con il
+confronto e un header `Location`; un header `Idempotency-Key` fa sì che una richiesta ripetuta
+restituisca il confronto già avviato.
+
+`GET /api/v1/comparisons/{comparisonId}` · scope `runs:read`
+
+Il suo `status`, `verdict` (`regressions`, `inconclusive`, `parity_with_accepted` o `parity`, null
+finché non termina), `summary`, i due lati con i loro run e `failure`.
+`GET /api/v1/comparisons/{comparisonId}/export/{html|pdf}` scarica il report di parità. Vedi
+[Esportare il report di parità](../guide/results#exporting-comparison).
+
 ## Pianificazioni
 
 `GET|POST /api/v1/schedules`, `GET|PATCH|DELETE /api/v1/schedules/{scheduleId}`,

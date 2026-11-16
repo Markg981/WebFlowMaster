@@ -58,6 +58,7 @@ The sidebar has everything:
 | **Reviews**      | Changes waiting for approval, when your organization reviews tests before they run.                                                                               |
 | **Scheduling**   | Plans that run by themselves.                                                                                                                                     |
 | **Reports**      | Every finished run, flaky tests and the quarantine. See [Results](./results).                                                                                     |
+| **Comparisons**  | A plan run on two environments side by side, with the parity report. See [Comparing two environments](./results#comparing-environments).                          |
 | **Settings**     | Your preferences and password, and, depending on your role, environments, projects, members, keys and the rest.                                                   |
 
 **Ctrl+K** (**⌘K** on a Mac), or **Search** in the top bar, opens the command palette from any page:

@@ -64,6 +64,7 @@ La barre latérale contient tout :
 | **Relectures**            | Les modifications en attente d'approbation, quand votre organisation relit les tests avant qu'ils s'exécutent.                                                                            |
 | **Planification**         | Les plans qui s'exécutent d'eux-mêmes.                                                                                                                                                    |
 | **Rapports**              | Toutes les exécutions terminées, les tests instables et la quarantaine. Voir [Résultats](./results).                                                                                      |
+| **Comparaisons**          | Un plan exécuté sur deux environnements côte à côte, avec le rapport de parité. Voir [Comparer deux environnements](./results#comparing-environments).                                    |
 | **Paramètres**            | Vos préférences et votre mot de passe et, selon votre rôle, environnements, projets, membres, clés et le reste.                                                                           |
 
 **Ctrl+K** (**⌘K** sur Mac), ou **Rechercher** dans la barre du haut, ouvre la palette de commandes

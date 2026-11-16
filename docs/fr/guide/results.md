@@ -287,6 +287,159 @@ Une étape **Vérifier l'accessibilité** montre quelles règles ont été enfre
 éléments, et la gravité de chacune ; lesquelles sont respectées ; et lesquelles demandent une
 vérification humaine.
 
+## Comparer deux environnements {#comparing-environments}
+
+Une comparaison exécute un plan sur deux environnements et place les deux exécutions côte à côte,
+test par test. Elle sert à montrer qu'une nouvelle version se comporte comme l'actuelle : la
+**référence** est l'environnement auquel vous faites confiance, le **candidat** celui que vous
+vérifiez.
+
+Dans **Plans de test**, un éditeur clique sur **Comparer les environnements** sur un plan, choisit
+la référence et le candidat (deux [environnements](./web-tests#variables-and-environments)
+différents) et l'ordre :
+
+- **La référence d'abord, puis le candidat** : le candidat démarre quand l'exécution de la référence est terminée.
+- **Les deux en même temps** : les deux exécutions démarrent ensemble.
+
+Les deux exécutions rejouent les mêmes tests figés, de sorte qu'une modification faite entre-temps
+ne peut pas atteindre un seul côté. Chaque exécution est une exécution normale avec son propre
+rapport, et ce rapport renvoie à sa comparaison. Un éditeur peut annuler une comparaison en cours ;
+les lecteurs peuvent la consulter.
+
+**Comparaisons**, dans le menu latéral, les liste. Quand les deux exécutions sont terminées, le
+rapport d'une comparaison montre :
+
+- le verdict global et combien de tests ont chaque verdict ;
+- **Parité par module** : la part de tests identiques ou équivalents dans chaque module ;
+- les tests, filtrables par verdict. En ouvrir un montre chaque différence : l'étape, le
+  checkpoint, le type (résultat, texte, capture d'écran, durée…), ce que chaque côté avait et si
+  elle est bloquante ou informative. Une différence de capture d'écran montre les deux captures.
+  Un test que vous ne pouvez pas voir est listé sans détails.
+
+| Verdict du test      | Quand                                    |
+| -------------------- | ---------------------------------------- |
+| Identique            | Aucune différence                        |
+| Équivalent           | Uniquement des différences informatives  |
+| Différent            | Au moins une différence bloquante        |
+| Résultat différent   | Réussi d'un côté, en échec de l'autre    |
+| Échec des deux côtés | En échec des deux côtés : ne prouve rien |
+| Non comparable       | Un côté n'a pas de résultat pour le test |
+
+Le verdict global est **Régressions** si un test est différent ou a un résultat différent ;
+sinon **Non concluant** si un test est en échec des deux côtés ou non comparable ; sinon **Parité
+avec différences acceptées** si un test est équivalent ; sinon **Parité**.
+
+Ce qui est comparé, checkpoint par checkpoint, apparié par nom :
+
+- le résultat de chaque test ;
+- **Checkpoint text** : les textes, dans l'ordre ;
+- **Checkpoint table** : les cellules, ligne par ligne et cellule par cellule. Une ligne présente
+  d'un seul côté est une seule différence. Une cellule qui se lit comme un nombre des deux côtés
+  correspond dans la tolérance numérique ;
+- **Checkpoint chart** : les séries, appariées par nom, et leurs points par argument (valeurs dans
+  la tolérance numérique) ; les plages des axes ; les lignes de référence ;
+- **Checkpoint network** : chaque appel (méthode, chemin et query) depuis le checkpoint réseau
+  précédent, combien de fois il a été fait, son statut et le hash du corps de la requête, et de
+  celui de la réponse si les tolérances le demandent ;
+- les captures d'écran de la même étape et les durées : celle du test et, là où le journal
+  l'enregistre, celle de chaque étape. Être plus rapide n'est jamais une différence, ni un
+  ralentissement de moins de 250 ms.
+
+Un test conserve au plus 200 différences ; le rapport indique combien d'autres ont été trouvées.
+
+### Tolérances
+
+**Tolérances**, dans la fenêtre **Comparer les environnements**, fixe la sévérité de la
+comparaison. L'API accepte les mêmes réglages comme `policy` dans
+`POST /api/test-plans/{planId}/comparisons`.
+
+| Groupe           | Réglage                                                             | Par défaut        |
+| ---------------- | ------------------------------------------------------------------- | ----------------- |
+| Texte            | Traiter plusieurs espaces comme un seul                             | oui               |
+| Texte            | Ignorer la casse                                                    | non               |
+| Texte            | Remplacements, un `motif => remplacement` par ligne                 | aucun             |
+| Nombres          | Tolérance absolue ; tolérance relative (%)                          | 0 ; 0             |
+| Réseau           | Chemins comparés (motifs, `*` correspond à tout)                    | `**/api/**`       |
+| Réseau           | Paramètres de query ignorés ; comparer le hash du corps de réponse  | aucun ; non       |
+| Captures d'écran | Non comparées, informatif ou bloquant ; pixels différents admis (%) | informatif ; 1 %  |
+| Durées           | Non comparées, informatif ou bloquant ; ralentissement admis (%)    | informatif ; 20 % |
+
+Un remplacement est une expression régulière appliquée aux deux côtés avant la comparaison, dans
+tout le texte : `\d{2}/\d{2}/\d{4} => DATE` rend deux dates égales. Une règle sans `=>` supprime
+ce qu'elle trouve.
+
+### Revoir un test et différences connues {#known-differences}
+
+Dans un test ouvert, un éditeur clique sur **Revue** et indique si les différences sont attendues :
+
+- **Accepté** : la différence est attendue. Une raison est obligatoire.
+- **Défaut** : le candidat est faux. La note est facultative.
+
+La revue et sa note restent sur le test ; un lecteur les voit mais ne peut pas revoir.
+
+Un test accepté peut aussi instruire les comparaisons suivantes : **Attendre ces différences dans
+les comparaisons suivantes** enregistre les différences bloquantes choisies (au plus 50) comme
+**différences connues**, pour ce test, pour tous les tests de son projet ou pour tous les tests de
+l'organisation, avec une référence facultative (un ticket, par exemple) et une date d'expiration.
+La raison de la revue devient leur raison. Dès lors, une différence couverte par une différence
+connue est marquée **connue** et ne bloque plus : un test dont les seules différences bloquantes
+sont connues est **Équivalent**. Une différence connue couvre une différence du même type, sur le
+même checkpoint (ou sur n'importe lequel si elle n'en nomme aucun) et avec un chemin que son motif
+reconnaît, jusqu'à son expiration. Une comparaison déjà faite garde son verdict.
+
+**Paramètres → Différences connues** les liste toutes, signale celles qui ont expiré et permet à un
+éditeur d'en ajouter une à la main ou d'en supprimer une. Une différence connue d'un projet
+restreint n'est visible que par ceux qui peuvent voir le projet, et seuls ceux qui peuvent modifier
+le projet peuvent l'ajouter ou la supprimer.
+
+### Limites
+
+- Les lignes d'un tableau sont comparées par position : une ligne insérée d'un côté décale toutes
+  les suivantes, et chaque ligne décalée est une différence (jusqu'aux 200 qu'un test conserve).
+  Enregistrez un tableau trié de la même façon des deux côtés, ou n'enregistrez que les lignes
+  utiles avec `rows=` dans le checkpoint.
+- Les chemins réseau sont filtrés quand la comparaison s'exécute, pas quand l'exécution les
+  enregistre : un checkpoint réseau garde tous les appels fetch et XHR (ou ceux qui correspondent à
+  ses propres motifs), de sorte qu'une comparaison ultérieure peut choisir d'autres chemins.
+- La durée d'une étape web n'est pas dans le journal : pour les tests web, seule la durée du test
+  entier est comparée.
+
+Si un élément a des sélecteurs différents sur deux environnements, donnez-lui une
+[variante de locator](/en/guide/web-tests#element-variants) plutôt qu'un second élément.
+
+### Exporter le rapport de parité {#exporting-comparison}
+
+Dans le rapport d'une comparaison terminée, **Exporter** propose un **rapport de parité HTML** (un
+seul fichier qui s'ouvre partout : verdicts, tolérances et revues) et un **PDF** (à joindre à une
+validation ou à archiver pour un audit). Toute personne pouvant lire la comparaison peut
+l'exporter. La CLI et l'API écrivent les mêmes fichiers, voir
+[Exécuter depuis la CI](/en/integrations/ci#comparison) et l'API ci-dessous.
+
+L'API v1 démarre et lit les comparaisons avec la même clé que les exécutions (`runs:write` pour
+démarrer, `runs:read` pour lire), documentée dans `GET /api/v1/openapi.json` :
+
+| Endpoint                                                    | Ce qu'il fait                                                                             |
+| ----------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| `POST /api/v1/plans/{planId}/comparisons`                   | Démarre une comparaison ; répond `202` avec la comparaison et un en-tête `Location`.      |
+| `GET /api/v1/comparisons/{comparisonId}`                    | La lit : `status`, `verdict`, `summary`, les deux côtés avec leurs exécutions, `failure`. |
+| `GET /api/v1/comparisons/{comparisonId}/export/{html\|pdf}` | Télécharge le rapport de parité.                                                          |
+
+Le corps prend `baselineEnvironmentId` et `candidateEnvironmentId` (deux environnements
+différents) et, en option, `mode` (`sequential`, par défaut, ou `parallel`), `name` et `policy`
+(les tolérances). L'en-tête facultatif `Idempotency-Key` (au plus 255 caractères) fait qu'une
+requête répétée renvoie la comparaison déjà démarrée. `links` dans la réponse donne le rapport et
+les deux exports. `verdict` vaut `regressions`, `inconclusive`, `parity_with_accepted` ou `parity`,
+et reste nul tant que la comparaison n'est pas terminée.
+
+Une comparaison envoie **une** notification quand elle se termine, au lieu d'une par exécution :
+voir [Paramètres du plan](./running#parametres-du-plan). Elle suit les réglages de notification du
+plan : la parité (avec ou sans différences acceptées) est un succès, les régressions et une
+comparaison non concluante un échec, une comparaison qui n'a pas pu s'exécuter est « non
+exécutée ». Une comparaison annulée n'est annoncée que là où une exécution interrompue le serait.
+Le message indique le plan, les deux environnements, le verdict et le nombre de tests par verdict,
+avec le lien vers le rapport ; Slack et Teams reçoivent leur propre carte, et les adresses e-mail
+indiquées reçoivent aussi un e-mail.
+
 ## Exporter une exécution
 
 **Exporter** télécharge l'exécution sous forme de :

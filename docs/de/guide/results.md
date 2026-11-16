@@ -283,6 +283,159 @@ Ein Schritt **Barrierefreiheit prüfen** zeigt, welche Regeln auf welchen Elemen
 und wie schwer jeweils; welche eingehalten wurden; und welche eine Prüfung durch einen Menschen
 brauchen.
 
+## Zwei Umgebungen vergleichen {#comparing-environments}
+
+Ein Vergleich führt einen Plan auf zwei Umgebungen aus und stellt die beiden Läufe Test für Test
+nebeneinander. Er zeigt, dass sich eine neue Version wie die aktuelle verhält: die **Referenz** ist
+die Umgebung, der Sie vertrauen, der **Kandidat** die, die Sie prüfen.
+
+Unter **Testpläne** klickt ein Editor bei einem Plan auf **Umgebungen vergleichen**, wählt Referenz
+und Kandidat (zwei verschiedene [Umgebungen](./web-tests#variables-and-environments)) und die
+Reihenfolge:
+
+- **Erst die Referenz, dann der Kandidat**: der Kandidat startet, wenn der Lauf der Referenz beendet ist.
+- **Beide gleichzeitig**: die beiden Läufe starten zusammen.
+
+Beide Läufe führen dieselben eingefrorenen Tests aus, sodass eine zwischenzeitliche Änderung nicht
+nur eine Seite erreichen kann. Jeder Lauf ist ein normaler Lauf mit eigenem Bericht, und dieser
+Bericht verweist auf seinen Vergleich. Ein Editor kann einen laufenden Vergleich abbrechen; Viewer
+können ihn lesen.
+
+**Vergleiche** im Seitenmenü listet sie auf. Sind beide Läufe beendet, zeigt der Bericht eines
+Vergleichs:
+
+- das Gesamtergebnis und wie viele Tests jedes Testergebnis haben;
+- **Parität nach Modul**: den Anteil identischer oder gleichwertiger Tests in jedem Modul;
+- die Tests, nach Ergebnis filterbar. Ein geöffneter Test zeigt jede Abweichung: den Schritt, den
+  Checkpoint, die Art (Ergebnis, Text, Screenshot, Dauer…), was jede Seite hatte und ob sie
+  blockierend oder informativ ist. Eine Screenshot-Abweichung zeigt beide Screenshots. Ein Test,
+  den Sie nicht sehen dürfen, wird ohne Details aufgeführt.
+
+| Testergebnis              | Wann                                             |
+| ------------------------- | ------------------------------------------------ |
+| Identisch                 | Keine Abweichung                                 |
+| Gleichwertig              | Nur informative Abweichungen                     |
+| Abweichend                | Mindestens eine blockierende Abweichung          |
+| Ergebnis abweichend       | Auf einer Seite bestanden, auf der anderen nicht |
+| Auf beiden fehlgeschlagen | Auf beiden Seiten fehlgeschlagen: beweist nichts |
+| Nicht vergleichbar        | Eine Seite hat kein Ergebnis für den Test        |
+
+Das Gesamtergebnis ist **Regressionen**, wenn ein Test abweichend ist oder ein abweichendes
+Ergebnis hat; sonst **Nicht eindeutig**, wenn einer auf beiden Seiten fehlgeschlagen oder nicht
+vergleichbar ist; sonst **Parität mit akzeptierten Unterschieden**, wenn einer gleichwertig ist;
+sonst **Parität**.
+
+Was verglichen wird, Checkpoint für Checkpoint, nach Namen zugeordnet:
+
+- das Ergebnis jedes Tests;
+- **Checkpoint text**: die Texte, in ihrer Reihenfolge;
+- **Checkpoint table**: die Zellen, Zeile für Zeile und Zelle für Zelle. Eine Zeile, die nur auf
+  einer Seite steht, ist eine Abweichung. Eine Zelle, die auf beiden Seiten als Zahl gelesen wird,
+  stimmt innerhalb der numerischen Toleranz überein;
+- **Checkpoint chart**: die Serien, nach Namen zugeordnet, und ihre Punkte nach Argument (Werte
+  innerhalb der numerischen Toleranz); die Achsenbereiche; die Referenzlinien;
+- **Checkpoint network**: jeder Aufruf (Methode, Pfad und Query) seit dem vorigen
+  Netzwerk-Checkpoint, wie oft er erfolgte, sein Status und der Hash des Request-Bodys, und des
+  Response-Bodys, wenn die Toleranzen es verlangen;
+- die Screenshots desselben Schritts und die Dauern: die des Tests und, wo das Log sie erfasst, die
+  jedes Schritts. Schneller zu sein ist nie eine Abweichung, eine Verlangsamung unter 250 ms auch
+  nicht.
+
+Ein Test behält höchstens 200 Abweichungen; der Bericht sagt, wie viele weitere gefunden wurden.
+
+### Toleranzen
+
+**Toleranzen** im Dialog **Umgebungen vergleichen** legen fest, wie streng der Vergleich ist. Die
+API nimmt dieselben Einstellungen als `policy` in `POST /api/test-plans/{planId}/comparisons`.
+
+| Gruppe      | Einstellung                                                     | Standard        |
+| ----------- | --------------------------------------------------------------- | --------------- |
+| Text        | Mehrere Leerzeichen als eines behandeln                         | an              |
+| Text        | Groß- und Kleinschreibung ignorieren                            | aus             |
+| Text        | Ersetzungen, eine `Muster => Ersatz` pro Zeile                  | keine           |
+| Zahlen      | Absolute Toleranz; relative Toleranz (%)                        | 0; 0            |
+| Netzwerk    | Verglichene Pfade (Muster, `*` passt auf alles)                 | `**/api/**`     |
+| Netzwerk    | Ignorierte Query-Parameter; Hash des Response-Bodys vergleichen | keine; aus      |
+| Screenshots | Aus, informativ oder blockierend; abweichende Pixel erlaubt (%) | informativ; 1%  |
+| Dauern      | Aus, informativ oder blockierend; erlaubte Verlangsamung (%)    | informativ; 20% |
+
+Eine Ersetzung ist ein regulärer Ausdruck, der vor dem Vergleich auf beide Seiten angewendet wird,
+überall im Text: `\d{2}/\d{2}/\d{4} => DATUM` macht zwei Daten gleich. Eine Regel ohne `=>` löscht,
+was sie findet.
+
+### Einen Test prüfen und bekannte Abweichungen {#known-differences}
+
+In einem geöffneten Test klickt ein Editor auf **Prüfung** und sagt, ob die Abweichungen erwartet
+sind:
+
+- **Akzeptiert**: die Abweichung ist erwartet. Eine Begründung ist Pflicht.
+- **Fehler**: der Kandidat ist falsch. Die Notiz ist optional.
+
+Die Prüfung und ihre Notiz bleiben am Test; ein Viewer sieht sie, kann aber nicht prüfen.
+
+Ein akzeptierter Test kann auch spätere Vergleiche anleiten: **Diese Abweichungen in späteren
+Vergleichen erwarten** speichert die gewählten blockierenden Abweichungen (höchstens 50) als
+**bekannte Abweichungen**, für diesen Test, alle Tests seines Projekts oder alle Tests der
+Organisation, mit optionaler Referenz (etwa einem Ticket) und Ablaufdatum. Die Begründung der
+Prüfung wird ihre Begründung. Von da an wird eine Abweichung, die eine bekannte Abweichung abdeckt,
+als **bekannt** markiert und blockiert nicht mehr: ein Test, dessen einzige blockierende
+Abweichungen bekannt sind, ist **Gleichwertig**. Eine bekannte Abweichung deckt eine Abweichung
+derselben Art ab, am selben Checkpoint (oder an jedem, wenn sie keinen nennt) und mit einem Pfad,
+den ihr Muster erkennt, bis sie abläuft. Ein bereits durchgeführter Vergleich behält sein Ergebnis.
+
+**Einstellungen → Bekannte Abweichungen** listet sie alle auf, markiert die abgelaufenen und lässt
+einen Editor eine von Hand hinzufügen oder löschen. Eine bekannte Abweichung eines eingeschränkten
+Projekts sieht nur, wer das Projekt sehen darf, und nur wer das Projekt bearbeiten darf, kann sie
+hinzufügen oder löschen.
+
+### Grenzen
+
+- Die Zeilen einer Tabelle werden nach Position verglichen: eine auf einer Seite eingefügte Zeile
+  verschiebt alle folgenden, und jede verschobene Zeile ist eine Abweichung (bis zu den 200, die
+  ein Test behält). Erfassen Sie eine Tabelle auf beiden Seiten gleich sortiert, oder erfassen Sie
+  nur die nötigen Zeilen mit `rows=` im Checkpoint.
+- Netzwerkpfade werden gefiltert, wenn der Vergleich läuft, nicht wenn der Lauf sie erfasst: ein
+  Netzwerk-Checkpoint behält alle Fetch- und XHR-Aufrufe (oder die, die auf seine eigenen Muster
+  passen), sodass ein späterer Vergleich andere Pfade wählen kann.
+- Die Dauer eines Web-Schritts steht nicht im Log, daher wird bei Web-Tests nur die Dauer des
+  ganzen Tests verglichen.
+
+Hat ein Element auf zwei Umgebungen verschiedene Selektoren, geben Sie ihm eine
+[Locator-Variante](/en/guide/web-tests#element-variants) statt eines zweiten Elements.
+
+### Den Paritätsbericht exportieren {#exporting-comparison}
+
+Im Bericht eines beendeten Vergleichs bietet **Exportieren** einen **HTML-Paritätsbericht** (eine
+Datei, die sich überall öffnet: Ergebnisse, Toleranzen und Prüfungen) und **PDF** (zum Anhängen an
+eine Freigabe oder zum Ablegen für ein Audit). Exportieren kann jeder, der den Vergleich lesen darf.
+CLI und API schreiben dieselben Dateien, siehe [Aus CI ausführen](/en/integrations/ci#comparison)
+und die API unten.
+
+Die API v1 startet und liest Vergleiche mit demselben Schlüssel wie Läufe (`runs:write` zum
+Starten, `runs:read` zum Lesen), dokumentiert in `GET /api/v1/openapi.json`:
+
+| Endpunkt                                                    | Was er tut                                                                              |
+| ----------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| `POST /api/v1/plans/{planId}/comparisons`                   | Startet einen Vergleich; antwortet `202` mit dem Vergleich und einem `Location`-Header. |
+| `GET /api/v1/comparisons/{comparisonId}`                    | Liest ihn: `status`, `verdict`, `summary`, beide Seiten mit ihren Läufen, `failure`.    |
+| `GET /api/v1/comparisons/{comparisonId}/export/{html\|pdf}` | Lädt den Paritätsbericht herunter.                                                      |
+
+Der Body nimmt `baselineEnvironmentId` und `candidateEnvironmentId` (zwei verschiedene Umgebungen)
+und optional `mode` (`sequential`, der Standard, oder `parallel`), `name` und `policy` (die
+Toleranzen). Der optionale Header `Idempotency-Key` (höchstens 255 Zeichen) sorgt dafür, dass eine
+wiederholte Anfrage den bereits gestarteten Vergleich zurückgibt. `links` in der Antwort nennt den
+Bericht und die beiden Exporte. `verdict` ist `regressions`, `inconclusive`,
+`parity_with_accepted` oder `parity` und bleibt leer, bis der Vergleich beendet ist.
+
+Ein Vergleich sendet **eine** Benachrichtigung, wenn er endet, statt einer pro Lauf: siehe
+[Planeinstellungen](./running#planeinstellungen). Sie folgt den Benachrichtigungseinstellungen des
+Plans: Parität (mit oder ohne akzeptierte Unterschiede) ist ein Erfolg, Regressionen und ein nicht
+eindeutiger Vergleich ein Fehlschlag, ein Vergleich, der nicht laufen konnte, „nicht ausgeführt“.
+Ein abgebrochener Vergleich wird nur dort gemeldet, wo ein abgebrochener Lauf gemeldet würde. Die
+Nachricht nennt den Plan, die beiden Umgebungen, das Ergebnis und die Anzahl der Tests je Ergebnis,
+mit dem Link zum Bericht; Slack und Teams erhalten ihre eigene Karte, und die eingetragenen
+E-Mail-Adressen bekommen auch eine Mail.
+
 ## Einen Lauf exportieren
 
 **Exportieren** lädt den Lauf herunter als:
