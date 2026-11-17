@@ -143,6 +143,7 @@ describe('what the browser part of each test is handed', () => {
       elementTimeoutMs: 12_000,
       screenshots: 'always',
       retryFailedStep: true,
+      settledScreenshots: false,
     });
   });
 });

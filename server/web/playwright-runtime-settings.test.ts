@@ -86,6 +86,7 @@ const runtime = (overrides: Partial<StepRuntime> = {}): StepRuntime => ({
   elementTimeoutMs: 12_000,
   screenshots: 'on_failed_steps',
   retryFailedStep: false,
+  settledScreenshots: false,
   ...overrides,
 });
 
@@ -197,6 +198,35 @@ describe('screenshots', () => {
         'data:image/png;base64,cG5n',
       ]);
     }
+  });
+
+  it('takes a settled picture of each passed step for one side of a comparison', async () => {
+    const result = await run({
+      runtime: runtime({ screenshots: 'always', settledScreenshots: true }),
+    });
+    expect(result.steps?.map((step) => step.screenshot)).toEqual([
+      'data:image/png;base64,cG5n',
+      'data:image/png;base64,cG5n',
+    ]);
+    // stableScreenshot: animations frozen, and repeated until two shots in a row agree.
+    const settledShots = mocks.screenshot.mock.calls.filter(
+      ([shot]) => shot?.animations === 'disabled',
+    );
+    expect(settledShots.length).toBe(mocks.screenshot.mock.calls.length);
+    expect(settledShots.length).toBeGreaterThanOrEqual(4);
+  });
+
+  it('keeps the instant of failure for a failed step, comparison or not', async () => {
+    mocks.executeStep.mockResolvedValue({ status: 'failed', error: 'Button not found' });
+    await run({ runtime: runtime({ screenshots: 'always', settledScreenshots: true }) });
+    expect(mocks.screenshot).toHaveBeenLastCalledWith({ type: 'png' });
+  });
+
+  it('takes the picture the instant the step returns outside a comparison', async () => {
+    await run({ runtime: runtime({ screenshots: 'always' }) });
+    expect(mocks.screenshot.mock.calls.every(([shot]) => shot?.animations === undefined)).toBe(
+      true,
+    );
   });
 
   it('keeps none under "never", failed or not', async () => {
