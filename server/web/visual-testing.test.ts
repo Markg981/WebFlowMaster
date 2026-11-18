@@ -94,7 +94,10 @@ describe('diffPng', () => {
     const a = decode(png(10, 10, white));
     const b = decode(png(10, 10, white, { x: 0, y: 0, w: 5, h: 5 }));
     const ignore = [{ x: 0, y: 0, width: 5, height: 3 }];
-    expect(diffPng(a, b, { threshold: 0, ignore })).toMatchObject({ kind: 'diff', differingPixels: 10 });
+    expect(diffPng(a, b, { threshold: 0, ignore })).toMatchObject({
+      kind: 'diff',
+      differingPixels: 10,
+    });
     expect(b.data.equals(decode(png(10, 10, white, { x: 0, y: 0, w: 5, h: 5 })).data)).toBe(true);
   });
 
@@ -373,7 +376,10 @@ describe('a screenshot of the page once it has settled', () => {
       },
     });
     expect(shot.toString()).toBe('expanded');
-    const beforeFirstShot = calls.slice(0, calls.findIndex((c) => c.startsWith('shot:')));
+    const beforeFirstShot = calls.slice(
+      0,
+      calls.findIndex((c) => c.startsWith('shot:')),
+    );
     expect(beforeFirstShot).toContain('pending:1');
     expect(beforeFirstShot.filter((c) => c.startsWith('pending:')).at(-1)).toBe('pending:0');
   });

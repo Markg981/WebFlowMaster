@@ -179,11 +179,22 @@ const LONG_POLL_MS = 60_000;
 
 /** The part of a Playwright page or context the request counter listens to. */
 export interface RequestEvents {
-  on(event: 'request' | 'requestfinished' | 'requestfailed', listener: (request: any) => void): unknown;
+  on(
+    event: 'request' | 'requestfinished' | 'requestfailed',
+    listener: (request: TrackedRequest) => void,
+  ): unknown;
+}
+
+/** What the counter reads of a request: its resource type, when the object has one. */
+interface TrackedRequest {
+  resourceType?: () => string;
 }
 
 /** Counts the requests a page has in flight, for stableScreenshot's `pendingRequests`. */
-export function trackPendingRequests(target: RequestEvents, now: () => number = Date.now): () => number {
+export function trackPendingRequests(
+  target: RequestEvents,
+  now: () => number = Date.now,
+): () => number {
   const started = new Map<unknown, number>();
   target.on('request', (request) => {
     const type = typeof request?.resourceType === 'function' ? request.resourceType() : 'xhr';
