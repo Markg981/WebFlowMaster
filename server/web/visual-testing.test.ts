@@ -90,6 +90,21 @@ describe('diffPng', () => {
     expect(diffPng(a, b, { threshold: 0.25 }).kind).toBe('match');
   });
 
+  it('does not count the pixels of an ignored region', () => {
+    const a = decode(png(10, 10, white));
+    const b = decode(png(10, 10, white, { x: 0, y: 0, w: 5, h: 5 }));
+    const ignore = [{ x: 0, y: 0, width: 5, height: 3 }];
+    expect(diffPng(a, b, { threshold: 0, ignore })).toMatchObject({ kind: 'diff', differingPixels: 10 });
+    expect(b.data.equals(decode(png(10, 10, white, { x: 0, y: 0, w: 5, h: 5 })).data)).toBe(true);
+  });
+
+  it('clips an ignored region that runs past the image', () => {
+    const a = decode(png(10, 10, white));
+    const b = decode(png(10, 10, white, { x: 0, y: 0, w: 5, h: 5 }));
+    const result = diffPng(a, b, { threshold: 0, ignore: [{ x: 0, y: 0, width: 50, height: 50 }] });
+    expect(result).toMatchObject({ kind: 'match', differingPixels: 0 });
+  });
+
   it('reports a size change as fully different', () => {
     const result = diffPng(decode(png(10, 10, white)), decode(png(10, 12, white)), {
       threshold: 1,

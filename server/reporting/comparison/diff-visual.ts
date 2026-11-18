@@ -41,7 +41,10 @@ export async function diffVisual(
     if (!left) continue;
     const right = await decoded(load, 'candidate', b.screenshot);
     if (!right) continue;
-    const result = diffPng(left, right, { threshold: policy.visual.threshold });
+    const result = diffPng(left, right, {
+      threshold: policy.visual.threshold,
+      ignore: policy.visual.ignoreRegions,
+    });
     if (result.kind === 'match') continue;
     differences.push({
       stepId: a.stepId,

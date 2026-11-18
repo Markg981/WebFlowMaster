@@ -41,6 +41,14 @@ describe('diffVisual', () => {
     expect(difference).toMatchObject({ path: 'size', severity: 'blocking' });
   });
 
+  it('leaves the ignored regions of the policy out of the comparison', async () => {
+    // 'marked' darkens the first 30 pixels: the top three rows of a 10px-wide image.
+    const policy = comparisonPolicyOf({
+      visual: { ignoreRegions: [{ x: 0, y: 0, width: 10, height: 3 }] },
+    });
+    expect(await diffVisual(step('plain'), step('marked'), policy, load)).toEqual([]);
+  });
+
   it('compares nothing when off, for a failed step, or when an image cannot be read', async () => {
     expect(
       await diffVisual(

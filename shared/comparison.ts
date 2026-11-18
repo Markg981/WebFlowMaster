@@ -188,6 +188,21 @@ export const ComparisonPolicySchema = z.object({
     .object({
       mode: z.enum(['off', 'informative', 'blocking']).default('informative'),
       threshold: z.number().min(0).max(1).default(0.01),
+      /**
+       * Screenshot areas left out of the comparison, in screenshot pixels: parts of the page that
+       * differ by design between the two sides, such as a clock or a title naming the build.
+       */
+      ignoreRegions: z
+        .array(
+          z.object({
+            x: z.number().int().min(0),
+            y: z.number().int().min(0),
+            width: z.number().int().min(1),
+            height: z.number().int().min(1),
+          }),
+        )
+        .max(20)
+        .default([]),
     })
     .prefault({}),
   performance: z

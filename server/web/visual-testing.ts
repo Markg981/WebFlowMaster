@@ -419,17 +419,53 @@ export type PngDiff =
       diff: PNG;
     };
 
+/** A rectangle, in image pixels, whose content is not compared. */
+export interface IgnoreRegion {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+/**
+ * A copy of `b`'s pixels with every ignored region taken from `a`, so those pixels always match.
+ * Regions are clipped to the image; `b` itself is left untouched.
+ */
+function withRegionsOf(a: PNG, b: PNG, ignore: readonly IgnoreRegion[]): Buffer {
+  const out = Buffer.from(b.data);
+  for (const r of ignore) {
+    const x0 = Math.max(0, Math.floor(r.x));
+    const y0 = Math.max(0, Math.floor(r.y));
+    const x1 = Math.min(a.width, Math.ceil(r.x + r.width));
+    const y1 = Math.min(a.height, Math.ceil(r.y + r.height));
+    if (x1 <= x0) continue;
+    for (let y = y0; y < y1; y++) {
+      const start = (y * a.width + x0) * 4;
+      a.data.copy(out, start, start, (y * a.width + x1) * 4);
+    }
+  }
+  return out;
+}
+
 /**
  * Pixel comparison of two decoded images.
+ *
+ * Pixels inside an `ignore` region always count as equal: a clock, or a title that names the
+ * build, differs by design and says nothing about the page.
  *
  * `threshold` is the fraction of differing pixels tolerated before the result is a `diff`.
  * Two images of different sizes cannot be compared pixel by pixel, and the size change is itself
  * the finding — a layout that reflowed, or a page that grew a banner — so it counts as fully different.
  */
-export function diffPng(a: PNG, b: PNG, { threshold }: { threshold: number }): PngDiff {
+export function diffPng(
+  a: PNG,
+  b: PNG,
+  { threshold, ignore = [] }: { threshold: number; ignore?: readonly IgnoreRegion[] },
+): PngDiff {
   if (a.width !== b.width || a.height !== b.height) return { kind: 'size-mismatch', diffRatio: 1 };
   const diff = new PNG({ width: a.width, height: a.height });
-  const differingPixels = pixelmatch(a.data, b.data, diff.data, a.width, a.height, {
+  const right = ignore.length ? withRegionsOf(a, b, ignore) : b.data;
+  const differingPixels = pixelmatch(a.data, right, diff.data, a.width, a.height, {
     threshold: PIXEL_TOLERANCE,
   });
   const totalPixels = a.width * a.height;
