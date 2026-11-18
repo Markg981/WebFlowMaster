@@ -149,7 +149,38 @@ export interface ScreenshotPage {
  * caret, and takes screenshots until two in a row are identical — what Playwright's own
  * `toHaveScreenshot` does — giving up after a few tries with the last one.
  */
-export async function stableScreenshot(page: ScreenshotPage, maxAttempts = 5): Promise<Buffer> {
+export interface StableScreenshotOptions {
+  /** Screenshots taken at most before giving up with the last one. */
+  maxAttempts?: number;
+  /**
+   * Pause between two screenshots, re-waiting for network idle after it. Zero takes them back to
+   * back, which two frames of a page still bootstrapping (busy in script, nothing painted yet)
+   * can pass as "identical"; a pause lets the page move on before the next look.
+   */
+  intervalMs?: number;
+  /** Identical screenshots in a row that count as settled (at least 2). */
+  stableFor?: number;
+}
+
+/**
+ * The settle a comparison takes each step's screenshot with: both sides of a comparison are
+ * photographed only once the page has looked the same for about a second, so an app still
+ * bootstrapping or a row still expanding is not paired with a finished page on the other side.
+ */
+export const COMPARISON_SETTLE: Required<StableScreenshotOptions> = {
+  maxAttempts: 20,
+  intervalMs: 400,
+  stableFor: 3,
+};
+
+export async function stableScreenshot(
+  page: ScreenshotPage,
+  options: number | StableScreenshotOptions = 5,
+): Promise<Buffer> {
+  const opts = typeof options === 'number' ? { maxAttempts: options } : options;
+  const maxAttempts = opts.maxAttempts ?? 5;
+  const intervalMs = opts.intervalMs ?? 0;
+  const stableFor = Math.max(2, opts.stableFor ?? 2);
   // Each wait is best effort: a page that never goes network-idle (polling, websockets) is still
   // compared, just without that wait.
   const settle = async (wait: () => Promise<unknown>) => {
@@ -171,9 +202,21 @@ export async function stableScreenshot(page: ScreenshotPage, maxAttempts = 5): P
 
   const take = () => page.screenshot({ type: 'png', animations: 'disabled', caret: 'hide' });
   let previous = await take();
+  let identical = 1;
   for (let attempt = 1; attempt < maxAttempts; attempt += 1) {
+    if (intervalMs > 0) {
+      await new Promise((resolve) => setTimeout(resolve, intervalMs));
+      // A request the page started during the pause (a lazy chunk, a deferred expand) is
+      // waited for before the next look.
+      await settle(() => page.waitForLoadState('networkidle', { timeout: 5_000 }));
+    }
     const current = await take();
-    if (Buffer.from(current).equals(Buffer.from(previous))) return current;
+    if (Buffer.from(current).equals(Buffer.from(previous))) {
+      identical += 1;
+      if (identical >= stableFor) return current;
+    } else {
+      identical = 1;
+    }
     previous = current;
   }
   return previous;

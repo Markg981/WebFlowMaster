@@ -331,6 +331,16 @@ describe('a screenshot of the page once it has settled', () => {
     expect((await stableScreenshot(page, 3)).toString()).toBe('3');
   });
 
+  it('with a pause between looks, waits until the page has looked the same several times', async () => {
+    // A page still bootstrapping: blank twice in a row, then rendered.
+    const { page, calls } = pageTaking(['blank', 'blank', 'app', 'app', 'app']);
+    const shot = await stableScreenshot(page, { maxAttempts: 10, intervalMs: 1, stableFor: 3 });
+    expect(shot.toString()).toBe('app');
+    expect(calls.filter((c) => c.startsWith('shot:'))).toHaveLength(5);
+    // network idle is re-awaited after every pause
+    expect(calls.filter((c) => c === 'wait:networkidle')).toHaveLength(5);
+  });
+
   it('still compares a page that never goes network-idle', async () => {
     const { page } = pageTaking(['same', 'same']);
     page.waitForLoadState = async (state: string) => {

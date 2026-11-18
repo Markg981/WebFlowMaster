@@ -47,6 +47,7 @@ import {
   compareStepScreenshot,
   isVisualError,
   isVisualFailure,
+  COMPARISON_SETTLE,
   stableScreenshot,
   visualError,
 } from '../visual-testing';
@@ -456,7 +457,7 @@ export class TestRunner {
       ): Promise<Buffer | undefined> => {
         if (!settled || !passed) return evidenceScreenshot(target, onMissing);
         try {
-          return await stableScreenshot(target);
+          return await stableScreenshot(target, COMPARISON_SETTLE);
         } catch {
           return evidenceScreenshot(target, onMissing);
         }
