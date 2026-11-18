@@ -49,6 +49,7 @@ import {
   isVisualFailure,
   COMPARISON_SETTLE,
   stableScreenshot,
+  trackPendingRequests,
   visualError,
 } from '../visual-testing';
 import { stepVisualOf } from './visual-verdict';
@@ -450,6 +451,8 @@ export class TestRunner {
       // both sides are compared at the same moment (see StepRuntime.settledScreenshots). A failed
       // step keeps the picture of the instant it failed.
       const settled = options?.runtime?.settledScreenshots === true;
+      // Counted on the context, so requests of a popup or a frame keep the step waiting too.
+      const pendingRequests = settled ? trackPendingRequests(context) : undefined;
       const stepEvidence = async (
         target: Parameters<typeof evidenceScreenshot>[0],
         passed: boolean,
@@ -457,7 +460,7 @@ export class TestRunner {
       ): Promise<Buffer | undefined> => {
         if (!settled || !passed) return evidenceScreenshot(target, onMissing);
         try {
-          return await stableScreenshot(target, COMPARISON_SETTLE);
+          return await stableScreenshot(target, { ...COMPARISON_SETTLE, pendingRequests });
         } catch {
           return evidenceScreenshot(target, onMissing);
         }

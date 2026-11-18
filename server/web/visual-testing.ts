@@ -160,6 +160,44 @@ export interface StableScreenshotOptions {
   intervalMs?: number;
   /** Identical screenshots in a row that count as settled (at least 2). */
   stableFor?: number;
+  /**
+   * Requests the page has in flight right now (see trackPendingRequests). Playwright's
+   * `networkidle` is a navigation milestone: once the page has reached it, waiting for it again
+   * returns at once, so a request a click starts afterwards (a row expand that takes 30 s on the
+   * server) is invisible to it. With a counter, each look first waits for it to reach zero.
+   */
+  pendingRequests?: () => number;
+  /** Longest wait for `pendingRequests` to reach zero before each look. */
+  requestsTimeoutMs?: number;
+}
+
+/** Resource types that make a page change once they answer; long-lived streams are left out. */
+const AWAITED_REQUEST_TYPES = new Set(['document', 'xhr', 'fetch', 'script', 'stylesheet']);
+
+/** Requests pending longer than this are taken for a long poll and no longer waited for. */
+const LONG_POLL_MS = 60_000;
+
+/** The part of a Playwright page or context the request counter listens to. */
+export interface RequestEvents {
+  on(event: 'request' | 'requestfinished' | 'requestfailed', listener: (request: any) => void): unknown;
+}
+
+/** Counts the requests a page has in flight, for stableScreenshot's `pendingRequests`. */
+export function trackPendingRequests(target: RequestEvents, now: () => number = Date.now): () => number {
+  const started = new Map<unknown, number>();
+  target.on('request', (request) => {
+    const type = typeof request?.resourceType === 'function' ? request.resourceType() : 'xhr';
+    if (AWAITED_REQUEST_TYPES.has(type)) started.set(request, now());
+  });
+  const done = (request: unknown) => started.delete(request);
+  target.on('requestfinished', done);
+  target.on('requestfailed', done);
+  return () => {
+    const limit = now() - LONG_POLL_MS;
+    let pending = 0;
+    for (const at of started.values()) if (at > limit) pending += 1;
+    return pending;
+  };
 }
 
 /**
@@ -167,11 +205,12 @@ export interface StableScreenshotOptions {
  * photographed only once the page has looked the same for about a second, so an app still
  * bootstrapping or a row still expanding is not paired with a finished page on the other side.
  */
-export const COMPARISON_SETTLE: Required<StableScreenshotOptions> = {
+export const COMPARISON_SETTLE = {
   maxAttempts: 20,
   intervalMs: 400,
   stableFor: 3,
-};
+  requestsTimeoutMs: 45_000,
+} satisfies StableScreenshotOptions;
 
 export async function stableScreenshot(
   page: ScreenshotPage,
@@ -181,6 +220,7 @@ export async function stableScreenshot(
   const maxAttempts = opts.maxAttempts ?? 5;
   const intervalMs = opts.intervalMs ?? 0;
   const stableFor = Math.max(2, opts.stableFor ?? 2);
+  const pause = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
   // Each wait is best effort: a page that never goes network-idle (polling, websockets) is still
   // compared, just without that wait.
   const settle = async (wait: () => Promise<unknown>) => {
@@ -190,8 +230,15 @@ export async function stableScreenshot(
       // Proceed with what the page looks like.
     }
   };
+  const requestsDrained = async () => {
+    const pending = opts.pendingRequests;
+    if (!pending) return;
+    const deadline = Date.now() + (opts.requestsTimeoutMs ?? 30_000);
+    while (pending() > 0 && Date.now() < deadline) await pause(100);
+  };
   await settle(() => page.waitForLoadState('load', { timeout: 10_000 }));
   await settle(() => page.waitForLoadState('networkidle', { timeout: 5_000 }));
+  await requestsDrained();
   await settle(() =>
     page.evaluate(() =>
       typeof document !== 'undefined' && (document as any).fonts
@@ -205,10 +252,11 @@ export async function stableScreenshot(
   let identical = 1;
   for (let attempt = 1; attempt < maxAttempts; attempt += 1) {
     if (intervalMs > 0) {
-      await new Promise((resolve) => setTimeout(resolve, intervalMs));
+      await pause(intervalMs);
       // A request the page started during the pause (a lazy chunk, a deferred expand) is
       // waited for before the next look.
       await settle(() => page.waitForLoadState('networkidle', { timeout: 5_000 }));
+      await requestsDrained();
     }
     const current = await take();
     if (Buffer.from(current).equals(Buffer.from(previous))) {
