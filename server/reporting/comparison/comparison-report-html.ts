@@ -129,7 +129,7 @@ function policySection(model: ComparisonReportModel): string {
     ],
     [
       'Network',
-      `include ${p.network.include.join(', ') || '(nothing)'}${p.network.ignoreQueryParams.length ? `; ignored query parameters ${p.network.ignoreQueryParams.join(', ')}` : ''}; response hash ${p.network.compareResponseHash ? 'compared' : 'not compared'}`,
+      `include ${p.network.include.join(', ') || '(nothing)'}${p.network.ignoreQueryParams.length ? `; ignored query parameters ${p.network.ignoreQueryParams.join(', ')}` : ''}; response hash ${p.network.compareResponseHash ? 'compared' : 'not compared'}; call counts ${p.network.counts}`,
     ],
     ['Visual', `${p.visual.mode}, threshold ${p.visual.threshold * 100}%`],
     ['Performance', `${p.performance.mode}, slowdown above ${p.performance.maxSlowdownPct}%`],

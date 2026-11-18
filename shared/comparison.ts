@@ -177,6 +177,11 @@ export const ComparisonPolicySchema = z.object({
       include: z.array(z.string().min(1).max(500)).max(50).default(['**/api/**']),
       ignoreQueryParams: z.array(z.string().min(1).max(200)).max(50).default([]),
       compareResponseHash: z.boolean().default(false),
+      /**
+       * How a call made a different number of times weighs. Two front ends of one page may batch
+       * or repeat reads differently while showing the same data: 'informative' still reports it.
+       */
+      counts: z.enum(['informative', 'blocking']).default('blocking'),
     })
     .prefault({}),
   visual: z
