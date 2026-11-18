@@ -60,6 +60,7 @@ export function diffNetwork(
   candidate: ComparedStep[],
   policy: ComparisonPolicy,
 ): ComparisonDifference[] {
+  const countsInformative = policy.network.counts === 'informative';
   return diffCheckpoints(baseline, candidate, 'network', (a, b) => {
     const left = callsOf(entriesOf(a), policy.network);
     const right = callsOf(entriesOf(b), policy.network);
@@ -88,5 +89,7 @@ export function diffNetwork(
       }
     }
     return out;
-  });
+  }).map((d) =>
+    countsInformative && d.path.endsWith('.count') ? { ...d, severity: 'informative' as const } : d,
+  );
 }

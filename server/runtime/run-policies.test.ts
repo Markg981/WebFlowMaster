@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import type { TestPlan } from '@shared/schema';
-import { buildExecutionSnapshot } from '../execution/execution-snapshot';
+import type { ExecutionComparisonRef } from '@shared/comparison';
+import { asComparisonRun, buildExecutionSnapshot } from '../execution/execution-snapshot';
 import {
   DEFAULT_TIMEOUT_MS,
   describePolicies,
@@ -36,6 +37,7 @@ describe('runPoliciesFrom', () => {
         elementTimeoutMs: 30_000,
         screenshots: 'on_failed_steps',
         retryFailedStep: false,
+        settledScreenshots: false,
       },
       testReruns: 0,
       onPreconditionFailure: 'stop',
@@ -61,6 +63,7 @@ describe('runPoliciesFrom', () => {
       elementTimeoutMs: 10_000,
       screenshots: 'always',
       retryFailedStep: true,
+      settledScreenshots: false,
     });
     expect(policies.testReruns).toBe(3);
     expect(policies.onPreconditionFailure).toBe('skip');
@@ -69,6 +72,15 @@ describe('runPoliciesFrom', () => {
     expect(
       policiesFor({ onTestCasePreRequisiteFailure: 'continue_anyway' }).onPreconditionFailure,
     ).toBe('continue');
+  });
+
+  it('photographs a settled page on either side of a comparison, and only there', () => {
+    const snapshot = buildExecutionSnapshot({ id: 'p', name: 'Plan' } as TestPlan, []);
+    for (const role of ['baseline', 'candidate'] as const) {
+      const side = asComparisonRun(snapshot, { id: 'c', role } as ExecutionComparisonRef);
+      expect(runPoliciesFrom(side).step.settledScreenshots).toBe(true);
+    }
+    expect(runPoliciesFrom(snapshot).step.settledScreenshots).toBe(false);
   });
 
   it('names the settings it has nothing to apply to, only when somebody changed them', () => {

@@ -1,5 +1,6 @@
 import { stepListOf } from '@shared/mobile';
 import type { CheckpointCapture } from '@shared/comparison';
+import { END_IF_ACTION, IF_ACTION } from '@shared/flow';
 
 /** One step of a stored result, as the comparison reads it. */
 export interface ComparedStep {
@@ -13,6 +14,11 @@ export interface ComparedStep {
   checkpoint: CheckpointCapture | null;
   /** How long the step took, when the log says (a mobile step does, a web step does not yet). */
   durationMs?: number | null;
+  /**
+   * The step ran inside an `if` … `endIf` branch (the `endIf` included): a step the other side
+   * skipped because its condition went the other way, not a step it failed to reach.
+   */
+  inBranch?: boolean;
 }
 
 function isCheckpoint(value: unknown): value is CheckpointCapture {
@@ -38,9 +44,16 @@ export function stepsOfLog(detailedLog: string | null | undefined): ComparedStep
   if (!Array.isArray(parsed)) return [];
   const seen = new Map<string, number>();
   const steps: ComparedStep[] = [];
+  // How many `if` blocks are open at this point of the log. A false condition jumps past its
+  // `endIf`, so only the side that took the branch logs what is inside it.
+  let openIfs = 0;
   parsed.forEach((raw, index) => {
     if (!raw || typeof raw !== 'object') return;
     const step = raw as Record<string, unknown>;
+    const type = typeof step.type === 'string' ? step.type : null;
+    const inBranch = openIfs > 0;
+    if (type === IF_ACTION) openIfs += 1;
+    else if (type === END_IF_ACTION && openIfs > 0) openIfs -= 1;
     const stepId = typeof step.stepId === 'string' && step.stepId ? step.stepId : null;
     const calledFrom = typeof step.calledFrom === 'string' ? step.calledFrom : '';
     const base = stepId ? `${calledFrom}/${stepId}` : `#${index}`;
@@ -58,6 +71,7 @@ export function stepsOfLog(detailedLog: string | null | undefined): ComparedStep
         typeof step.durationMs === 'number' && Number.isFinite(step.durationMs)
           ? step.durationMs
           : null,
+      inBranch,
     });
   });
   return steps;

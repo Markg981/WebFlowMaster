@@ -47,7 +47,9 @@ import {
   compareStepScreenshot,
   isVisualError,
   isVisualFailure,
+  COMPARISON_SETTLE,
   stableScreenshot,
+  trackPendingRequests,
   visualError,
 } from '../visual-testing';
 import { stepVisualOf } from './visual-verdict';
@@ -445,6 +447,25 @@ export class TestRunner {
         await fs.writeFile(filePath, buffer);
         return filePath;
       };
+      // One side of a comparison: a passed step is photographed once the page has settled, so
+      // both sides are compared at the same moment (see StepRuntime.settledScreenshots). A failed
+      // step keeps the picture of the instant it failed.
+      const settled = options?.runtime?.settledScreenshots === true;
+      // Counted on the context, so requests of a popup or a frame keep the step waiting too.
+      const pendingRequests =
+        settled && typeof context?.on === 'function' ? trackPendingRequests(context) : undefined;
+      const stepEvidence = async (
+        target: Parameters<typeof evidenceScreenshot>[0],
+        passed: boolean,
+        onMissing: (reason: string) => void,
+      ): Promise<Buffer | undefined> => {
+        if (!settled || !passed) return evidenceScreenshot(target, onMissing);
+        try {
+          return await stableScreenshot(target, { ...COMPARISON_SETTLE, pendingRequests });
+        } catch {
+          return evidenceScreenshot(target, onMissing);
+        }
+      };
 
       if (targetUrl) {
         try {
@@ -469,7 +490,7 @@ export class TestRunner {
             { signal, teardown: closeSession },
           );
           const navBuffer = keepsScreenshot(screenshots, 'passed')
-            ? await evidenceScreenshot(page, (reason) =>
+            ? await stepEvidence(page, true, (reason) =>
                 resolvedLogger.warn({
                   message: 'PS:executeTestSequence - No screenshot of the loaded page',
                   testName: test.name,
@@ -724,7 +745,7 @@ export class TestRunner {
                       return undefined;
                     })
                   : capturesPage && keepsScreenshot(screenshots, stepStatus)
-                    ? await evidenceScreenshot(page, noPicture)
+                    ? await stepEvidence(page, stepStatus === 'passed', noPicture)
                     : undefined;
                 if (screenshotBuffer && keepsScreenshot(screenshots, stepStatus)) {
                   stepScreenshot = await storeScreenshot(screenshotBuffer, actionName);

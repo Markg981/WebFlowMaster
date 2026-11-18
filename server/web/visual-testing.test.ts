@@ -10,6 +10,7 @@ import {
   isVisualError,
   isVisualFailure,
   stableScreenshot,
+  trackPendingRequests,
   type VisualContext,
 } from './visual-testing';
 import { createTestOrganization } from '../tests/factories';
@@ -87,6 +88,24 @@ describe('diffPng', () => {
       totalPixels: 100,
     });
     expect(diffPng(a, b, { threshold: 0.25 }).kind).toBe('match');
+  });
+
+  it('does not count the pixels of an ignored region', () => {
+    const a = decode(png(10, 10, white));
+    const b = decode(png(10, 10, white, { x: 0, y: 0, w: 5, h: 5 }));
+    const ignore = [{ x: 0, y: 0, width: 5, height: 3 }];
+    expect(diffPng(a, b, { threshold: 0, ignore })).toMatchObject({
+      kind: 'diff',
+      differingPixels: 10,
+    });
+    expect(b.data.equals(decode(png(10, 10, white, { x: 0, y: 0, w: 5, h: 5 })).data)).toBe(true);
+  });
+
+  it('clips an ignored region that runs past the image', () => {
+    const a = decode(png(10, 10, white));
+    const b = decode(png(10, 10, white, { x: 0, y: 0, w: 5, h: 5 }));
+    const result = diffPng(a, b, { threshold: 0, ignore: [{ x: 0, y: 0, width: 50, height: 50 }] });
+    expect(result).toMatchObject({ kind: 'match', differingPixels: 0 });
   });
 
   it('reports a size change as fully different', () => {
@@ -331,12 +350,102 @@ describe('a screenshot of the page once it has settled', () => {
     expect((await stableScreenshot(page, 3)).toString()).toBe('3');
   });
 
+  it('with a pause between looks, waits until the page has looked the same several times', async () => {
+    // A page still bootstrapping: blank twice in a row, then rendered.
+    const { page, calls } = pageTaking(['blank', 'blank', 'app', 'app', 'app']);
+    const shot = await stableScreenshot(page, { maxAttempts: 10, intervalMs: 1, stableFor: 3 });
+    expect(shot.toString()).toBe('app');
+    expect(calls.filter((c) => c.startsWith('shot:'))).toHaveLength(5);
+    // network idle is re-awaited after every pause
+    expect(calls.filter((c) => c === 'wait:networkidle')).toHaveLength(5);
+  });
+
+  it('does not look while a request the page started after loading is still running', async () => {
+    // A click that expands a row: the page reached network-idle long ago, so only the counter
+    // knows the server has not answered yet.
+    const { page, calls } = pageTaking(['expanded', 'expanded', 'expanded']);
+    let pending = 1;
+    setTimeout(() => (pending = 0), 300);
+    const shot = await stableScreenshot(page, {
+      maxAttempts: 10,
+      intervalMs: 1,
+      stableFor: 3,
+      pendingRequests: () => {
+        calls.push(`pending:${pending}`);
+        return pending;
+      },
+    });
+    expect(shot.toString()).toBe('expanded');
+    const beforeFirstShot = calls.slice(
+      0,
+      calls.findIndex((c) => c.startsWith('shot:')),
+    );
+    expect(beforeFirstShot).toContain('pending:1');
+    expect(beforeFirstShot.filter((c) => c.startsWith('pending:')).at(-1)).toBe('pending:0');
+  });
+
+  it('stops waiting for requests after the timeout, and still compares the page', async () => {
+    const { page } = pageTaking(['same', 'same']);
+    const shot = await stableScreenshot(page, {
+      maxAttempts: 5,
+      intervalMs: 1,
+      pendingRequests: () => 1,
+      requestsTimeoutMs: 50,
+    });
+    expect(shot.toString()).toBe('same');
+  });
+
   it('still compares a page that never goes network-idle', async () => {
     const { page } = pageTaking(['same', 'same']);
     page.waitForLoadState = async (state: string) => {
       if (state === 'networkidle') throw new Error('Timeout 5000ms exceeded');
     };
     expect((await stableScreenshot(page)).toString()).toBe('same');
+  });
+});
+
+describe('the count of requests a page has in flight', () => {
+  const fakeContext = () => {
+    const listeners: Record<string, ((r: unknown) => void)[]> = {};
+    return {
+      on: (event: string, listener: (r: unknown) => void) => {
+        (listeners[event] ??= []).push(listener);
+      },
+      emit: (event: string, request: unknown) => listeners[event]?.forEach((l) => l(request)),
+    };
+  };
+  const request = (type: string) => ({ resourceType: () => type });
+
+  it('counts a request until it finishes or fails', () => {
+    const context = fakeContext();
+    const pending = trackPendingRequests(context);
+    const a = request('xhr');
+    const b = request('fetch');
+    context.emit('request', a);
+    context.emit('request', b);
+    expect(pending()).toBe(2);
+    context.emit('requestfinished', a);
+    context.emit('requestfailed', b);
+    expect(pending()).toBe(0);
+  });
+
+  it('ignores streams that never finish, like websockets and server-sent events', () => {
+    const context = fakeContext();
+    const pending = trackPendingRequests(context);
+    context.emit('request', request('websocket'));
+    context.emit('request', request('eventsource'));
+    context.emit('request', request('image'));
+    expect(pending()).toBe(0);
+  });
+
+  it('stops counting a request pending for over a minute, which is a long poll', () => {
+    const context = fakeContext();
+    let now = 0;
+    const pending = trackPendingRequests(context, () => now);
+    context.emit('request', request('xhr'));
+    expect(pending()).toBe(1);
+    now = 61_000;
+    expect(pending()).toBe(0);
   });
 });
 

@@ -23,6 +23,14 @@ export interface StepRuntime {
   screenshots: ScreenshotPolicy;
   /** Try a failed step once more before giving up on the test. */
   retryFailedStep: boolean;
+  /**
+   * Take each passed step's screenshot once the page has stopped changing (stableScreenshot)
+   * instead of the instant the step returned. Set for either side of a comparison: the two runs'
+   * pictures are compared with each other, and a page that reacts asynchronously (an expand that
+   * renders after its request returns) was photographed mid-change on one side and finished on
+   * the other, so the comparison reported two different moments as a visual difference.
+   */
+  settledScreenshots: boolean;
 }
 
 export interface RunPolicies {
@@ -107,6 +115,7 @@ export function runPoliciesFrom(snapshot: ExecutionSnapshot): RunPolicies {
       elementTimeoutMs: toMilliseconds(snapshot.timeouts.elementMs),
       screenshots: screenshotPolicy(snapshot.captureScreenshots),
       retryFailedStep: policies.onMajorStepFailure === 'retry_step',
+      settledScreenshots: snapshot.comparison != null,
     },
     testReruns: rerunsFor(snapshot.rerunPolicy),
     onPreconditionFailure: preconditionPolicy(policies.onTestCasePreRequisiteFailure),

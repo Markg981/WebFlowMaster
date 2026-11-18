@@ -12,8 +12,13 @@ describe('ComparisonPolicySchema', () => {
     expect(ComparisonPolicySchema.parse({})).toEqual({
       text: { collapseWhitespace: true, ignoreCase: false, replace: [] },
       numeric: { absTolerance: 0, relTolerance: 0 },
-      network: { include: ['**/api/**'], ignoreQueryParams: [], compareResponseHash: false },
-      visual: { mode: 'informative', threshold: 0.01 },
+      network: {
+        include: ['**/api/**'],
+        ignoreQueryParams: [],
+        compareResponseHash: false,
+        counts: 'blocking',
+      },
+      visual: { mode: 'informative', threshold: 0.01, ignoreRegions: [] },
       performance: { mode: 'informative', maxSlowdownPct: 20 },
     });
   });

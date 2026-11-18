@@ -45,6 +45,12 @@ describe('diffTable', () => {
     });
   });
 
+  it('leaves out the blank rows of either side before pairing the rows', () => {
+    expect(
+      diffTable(table([['h'], ['', '  '], ['1']]), table([['h'], ['1'], ['']]), policy),
+    ).toEqual([]);
+  });
+
   it('applies the replace rules before comparing', () => {
     const p = comparisonPolicyOf({ text: { replace: [{ pattern: 'ORD-\\d+', with: 'ORD' }] } });
     expect(diffTable(table([['ORD-1']]), table([['ORD-2']]), p)).toEqual([]);

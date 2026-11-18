@@ -4,6 +4,11 @@ import { pairSteps, type ComparedStep } from './steps';
 /**
  * Steps whose outcome differs: passed on one side and failed on the other, or run on one side
  * only (a test that stopped earlier, or a step the other side never reached).
+ *
+ * A step that passed inside an `if` branch on one side and is absent on the other is informative:
+ * the condition went the other way there (a "wait while it is still loading" guard on a slower
+ * page), which is a difference in timing, not in what the page does. What the branch guards is
+ * still compared by the steps after it.
  */
 export function diffOutcome(
   baseline: ComparedStep[],
@@ -15,6 +20,10 @@ export function diffOutcome(
     const right = pair.candidate?.status ?? null;
     if (left === right) continue;
     const step = (pair.baseline ?? pair.candidate)!;
+    const branchTakenOnOneSide =
+      (pair.baseline === null || pair.candidate === null) &&
+      step.status === 'passed' &&
+      step.inBranch === true;
     differences.push({
       stepId: step.stepId,
       stepIndex: step.index,
@@ -23,7 +32,7 @@ export function diffOutcome(
       path: 'status',
       baseline: left,
       candidate: right,
-      severity: 'blocking',
+      severity: branchTakenOnOneSide ? 'informative' : 'blocking',
     });
   }
   return differences;

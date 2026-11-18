@@ -196,6 +196,7 @@ describe('a run heals for itself and proposes the repair where the step is writt
           elementTimeoutMs: 400,
           screenshots: 'never',
           retryFailedStep: false,
+          settledScreenshots: false,
         },
       }),
     );

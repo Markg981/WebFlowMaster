@@ -34,6 +34,21 @@ describe('stepsOfLog', () => {
     expect(stepsOfLog(JSON.stringify({ a: 1 }))).toEqual([]);
     expect(stepsOfLog(null)).toEqual([]);
   });
+
+  it('marks the steps inside an if branch, its endIf included, nested branches too', () => {
+    const steps = stepsOfLog(
+      log([
+        { stepId: 'a', type: 'click' },
+        { stepId: 'if1', type: 'if' },
+        { stepId: 'if2', type: 'if' },
+        { stepId: 'b', type: 'click' },
+        { stepId: 'e2', type: 'endIf' },
+        { stepId: 'e1', type: 'endIf' },
+        { stepId: 'c', type: 'click' },
+      ]),
+    );
+    expect(steps.map((s) => s.inBranch)).toEqual([false, false, true, true, true, true, false]);
+  });
 });
 
 describe('pairSteps', () => {

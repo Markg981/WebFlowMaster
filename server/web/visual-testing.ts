@@ -149,7 +149,89 @@ export interface ScreenshotPage {
  * caret, and takes screenshots until two in a row are identical — what Playwright's own
  * `toHaveScreenshot` does — giving up after a few tries with the last one.
  */
-export async function stableScreenshot(page: ScreenshotPage, maxAttempts = 5): Promise<Buffer> {
+export interface StableScreenshotOptions {
+  /** Screenshots taken at most before giving up with the last one. */
+  maxAttempts?: number;
+  /**
+   * Pause between two screenshots, re-waiting for network idle after it. Zero takes them back to
+   * back, which two frames of a page still bootstrapping (busy in script, nothing painted yet)
+   * can pass as "identical"; a pause lets the page move on before the next look.
+   */
+  intervalMs?: number;
+  /** Identical screenshots in a row that count as settled (at least 2). */
+  stableFor?: number;
+  /**
+   * Requests the page has in flight right now (see trackPendingRequests). Playwright's
+   * `networkidle` is a navigation milestone: once the page has reached it, waiting for it again
+   * returns at once, so a request a click starts afterwards (a row expand that takes 30 s on the
+   * server) is invisible to it. With a counter, each look first waits for it to reach zero.
+   */
+  pendingRequests?: () => number;
+  /** Longest wait for `pendingRequests` to reach zero before each look. */
+  requestsTimeoutMs?: number;
+}
+
+/** Resource types that make a page change once they answer; long-lived streams are left out. */
+const AWAITED_REQUEST_TYPES = new Set(['document', 'xhr', 'fetch', 'script', 'stylesheet']);
+
+/** Requests pending longer than this are taken for a long poll and no longer waited for. */
+const LONG_POLL_MS = 60_000;
+
+/** The part of a Playwright page or context the request counter listens to. */
+export interface RequestEvents {
+  on(
+    event: 'request' | 'requestfinished' | 'requestfailed',
+    listener: (request: TrackedRequest) => void,
+  ): unknown;
+}
+
+/** What the counter reads of a request: its resource type, when the object has one. */
+interface TrackedRequest {
+  resourceType?: () => string;
+}
+
+/** Counts the requests a page has in flight, for stableScreenshot's `pendingRequests`. */
+export function trackPendingRequests(
+  target: RequestEvents,
+  now: () => number = Date.now,
+): () => number {
+  const started = new Map<unknown, number>();
+  target.on('request', (request) => {
+    const type = typeof request?.resourceType === 'function' ? request.resourceType() : 'xhr';
+    if (AWAITED_REQUEST_TYPES.has(type)) started.set(request, now());
+  });
+  const done = (request: unknown) => started.delete(request);
+  target.on('requestfinished', done);
+  target.on('requestfailed', done);
+  return () => {
+    const limit = now() - LONG_POLL_MS;
+    let pending = 0;
+    for (const at of started.values()) if (at > limit) pending += 1;
+    return pending;
+  };
+}
+
+/**
+ * The settle a comparison takes each step's screenshot with: both sides of a comparison are
+ * photographed only once the page has looked the same for about a second, so an app still
+ * bootstrapping or a row still expanding is not paired with a finished page on the other side.
+ */
+export const COMPARISON_SETTLE = {
+  maxAttempts: 20,
+  intervalMs: 400,
+  stableFor: 3,
+  requestsTimeoutMs: 45_000,
+} satisfies StableScreenshotOptions;
+
+export async function stableScreenshot(
+  page: ScreenshotPage,
+  options: number | StableScreenshotOptions = 5,
+): Promise<Buffer> {
+  const opts = typeof options === 'number' ? { maxAttempts: options } : options;
+  const maxAttempts = opts.maxAttempts ?? 5;
+  const intervalMs = opts.intervalMs ?? 0;
+  const stableFor = Math.max(2, opts.stableFor ?? 2);
+  const pause = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
   // Each wait is best effort: a page that never goes network-idle (polling, websockets) is still
   // compared, just without that wait.
   const settle = async (wait: () => Promise<unknown>) => {
@@ -159,8 +241,15 @@ export async function stableScreenshot(page: ScreenshotPage, maxAttempts = 5): P
       // Proceed with what the page looks like.
     }
   };
+  const requestsDrained = async () => {
+    const pending = opts.pendingRequests;
+    if (!pending) return;
+    const deadline = Date.now() + (opts.requestsTimeoutMs ?? 30_000);
+    while (pending() > 0 && Date.now() < deadline) await pause(100);
+  };
   await settle(() => page.waitForLoadState('load', { timeout: 10_000 }));
   await settle(() => page.waitForLoadState('networkidle', { timeout: 5_000 }));
+  await requestsDrained();
   await settle(() =>
     page.evaluate(() =>
       typeof document !== 'undefined' && (document as any).fonts
@@ -171,9 +260,22 @@ export async function stableScreenshot(page: ScreenshotPage, maxAttempts = 5): P
 
   const take = () => page.screenshot({ type: 'png', animations: 'disabled', caret: 'hide' });
   let previous = await take();
+  let identical = 1;
   for (let attempt = 1; attempt < maxAttempts; attempt += 1) {
+    if (intervalMs > 0) {
+      await pause(intervalMs);
+      // A request the page started during the pause (a lazy chunk, a deferred expand) is
+      // waited for before the next look.
+      await settle(() => page.waitForLoadState('networkidle', { timeout: 5_000 }));
+      await requestsDrained();
+    }
     const current = await take();
-    if (Buffer.from(current).equals(Buffer.from(previous))) return current;
+    if (Buffer.from(current).equals(Buffer.from(previous))) {
+      identical += 1;
+      if (identical >= stableFor) return current;
+    } else {
+      identical = 1;
+    }
     previous = current;
   }
   return previous;
@@ -328,17 +430,53 @@ export type PngDiff =
       diff: PNG;
     };
 
+/** A rectangle, in image pixels, whose content is not compared. */
+export interface IgnoreRegion {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+/**
+ * A copy of `b`'s pixels with every ignored region taken from `a`, so those pixels always match.
+ * Regions are clipped to the image; `b` itself is left untouched.
+ */
+function withRegionsOf(a: PNG, b: PNG, ignore: readonly IgnoreRegion[]): Buffer {
+  const out = Buffer.from(b.data);
+  for (const r of ignore) {
+    const x0 = Math.max(0, Math.floor(r.x));
+    const y0 = Math.max(0, Math.floor(r.y));
+    const x1 = Math.min(a.width, Math.ceil(r.x + r.width));
+    const y1 = Math.min(a.height, Math.ceil(r.y + r.height));
+    if (x1 <= x0) continue;
+    for (let y = y0; y < y1; y++) {
+      const start = (y * a.width + x0) * 4;
+      a.data.copy(out, start, start, (y * a.width + x1) * 4);
+    }
+  }
+  return out;
+}
+
 /**
  * Pixel comparison of two decoded images.
+ *
+ * Pixels inside an `ignore` region always count as equal: a clock, or a title that names the
+ * build, differs by design and says nothing about the page.
  *
  * `threshold` is the fraction of differing pixels tolerated before the result is a `diff`.
  * Two images of different sizes cannot be compared pixel by pixel, and the size change is itself
  * the finding — a layout that reflowed, or a page that grew a banner — so it counts as fully different.
  */
-export function diffPng(a: PNG, b: PNG, { threshold }: { threshold: number }): PngDiff {
+export function diffPng(
+  a: PNG,
+  b: PNG,
+  { threshold, ignore = [] }: { threshold: number; ignore?: readonly IgnoreRegion[] },
+): PngDiff {
   if (a.width !== b.width || a.height !== b.height) return { kind: 'size-mismatch', diffRatio: 1 };
   const diff = new PNG({ width: a.width, height: a.height });
-  const differingPixels = pixelmatch(a.data, b.data, diff.data, a.width, a.height, {
+  const right = ignore.length ? withRegionsOf(a, b, ignore) : b.data;
+  const differingPixels = pixelmatch(a.data, right, diff.data, a.width, a.height, {
     threshold: PIXEL_TOLERANCE,
   });
   const totalPixels = a.width * a.height;

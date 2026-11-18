@@ -177,12 +177,32 @@ export const ComparisonPolicySchema = z.object({
       include: z.array(z.string().min(1).max(500)).max(50).default(['**/api/**']),
       ignoreQueryParams: z.array(z.string().min(1).max(200)).max(50).default([]),
       compareResponseHash: z.boolean().default(false),
+      /**
+       * How a call made a different number of times weighs. Two front ends of one page may batch
+       * or repeat reads differently while showing the same data: 'informative' still reports it.
+       */
+      counts: z.enum(['informative', 'blocking']).default('blocking'),
     })
     .prefault({}),
   visual: z
     .object({
       mode: z.enum(['off', 'informative', 'blocking']).default('informative'),
       threshold: z.number().min(0).max(1).default(0.01),
+      /**
+       * Screenshot areas left out of the comparison, in screenshot pixels: parts of the page that
+       * differ by design between the two sides, such as a clock or a title naming the build.
+       */
+      ignoreRegions: z
+        .array(
+          z.object({
+            x: z.number().int().min(0),
+            y: z.number().int().min(0),
+            width: z.number().int().min(1),
+            height: z.number().int().min(1),
+          }),
+        )
+        .max(20)
+        .default([]),
     })
     .prefault({}),
   performance: z

@@ -54,6 +54,19 @@ describe('diffNetwork', () => {
     expect(paths(diffNetwork(a, b, everything))).toEqual(['requests[GET /static/app.js].count']);
   });
 
+  it('marks a different call count informative only when the policy says so', () => {
+    const a = net(e(), e({ path: '/api/lines', status: 200 }));
+    const b = net(e(), e(), e({ path: '/api/lines', status: 500 }));
+    const severityOf = (d: { path: string; severity?: string }[], p: string) =>
+      d.find((x) => x.path === p)?.severity;
+    const strict = diffNetwork(a, b, policy);
+    expect(severityOf(strict, 'requests[GET /api/orders].count')).not.toBe('informative');
+    const lenient = diffNetwork(a, b, comparisonPolicyOf({ network: { counts: 'informative' } }));
+    expect(severityOf(lenient, 'requests[GET /api/orders].count')).toBe('informative');
+    // Only the count relaxes: a different status still blocks.
+    expect(severityOf(lenient, 'requests[GET /api/lines].status')).not.toBe('informative');
+  });
+
   it('compares the response hashes only when the policy asks, and only where both have one', () => {
     const a = net(e({ responseBodyHash: 'x' }), e({ path: '/api/img' }));
     const b = net(e({ responseBodyHash: 'y' }), e({ path: '/api/img', responseBodyHash: 'z' }));
