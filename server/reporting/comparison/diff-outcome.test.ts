@@ -29,4 +29,30 @@ describe('diffOutcome', () => {
       expect.objectContaining({ stepId: 'b', stepIndex: 1, baseline: 'passed', candidate: null }),
     ]);
   });
+
+  it('keeps a step run inside an if branch on one side only informative, a failure there blocking', () => {
+    const branch = (inner: 'passed' | 'failed') =>
+      stepsOfLog(
+        JSON.stringify([
+          { stepId: 'if', type: 'if', status: 'passed' },
+          { stepId: 'wait', type: 'wait', status: inner },
+          { stepId: 'end', type: 'endIf', status: 'passed' },
+          { stepId: 'after', type: 'click', status: 'passed' },
+        ]),
+      );
+    const skipped = stepsOfLog(
+      JSON.stringify([
+        { stepId: 'if', type: 'if', status: 'passed' },
+        { stepId: 'after', type: 'click', status: 'passed' },
+      ]),
+    );
+    expect(diffOutcome(branch('passed'), skipped).map((d) => [d.stepId, d.severity])).toEqual([
+      ['wait', 'informative'],
+      ['end', 'informative'],
+    ]);
+    expect(diffOutcome(branch('failed'), skipped)[0]).toMatchObject({
+      stepId: 'wait',
+      severity: 'blocking',
+    });
+  });
 });

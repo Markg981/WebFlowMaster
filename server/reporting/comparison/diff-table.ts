@@ -10,10 +10,17 @@ function rowsOf(capture: CheckpointCapture): string[][] {
   return rows.map((row) => (Array.isArray(row) ? row.map((cell) => String(cell ?? '')) : []));
 }
 
+/** A row with no text in any cell: a spacer or layout row, which shows nothing to compare. */
+function isBlankRow(row: string[]): boolean {
+  return row.every((cell) => cell.trim() === '');
+}
+
 /**
  * Table checkpoints with the same name, compared row by row and cell by cell under the policy: a
  * cell matches after the text rules, or as a number within the tolerance. A row on one side only
- * is one difference, not one per cell.
+ * is one difference, not one per cell. Blank rows are left out on both sides before the rows are
+ * paired, so a spacer row one page draws and the other does not shifts nothing; the row indices
+ * of the differences count the rows with text.
  */
 export function diffTable(
   baseline: ComparedStep[],
@@ -25,8 +32,8 @@ export function diffTable(
     candidate,
     'table',
     (a, b) => {
-      const x = rowsOf(a);
-      const y = rowsOf(b);
+      const x = rowsOf(a).filter((row) => !isBlankRow(row));
+      const y = rowsOf(b).filter((row) => !isBlankRow(row));
       const out: DifferenceAt[] = [];
       if (x.length !== y.length)
         out.push({ path: 'rows.length', baseline: x.length, candidate: y.length });

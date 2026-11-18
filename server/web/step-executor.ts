@@ -1370,6 +1370,8 @@ const HANDLERS: Record<AdhocActionId, StepHandler> = {
 
   // The cell texts of a table, row by row: the first match of the target is the table, its rows
   // and their cells are read with the selectors the value names (tr and th, td by default).
+  // A chart drawn in a cell is not text: the labels of an SVG chart are left out, as a canvas
+  // chart has none, so the same chart in either technology reads the same.
   checkpointTable: async (rt) => {
     const target = requireSelector(rt, 'checkpointTable');
     if ('error' in target) return failed(target.error);
@@ -1384,9 +1386,15 @@ const HANDLERS: Record<AdhocActionId, StepHandler> = {
         Array.from(root.querySelectorAll(rowSelector))
           .slice(0, maxRows + 1)
           .map((row) =>
-            Array.from(row.querySelectorAll(cellSelector)).map(
-              (cell) => (cell as HTMLElement).innerText ?? cell.textContent ?? '',
-            ),
+            Array.from(row.querySelectorAll(cellSelector)).map((cell) => {
+              if (!cell.querySelector('svg'))
+                return (cell as HTMLElement).innerText ?? cell.textContent ?? '';
+              // innerText needs layout, which a detached copy has not: its textContent, with
+              // the whitespace innerText would have collapsed, collapsed here.
+              const copy = cell.cloneNode(true) as Element;
+              copy.querySelectorAll('svg').forEach((svg) => svg.remove());
+              return (copy.textContent ?? '').replace(/\s+/g, ' ').trim();
+            }),
           ),
       { rowSelector: value.rows, cellSelector: value.cells, maxRows: MAX_TABLE_ROWS },
     );
