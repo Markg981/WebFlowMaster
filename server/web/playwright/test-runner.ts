@@ -452,7 +452,8 @@ export class TestRunner {
       // step keeps the picture of the instant it failed.
       const settled = options?.runtime?.settledScreenshots === true;
       // Counted on the context, so requests of a popup or a frame keep the step waiting too.
-      const pendingRequests = settled ? trackPendingRequests(context) : undefined;
+      const pendingRequests =
+        settled && typeof context?.on === 'function' ? trackPendingRequests(context) : undefined;
       const stepEvidence = async (
         target: Parameters<typeof evidenceScreenshot>[0],
         passed: boolean,
