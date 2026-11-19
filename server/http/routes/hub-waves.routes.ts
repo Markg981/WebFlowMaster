@@ -31,9 +31,11 @@ import {
   type HubStatusCounts,
 } from '@shared/hub-waves';
 import { readManualLog } from '@shared/manual-tests';
+import { HUB_MODULE_IMPORT_MAX_MODULES } from '@shared/testcases-hub';
 import { HubSourceError } from '../../integrations/testcases-hub';
 import {
   WAVE_PLAN_PREFIX,
+  importModules,
   materializeWave,
   startHubJob,
   syncWaves,
@@ -73,6 +75,18 @@ const importSchema = z.object({
   waveIds: z.array(z.number().int().positive()).min(1).max(HUB_WAVE_IMPORT_MAX_WAVES),
   projectId: z.number().int().positive().nullable().default(null),
   variant: z.enum(['standard', 'reference']).default('standard'),
+});
+
+const modulesImportSchema = z.object({
+  modules: z
+    .array(z.string().trim().min(1).max(200))
+    .min(1)
+    .max(HUB_MODULE_IMPORT_MAX_MODULES)
+    .transform((list) => Array.from(new Set(list))),
+  projectId: z.number().int().positive().nullable().default(null),
+  variant: z.enum(['standard', 'reference']).default('standard'),
+  includeDeprecated: z.boolean().default(false),
+  updateChanged: z.boolean().default(false),
 });
 
 const resultsQuerySchema = z.object({
@@ -536,6 +550,73 @@ router.post(
       res.status(202).json(job);
     } catch (error) {
       sendHubError(res, error, 'Failed to start the wave import.');
+    }
+  },
+);
+
+// POST /api/testcase-hub/import/modules — every case of the chosen modules not in the library yet
+// becomes a manual test, module by module (a background job).
+router.post(
+  '/api/testcase-hub/import/modules',
+  heavyLimit,
+  requireRole('editor'),
+  async (req, res) => {
+    if (!req.isAuthenticated() || !req.user) return res.status(401).json({ error: 'Unauthorized' });
+    const parsed = modulesImportSchema.safeParse(req.body);
+    if (!parsed.success)
+      return res
+        .status(400)
+        .json({ error: 'Invalid data', details: flattenZodError(parsed.error) });
+    const params = parsed.data;
+    try {
+      const source = await requireSource();
+      const known = await withTenantTransaction(async (tx) => {
+        await editableProject(tx, req, params.projectId);
+        return tx
+          .selectDistinct({ module: hubTestCases.module })
+          .from(hubTestCases)
+          .where(inArray(hubTestCases.module, params.modules));
+      });
+      if (known.length !== params.modules.length)
+        throw new HubSourceError(
+          404,
+          'module_not_found',
+          'One or more modules are not in the catalog.',
+        );
+      const actor = actorOf(req);
+      const job = await startHubJob(
+        actor,
+        source.id,
+        'modules_import',
+        { ...params },
+        async (hooks) => {
+          const summary = await importModules(actor, params, hooks);
+          await withTenantTransaction((tx) =>
+            recordAudit(tx, {
+              action: AUDIT_ACTIONS.TESTCASE_HUB_MODULES_IMPORTED,
+              actor: {
+                id: actor.id,
+                username: actor.username,
+                apiKeyId: null,
+                ipAddress: actor.ip,
+              },
+              targetType: 'testcase_hub',
+              targetId: source.id,
+              metadata: {
+                modules: params.modules,
+                projectId: params.projectId,
+                created: summary.created,
+                updated: summary.updated,
+                skipped: summary.skipped,
+              },
+            }),
+          );
+          return { ...summary };
+        },
+      );
+      res.status(202).json(job);
+    } catch (error) {
+      sendHubError(res, error, 'Failed to start the module import.');
     }
   },
 );

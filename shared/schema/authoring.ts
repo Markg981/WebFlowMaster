@@ -52,7 +52,7 @@ export const tests = pgTable(
     // server/runtime/cleanup-runner.ts). Nullable: most tests have none. See CleanupSchema.
     cleanups: jsonb('cleanups'),
     // The data the test needs in the application's database, checked and created by script
-    // before it runs (migration 0115, server/runtime/data-setup). Nullable. See DataFixtureSchema.
+    // before it runs (migration 0116, server/runtime/data-setup). Nullable. See DataFixtureSchema.
     dataFixtures: jsonb('data_fixtures'),
     /**
      * Rows of input this test runs over, one run each.

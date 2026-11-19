@@ -1,5 +1,6 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
@@ -8,6 +9,7 @@ import type { HubResultStatus } from '@shared/hub-waves';
 import {
   isLiveJob,
   type HubJob,
+  type HubModuleImportSummary,
   type HubWaveRates,
   type HubWaveSummary,
 } from '@/hooks/useHubWaves';
@@ -94,7 +96,9 @@ export function HubJobBanner({
   const title =
     job.kind === 'waves_sync'
       ? t('hubWaves.job.syncing', 'Reading the waves from the hub…')
-      : t('hubWaves.job.importing', 'Importing the waves…');
+      : job.kind === 'modules_import'
+        ? t('hubWaves.job.importingModules', 'Importing the modules…')
+        : t('hubWaves.job.importing', 'Importing the waves…');
   return (
     <div
       className="flex flex-wrap items-center gap-3 border-b bg-muted/40 px-4 py-3"
@@ -124,6 +128,22 @@ export function HubJobBanner({
       )}
     </div>
   );
+}
+
+/** The toast for a module import that ended well: what it made of the chosen modules. */
+export function moduleImportToast(job: HubJob, t: TFunction) {
+  const summary = (job.summary ?? {}) as Partial<HubModuleImportSummary>;
+  return {
+    title: t('testCaseHub.modules.done', 'Modules imported'),
+    description: t('testCaseHub.modules.doneSummary', {
+      defaultValue:
+        '{{modules}} modules: {{created}} tests created, {{updated}} updated, {{skipped}} cases skipped.',
+      modules: Array.isArray(summary.modules) ? summary.modules.length : 0,
+      created: Number(summary.created ?? 0),
+      updated: Number(summary.updated ?? 0),
+      skipped: Number(summary.skipped ?? 0),
+    }),
+  };
 }
 
 /** Fetches an export with the session cookie and saves it under the server's file name. */

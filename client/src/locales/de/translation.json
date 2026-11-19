@@ -3449,6 +3449,7 @@
       "testcase_hub_waves_synced": "QA-Hub-Waves synchronisiert",
       "testcase_hub_waves_imported": "QA-Hub-Waves als Läufe importiert",
       "testcase_hub_wave_session_created": "Sitzung aus einer QA-Hub-Wave erstellt",
+      "testcase_hub_modules_imported": "QA-Hub-Module importiert",
       "browser_grid_created": "Browser-Grid hinzugefügt",
       "browser_grid_updated": "Browser-Grid geändert",
       "browser_grid_deleted": "Browser-Grid entfernt",
@@ -4086,7 +4087,27 @@
       "wave_not_found": "Die Welle existiert nicht.",
       "job_running": "Ein Hub-Job läuft bereits: Warten Sie, bis er endet.",
       "no_linked_tests": "Keiner der gewählten Fälle ist bereits ein Test: Importieren Sie zuerst die Welle.",
-      "too_many_waves": "Der Hub enthält mehr Wellen, als eine Synchronisierung aufnehmen kann."
+      "too_many_waves": "Der Hub enthält mehr Wellen, als eine Synchronisierung aufnehmen kann.",
+      "module_not_found": "Ein oder mehrere Module sind nicht im Katalog. Aktualisieren Sie ihn und versuchen Sie es erneut."
+    },
+    "modules": {
+      "open": "Module importieren…",
+      "title": "Module importieren",
+      "description": "Jeder Fall der gewählten Module, der noch kein Test ist, wird ein manueller Test in der Suite „QA hub · <Modul>“. Bereits importierte Fälle bleiben unverändert.",
+      "modules": "Module",
+      "all": "Alle auswählen",
+      "none": "Keine auswählen",
+      "empty": "Der Katalog hat noch keine Module. Aktualisieren Sie ihn zuerst.",
+      "module": "Modul",
+      "active": "Aktiv",
+      "inLibrary": "In der Bibliothek",
+      "toImport": "Zu importieren",
+      "includeDeprecated": "Veraltete Fälle einschließen",
+      "updateChanged": "Auch Tests aktualisieren, deren Fall sich im Hub geändert hat",
+      "tooMany": "Importieren Sie höchstens {{max}} Module auf einmal.",
+      "submit": "{{count}} Fälle importieren",
+      "done": "Module importiert",
+      "doneSummary": "{{modules}} Module: {{created}} Tests erstellt, {{updated}} aktualisiert, {{skipped}} Fälle übersprungen."
     }
   },
   "hubWaves": {
@@ -4163,7 +4184,8 @@
       "syncFailed": "Die Wellen konnten nicht gelesen werden",
       "failedDetail": "Der Job konnte nicht abgeschlossen werden. Versuchen Sie es erneut oder prüfen Sie die Hub-Verbindung in den Einstellungen.",
       "pollFailed": "Der Jobstatus konnte nicht gelesen werden",
-      "pollFailedDetail": "Die Verbindung zum Server wurde unterbrochen oder der Job existiert nicht mehr. Sie können ihn neu starten."
+      "pollFailedDetail": "Die Verbindung zum Server wurde unterbrochen oder der Job existiert nicht mehr. Sie können ihn neu starten.",
+      "importingModules": "Module werden importiert…"
     },
     "import": {
       "title_one": "{{count}} Welle importieren",

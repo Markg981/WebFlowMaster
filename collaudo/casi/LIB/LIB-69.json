@@ -1,0 +1,19 @@
+{
+  "id": "LIB-69",
+  "area": "LIB",
+  "title": "Hub QA: importare moduli interi (senza limite di 500 casi) nelle suite «QA hub · <modulo>»",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "Hub dei test case QA configurato in Impostazioni e catalogo aggiornato, con almeno due moduli di cui uno con più di 500 casi attivi e almeno un caso deprecato; esiste un progetto modificabile da editor.a.",
+  "steps": [
+    "Test Manager → scheda «Hub dei test case QA»: premere «Importa moduli…» e osservare l'elenco dei moduli.",
+    "Spuntare il modulo con più di 500 casi, scegliere il progetto, lasciare deselezionate le due opzioni e premere «Importa N casi»; seguire la barra fino alla fine.",
+    "Aprire la libreria dei test e le suite del progetto.",
+    "Riaprire «Importa moduli…», spuntare lo stesso modulo e un secondo modulo, attivare «Includi i casi deprecati» e importare.",
+    "Riaprire «Importa moduli…» senza cambiare nulla nell'hub.",
+    "Avviare un'importazione di un modulo grande e premere «Ferma» sulla barra prima della fine.",
+    "Accedere come viewer.a e aprire la stessa scheda."
+  ],
+  "expected": "1: per ogni modulo si vedono casi attivi, quanti sono in libreria e quanti da importare; un modulo già completo non è selezionabile. 2: la finestra si chiude, la barra mostra il modulo in corso e l'avanzamento; alla fine un avviso riporta moduli, test creati, aggiornati e saltati, con creati pari a «Da importare». 3: i nuovi test manuali si chiamano «[ID_CASO] obiettivo» e stanno tutti nella suite statica «QA hub · <modulo>» del progetto; il conteggio non è limitato a 500. 4: del primo modulo vengono presi solo i casi deprecati, del secondo tutti i suoi casi; ogni modulo ha la sua suite; nessun duplicato. 5: «Da importare» è 0 per i moduli importati, che non sono selezionabili. 6: il job si ferma con l'avviso «Il job è stato fermato»; i test già creati restano e una nuova importazione prende solo quelli mancanti. 7: il pulsante «Importa moduli…» non è visibile.",
+  "detailHtml": "<p>L'importazione per moduli usa <code>POST /api/testcase-hub/import/modules</code> e gira come job <code>modules_import</code> (uno per volta per hub). Un modulo sconosciuto risponde 404 <code>module_not_found</code>. Con «Aggiorna anche i test il cui caso è cambiato nell'hub» vengono riscritti come nuova versione i test il cui caso è cambiato dopo l'importazione (badge «cambiato dopo l'importazione»).</p>"
+}

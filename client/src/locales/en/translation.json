@@ -3449,6 +3449,7 @@
       "testcase_hub_waves_synced": "QA hub waves synced",
       "testcase_hub_waves_imported": "QA hub waves imported as runs",
       "testcase_hub_wave_session_created": "Session created from a QA hub wave",
+      "testcase_hub_modules_imported": "QA hub modules imported",
       "browser_grid_created": "Browser grid added",
       "browser_grid_updated": "Browser grid changed",
       "browser_grid_deleted": "Browser grid removed",
@@ -4086,7 +4087,27 @@
       "wave_not_found": "The wave does not exist.",
       "job_running": "A hub job is already running: wait for it to end.",
       "no_linked_tests": "None of the chosen cases is a test yet: import the wave first.",
-      "too_many_waves": "The hub holds more waves than one sync can take."
+      "too_many_waves": "The hub holds more waves than one sync can take.",
+      "module_not_found": "One or more modules are not in the catalog. Refresh it and try again."
+    },
+    "modules": {
+      "open": "Import modules…",
+      "title": "Import modules",
+      "description": "Every case of the chosen modules that is not a test yet becomes a manual test, in the suite “QA hub · <module>”. Cases already imported are left as they are.",
+      "modules": "Modules",
+      "all": "Select all",
+      "none": "Select none",
+      "empty": "The catalog has no modules yet. Refresh it first.",
+      "module": "Module",
+      "active": "Active",
+      "inLibrary": "In the library",
+      "toImport": "To import",
+      "includeDeprecated": "Include deprecated cases",
+      "updateChanged": "Also update the tests whose case changed in the hub",
+      "tooMany": "Import at most {{max}} modules at a time.",
+      "submit": "Import {{count}} cases",
+      "done": "Modules imported",
+      "doneSummary": "{{modules}} modules: {{created}} tests created, {{updated}} updated, {{skipped}} cases skipped."
     }
   },
   "hubWaves": {
@@ -4163,7 +4184,8 @@
       "syncFailed": "The waves could not be read",
       "failedDetail": "The job could not be completed. Try again, or check the hub connection in Settings.",
       "pollFailed": "The job status could not be read",
-      "pollFailedDetail": "The connection to the server was lost or the job no longer exists. You can start it again."
+      "pollFailedDetail": "The connection to the server was lost or the job no longer exists. You can start it again.",
+      "importingModules": "Importing the modules…"
     },
     "import": {
       "title_one": "Import {{count}} wave",

@@ -242,7 +242,7 @@ owner. Audit actions: `DATA_FIXTURE_CREATED/UPDATED/DELETED`, `ENVIRONMENT_DATA_
 ## Release 1 as built
 
 - Fixtures live in their own `data_fixtures` column on `tests` and `test_versions`
-  (migration 0115), not inside the preconditions, so the existing preconditions keep their shape
+  (migration 0116), not inside the preconditions, so the existing preconditions keep their shape
   and the executable fingerprint of older versions does not change (the field enters the
   fingerprint only when set).
 - `check` is satisfied by one row or more. `satisfiedWhen` is left out: a `WHERE` clause expresses

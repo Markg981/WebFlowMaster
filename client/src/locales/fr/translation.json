@@ -3449,6 +3449,7 @@
       "testcase_hub_waves_synced": "Vagues du hub QA synchronisées",
       "testcase_hub_waves_imported": "Vagues du hub QA importées comme exécutions",
       "testcase_hub_wave_session_created": "Session créée à partir d'une vague du hub QA",
+      "testcase_hub_modules_imported": "Modules du hub QA importés",
       "browser_grid_created": "Grille de navigateurs ajouté",
       "browser_grid_updated": "Grille de navigateurs modifié",
       "browser_grid_deleted": "Grille de navigateurs supprimé",
@@ -4086,7 +4087,27 @@
       "wave_not_found": "La vague n’existe pas.",
       "job_running": "Une tâche du hub est déjà en cours : attendez qu’elle se termine.",
       "no_linked_tests": "Aucun des cas choisis n’est encore un test : importez d’abord la vague.",
-      "too_many_waves": "Le hub contient plus de vagues qu’une synchronisation ne peut en lire."
+      "too_many_waves": "Le hub contient plus de vagues qu’une synchronisation ne peut en lire.",
+      "module_not_found": "Un ou plusieurs modules ne sont pas dans le catalogue. Actualisez-le et réessayez."
+    },
+    "modules": {
+      "open": "Importer des modules…",
+      "title": "Importer des modules",
+      "description": "Chaque cas des modules choisis qui n’est pas encore un test devient un test manuel, dans la suite « QA hub · <module> ». Les cas déjà importés restent tels quels.",
+      "modules": "Modules",
+      "all": "Tout sélectionner",
+      "none": "Tout désélectionner",
+      "empty": "Le catalogue n’a encore aucun module. Actualisez-le d’abord.",
+      "module": "Module",
+      "active": "Actifs",
+      "inLibrary": "Dans la bibliothèque",
+      "toImport": "À importer",
+      "includeDeprecated": "Inclure les cas obsolètes",
+      "updateChanged": "Mettre aussi à jour les tests dont le cas a changé dans le hub",
+      "tooMany": "Importez au plus {{max}} modules à la fois.",
+      "submit": "Importer {{count}} cas",
+      "done": "Modules importés",
+      "doneSummary": "{{modules}} modules : {{created}} tests créés, {{updated}} mis à jour, {{skipped}} cas ignorés."
     }
   },
   "hubWaves": {
@@ -4163,7 +4184,8 @@
       "syncFailed": "Les vagues n’ont pas pu être lues",
       "failedDetail": "Le job n’a pas pu être terminé. Réessayez ou vérifiez la connexion au hub dans les Paramètres.",
       "pollFailed": "Impossible de lire l’état du job",
-      "pollFailedDetail": "La connexion au serveur a été perdue ou le job n’existe plus. Vous pouvez le relancer."
+      "pollFailedDetail": "La connexion au serveur a été perdue ou le job n’existe plus. Vous pouvez le relancer.",
+      "importingModules": "Import des modules…"
     },
     "import": {
       "title_one": "Importer {{count}} vague",

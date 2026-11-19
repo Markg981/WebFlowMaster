@@ -42,6 +42,35 @@ export const HUB_PRIORITY_TO_WFM: Record<string, 'Critical' | 'High' | 'Medium' 
 /** At most this many cases in one import call — the same ceiling as a suite bundle import. */
 export const HUB_IMPORT_MAX_CASES = 500;
 
+/** At most this many modules in one module import; the DMO hub has 21. */
+export const HUB_MODULE_IMPORT_MAX_MODULES = 50;
+
+/**
+ * A module import: every case of the chosen modules that is not a test yet becomes one, as a
+ * background job, each module into its suite (`QA hub · <module>`, the one the waves use too).
+ */
+export interface HubModuleImportParams {
+  /** Module names as the catalog keeps them (`DMO Archiving`). */
+  modules: string[];
+  projectId: number | null;
+  variant: 'standard' | 'reference';
+  /** Deprecated cases too; by default only active ones. */
+  includeDeprecated: boolean;
+  /** Also rewrite tests whose case changed in the hub since they were imported. */
+  updateChanged: boolean;
+}
+
+/** What a module import did to one module. */
+export interface HubModuleImportCounts {
+  module: string;
+  /** Cases the import took up: not imported yet, or changed when asked. */
+  requested: number;
+  created: number;
+  updated: number;
+  unchanged: number;
+  skipped: number;
+}
+
 /** A case as the catalog keeps it: the definition's fields that matter here, normalised. */
 export interface HubCaseDefinition {
   /** `ARC_TC_00001`: upper case, the number padded to five digits. */

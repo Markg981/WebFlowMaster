@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'wouter';
 import { Button } from '@/components/ui/button';
@@ -29,7 +29,7 @@ import { useUrlParams } from '@/hooks/use-url-params';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
 import { formatDateTime } from '@/lib/dates';
-import { Download, FolderGit2, Loader2, RefreshCw, Search } from 'lucide-react';
+import { Download, FolderGit2, Layers, Loader2, RefreshCw, Search } from 'lucide-react';
 import {
   HUB_IMPORT_MAX_CASES,
   hubErrorMessage,
@@ -43,6 +43,9 @@ import {
 import { HubCaseStateBadge } from './HubCaseStateBadge';
 import HubCaseDetailDialog from './HubCaseDetailDialog';
 import HubImportDialog from './HubImportDialog';
+import HubModuleImportDialog from './HubModuleImportDialog';
+import { HubJobBanner, moduleImportToast } from './HubWaveBits';
+import { isLiveJob, useCancelHubJob, useHubJob } from '@/hooks/useHubWaves';
 
 /**
  * The QA hub's catalog, as a place to choose from.
@@ -153,6 +156,38 @@ const HubCatalogPanel: React.FC = () => {
         }),
     });
 
+  // A module import runs as a background job: followed here until it ends, then said once.
+  const [modulesOpen, setModulesOpen] = useState(false);
+  const [moduleJobId, setModuleJobId] = useState<string | null>(null);
+  const { data: moduleJob, isError: moduleJobFailed } = useHubJob(moduleJobId);
+  const cancelJob = useCancelHubJob();
+  const announcedJob = useRef<string | null>(null);
+  useEffect(() => {
+    if (!moduleJob || isLiveJob(moduleJob) || announcedJob.current === moduleJob.id) return;
+    announcedJob.current = moduleJob.id;
+    if (moduleJob.status === 'failed')
+      toast({
+        title: t('hubWaves.job.failed', 'The job failed'),
+        description: moduleJob.error ?? undefined,
+        variant: 'destructive',
+      });
+    else if (moduleJob.status === 'cancelled')
+      toast({ title: t('hubWaves.job.cancelled', 'The job was stopped') });
+    else toast(moduleImportToast(moduleJob, t));
+    setModuleJobId(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [moduleJob]);
+  useEffect(() => {
+    if (!moduleJobFailed || !moduleJobId) return;
+    toast({
+      title: t('hubWaves.job.pollFailed', 'The job status could not be read'),
+      variant: 'destructive',
+    });
+    setModuleJobId(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [moduleJobFailed, moduleJobId]);
+  const moduleJobLive = isLiveJob(moduleJob);
+
   const readinessLabel = (level: number) =>
     t(`testCaseHub.readiness.${level}`, { defaultValue: `Level ${level}` });
 
@@ -261,22 +296,47 @@ const HubCatalogPanel: React.FC = () => {
             )}
           </div>
           {canEdit && (
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={runRefresh}
-              disabled={refresh.isPending}
-              data-testid="hub-refresh"
-            >
-              {refresh.isPending ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                <RefreshCw className="mr-2 h-4 w-4" />
-              )}
-              {t('testCaseHub.form.refresh', 'Refresh catalog')}
-            </Button>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setModulesOpen(true)}
+                disabled={moduleJobLive || !facets?.moduleCoverage?.length}
+                data-testid="hub-import-modules"
+              >
+                <Layers className="mr-2 h-4 w-4" />
+                {t('testCaseHub.modules.open', 'Import modules…')}
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={runRefresh}
+                disabled={refresh.isPending}
+                data-testid="hub-refresh"
+              >
+                {refresh.isPending ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <RefreshCw className="mr-2 h-4 w-4" />
+                )}
+                {t('testCaseHub.form.refresh', 'Refresh catalog')}
+              </Button>
+            </div>
           )}
         </div>
+        {moduleJob && (
+          <HubJobBanner
+            job={moduleJob}
+            canCancel={canEdit}
+            cancelling={cancelJob.isPending}
+            onCancel={() =>
+              cancelJob.mutate(moduleJob.id, {
+                onError: (cancelError) =>
+                  toast({ title: hubErrorMessage(cancelError, t), variant: 'destructive' }),
+              })
+            }
+          />
+        )}
 
         <div className="flex flex-wrap items-center gap-2 border-b px-4 py-3">
           <div className="relative min-w-[220px] flex-1">
@@ -560,6 +620,13 @@ const HubCatalogPanel: React.FC = () => {
           onPageSizeChange={setPageSize}
         />
       )}
+
+      <HubModuleImportDialog
+        open={modulesOpen}
+        onOpenChange={setModulesOpen}
+        modules={facets?.moduleCoverage ?? []}
+        onStarted={(job) => setModuleJobId(job.id)}
+      />
 
       <HubCaseDetailDialog
         caseId={detailId}

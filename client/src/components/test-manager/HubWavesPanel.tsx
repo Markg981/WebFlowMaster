@@ -37,7 +37,13 @@ import {
   useSyncHubWaves,
   type HubJob,
 } from '@/hooks/useHubWaves';
-import { HubJobBanner, RatesCell, WaveStateBadge, useStatusLabel } from './HubWaveBits';
+import {
+  HubJobBanner,
+  RatesCell,
+  WaveStateBadge,
+  moduleImportToast,
+  useStatusLabel,
+} from './HubWaveBits';
 import HubWaveDetailDialog from './HubWaveDetailDialog';
 import HubWaveImportDialog from './HubWaveImportDialog';
 
@@ -128,6 +134,7 @@ const HubWavesPanel: React.FC = () => {
           missing: Number(summary.missing ?? 0),
         }),
       };
+    if (ended.kind === 'modules_import') return moduleImportToast(ended, t);
     const outcomes = Array.isArray(summary.waves)
       ? (summary.waves as Array<{ imported?: number; results?: number }>)
       : [];
