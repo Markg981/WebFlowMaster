@@ -664,7 +664,8 @@
     "requirements": "Requisiti",
     "mobileTests": "App mobili",
     "testData": "Dati di test",
-    "loadTests": "Test di carico"
+    "loadTests": "Test di carico",
+    "dataFixtures": "Data fixture"
   },
   "dashboardPage": {
     "dropActionsPrompt": "Trascina le azioni qui per costruire il tuo test",
@@ -3002,7 +3003,21 @@
     "add": "Aggiungi data fixture",
     "remove": "Rimuovi data fixture",
     "moveUp": "Sposta su",
-    "moveDown": "Sposta giù"
+    "moveDown": "Sposta giù",
+    "library": {
+      "addTitle": "Aggiungi dalla libreria del progetto",
+      "project": "Progetto",
+      "fixture": "Fixture della libreria",
+      "add": "Aggiungi dalla libreria",
+      "emptyProject": "Questo progetto non ha ancora fixture in libreria.",
+      "runsInOrder": "Eseguite in questo ordine: {{chain}}",
+      "fromLibrary": "libreria {{key}}",
+      "unknown": "Fixture di libreria #{{id}} (non nel progetto scelto)",
+      "version": "Versione",
+      "latest": "Ultima (ora v{{version}})",
+      "values": "Valori (vuoto mantiene il default)",
+      "valueFor": "Valore per {{name}}"
+    }
   },
   "environments": {
     "newEnvironmentPlaceholder": "Nuovo ambiente (es. Staging)",
@@ -5897,5 +5912,46 @@
         }
       }
     }
+  },
+  "fixtureLibrary": {
+    "title": "Libreria delle data fixture",
+    "pageDescription": "I dati che i test richiedono nel database dell'applicazione, scritti una volta per progetto, in versioni, e richiamati dai test invece che copiati.",
+    "new": "Nuova fixture",
+    "newTitle": "Nuova fixture di libreria",
+    "editTitle": "{{name}} (v{{version}})",
+    "editorHint": "Salvare una definizione modificata crea una nuova versione; i test su \"ultima\" la seguono, quelli fissati no.",
+    "key": "Chiave",
+    "description": "Descrizione",
+    "tags": "Tag",
+    "dependsOn": "Richiede prima",
+    "dependency": "Fixture richiesta",
+    "dependencyAlias": "Letta come",
+    "removeDependency": "Rimuovi dipendenza",
+    "addDependency": "Aggiungi una fixture richiesta",
+    "note": "Cosa cambia questa versione",
+    "versions": "Versioni",
+    "usedBy": "Usata da",
+    "unused": "Nessun test o fixture la richiama.",
+    "usedByTest": "Test",
+    "usedByFixture": "Fixture",
+    "tryIt": "Prova",
+    "environment": "Ambiente",
+    "mode": "Modalità",
+    "modeCheck": "Solo verifica (legge, non scrive)",
+    "modeDry": "Prova a secco (scrive, poi annulla)",
+    "run": "Esegui",
+    "dryNeedsSetup": "Una prova a secco richiede un ambiente che consenta il data setup.",
+    "tryOk": "Tutto ciò che la fixture richiede è presente.",
+    "status": {
+      "satisfied": "Trovata",
+      "applied": "Creata",
+      "missing": "Mancante",
+      "failed": "Fallita"
+    },
+    "open": "Apri {{name}}",
+    "delete": "Elimina {{name}}",
+    "confirmDelete": "Eliminare {{name}} e le sue versioni?",
+    "deleteFailed": "Non eliminata",
+    "stillUsed": "Ancora richiamata da: {{names}}"
   }
 }

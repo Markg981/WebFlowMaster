@@ -1,11 +1,20 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   DATA_FIXTURE_PARAM_TYPES,
   DataFixturesSchema,
+  isDataFixtureRef,
   type DataFixture,
   type DataFixtureParam,
+  type DataFixtureRef,
+  type TestDataFixture,
 } from '@shared/schema';
+import { useProjects } from '@/hooks/use-projects';
+import {
+  dependencyChain,
+  useFixtureLibrary,
+  type LibraryFixtureSummary,
+} from '@/hooks/use-data-fixture-library';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -18,7 +27,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { ArrowDown, ArrowUp, PlusCircle, Trash2, X } from 'lucide-react';
+import { ArrowDown, ArrowUp, Library, PlusCircle, Trash2, X } from 'lucide-react';
 
 /**
  * The data a UI test needs in the application's database, checked and created by script before
@@ -27,15 +36,37 @@ import { ArrowDown, ArrowUp, PlusCircle, Trash2, X } from 'lucide-react';
  *
  * Validated here with the same schema the server applies on save, so a placeholder inside quotes
  * or an undeclared parameter shows up while typing rather than as a 400 on save.
+ *
+ * An entry can also name a fixture of the project's library: the test keeps only the reference
+ * and the values it changes; the server expands it, with what it needs first, when the run is
+ * queued.
  */
 
 interface DataFixturesPanelProps {
-  fixtures: DataFixture[];
-  onChange: (next: DataFixture[]) => void;
+  fixtures: TestDataFixture[];
+  onChange: (next: TestDataFixture[]) => void;
+  /**
+   * The project whose library the references come from. Passed with its setter, the panel offers
+   * "Add from library"; a test saved in another project has its references refused on save.
+   */
+  library?: {
+    projectId: number | null;
+    onProjectChange: (projectId: number | null) => void;
+  };
+}
+
+const entryId = () => `fx-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+
+/** An alias from the key, not already taken: `customer-order` -> `customer_order`, then `_2`. */
+export function aliasFor(key: string, taken: string[]): string {
+  const base = /^[A-Za-z]/.test(key) ? key.replace(/-/g, '_') : `fx_${key.replace(/-/g, '_')}`;
+  let alias = base;
+  for (let n = 2; taken.includes(alias); n++) alias = `${base}_${n}`;
+  return alias;
 }
 
 const newFixture = (index: number): DataFixture => ({
-  id: `fx-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+  id: entryId(),
   name: '',
   alias: `data${index + 1}`,
   connection: null,
@@ -47,7 +78,7 @@ const newFixture = (index: number): DataFixture => ({
 });
 
 /** The problems the server would refuse on save, by fixture index, in a reader's words. */
-export function fixtureProblems(fixtures: DataFixture[]): Map<number, string[]> {
+export function fixtureProblems(fixtures: TestDataFixture[]): Map<number, string[]> {
   const problems = new Map<number, string[]>();
   const parsed = DataFixturesSchema.safeParse(fixtures);
   if (parsed.success) return problems;
@@ -61,12 +92,16 @@ export function fixtureProblems(fixtures: DataFixture[]): Map<number, string[]> 
   return problems;
 }
 
-export const DataFixturesPanel: React.FC<DataFixturesPanelProps> = ({ fixtures, onChange }) => {
+export const DataFixturesPanel: React.FC<DataFixturesPanelProps> = ({
+  fixtures,
+  onChange,
+  library,
+}) => {
   const { t } = useTranslation();
   const problems = useMemo(() => fixtureProblems(fixtures), [fixtures]);
 
-  const update = (index: number, patch: Partial<DataFixture>) =>
-    onChange(fixtures.map((f, i) => (i === index ? { ...f, ...patch } : f)));
+  const update = (index: number, patch: Partial<DataFixture> | Partial<DataFixtureRef>) =>
+    onChange(fixtures.map((f, i) => (i === index ? ({ ...f, ...patch } as TestDataFixture) : f)));
   const move = (index: number, by: -1 | 1) => {
     const next = [...fixtures];
     const [item] = next.splice(index, 1);
@@ -75,8 +110,51 @@ export const DataFixturesPanel: React.FC<DataFixturesPanelProps> = ({ fixtures, 
   };
   const updateParam = (index: number, p: number, patch: Partial<DataFixtureParam>) =>
     update(index, {
-      params: fixtures[index].params.map((param, i) => (i === p ? { ...param, ...patch } : param)),
+      params: (fixtures[index] as DataFixture).params.map((param, i) =>
+        i === p ? { ...param, ...patch } : param,
+      ),
     });
+  const header = (index: number, title: string) => (
+    <div className="flex items-center justify-between gap-2">
+      <span className="text-sm font-semibold">
+        {index + 1}. {title}
+      </span>
+      <div className="flex items-center">
+        <Button
+          variant="ghost"
+          size="sm"
+          disabled={index === 0}
+          onClick={() => move(index, -1)}
+          aria-label={t('dataFixtures.moveUp')}
+        >
+          <ArrowUp className="h-4 w-4" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          disabled={index === fixtures.length - 1}
+          onClick={() => move(index, 1)}
+          aria-label={t('dataFixtures.moveDown')}
+        >
+          <ArrowDown className="h-4 w-4" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => onChange(fixtures.filter((_, i) => i !== index))}
+          aria-label={t('dataFixtures.remove')}
+        >
+          <Trash2 className="h-4 w-4 text-destructive" />
+        </Button>
+      </div>
+    </div>
+  );
+  const problemLines = (index: number) =>
+    problems.get(index)?.map((p) => (
+      <p key={p} className="text-xs text-destructive">
+        {p}
+      </p>
+    ));
 
   return (
     <Card>
@@ -93,43 +171,24 @@ export const DataFixturesPanel: React.FC<DataFixturesPanelProps> = ({ fixtures, 
             {p}
           </p>
         ))}
-        {fixtures.map((fixture, index) => {
+        {fixtures.map((entry, index) => {
+          if (isDataFixtureRef(entry))
+            return (
+              <div key={entry.id} className="space-y-3 rounded-md border border-dashed p-3">
+                <LibraryRefEditor
+                  entry={entry}
+                  projectId={library?.projectId ?? null}
+                  header={(title) => header(index, title)}
+                  onChange={(patch) => update(index, patch)}
+                />
+                {problemLines(index)}
+              </div>
+            );
+          const fixture = entry;
           const fieldId = (name: string) => `fixture-${fixture.id}-${name}`;
           return (
             <div key={fixture.id} className="space-y-3 rounded-md border p-3">
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-sm font-semibold">
-                  {index + 1}. {fixture.name || t('dataFixtures.untitled')}
-                </span>
-                <div className="flex items-center">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    disabled={index === 0}
-                    onClick={() => move(index, -1)}
-                    aria-label={t('dataFixtures.moveUp')}
-                  >
-                    <ArrowUp className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    disabled={index === fixtures.length - 1}
-                    onClick={() => move(index, 1)}
-                    aria-label={t('dataFixtures.moveDown')}
-                  >
-                    <ArrowDown className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => onChange(fixtures.filter((_, i) => i !== index))}
-                    aria-label={t('dataFixtures.remove')}
-                  >
-                    <Trash2 className="h-4 w-4 text-destructive" />
-                  </Button>
-                </div>
-              </div>
+              {header(index, fixture.name || t('dataFixtures.untitled'))}
 
               <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
                 <div className="space-y-1">
@@ -295,11 +354,7 @@ export const DataFixturesPanel: React.FC<DataFixturesPanelProps> = ({ fixtures, 
                 </div>
               </div>
 
-              {problems.get(index)?.map((p) => (
-                <p key={p} className="text-xs text-destructive">
-                  {p}
-                </p>
-              ))}
+              {problemLines(index)}
             </div>
           );
         })}
@@ -311,7 +366,207 @@ export const DataFixturesPanel: React.FC<DataFixturesPanelProps> = ({ fixtures, 
           <PlusCircle className="mr-2 h-4 w-4" />
           {t('dataFixtures.add')}
         </Button>
+        {library && (
+          <LibraryPicker
+            projectId={library.projectId}
+            onProjectChange={library.onProjectChange}
+            onAdd={(fixture) =>
+              onChange([
+                ...fixtures,
+                {
+                  kind: 'ref',
+                  id: entryId(),
+                  alias: aliasFor(
+                    fixture.key,
+                    fixtures.map((f) => f.alias),
+                  ),
+                  fixtureId: fixture.id,
+                  version: 'latest',
+                  params: {},
+                },
+              ])
+            }
+          />
+        )}
       </CardContent>
     </Card>
   );
 };
+
+/** Pick a project, then one of its library fixtures, to add as a reference. */
+function LibraryPicker({
+  projectId,
+  onProjectChange,
+  onAdd,
+}: {
+  projectId: number | null;
+  onProjectChange: (projectId: number | null) => void;
+  onAdd: (fixture: LibraryFixtureSummary) => void;
+}) {
+  const { t } = useTranslation();
+  const { data: projects = [] } = useProjects();
+  const { data: library = [], isLoading } = useFixtureLibrary(projectId);
+  const [chosen, setChosen] = useState<string>('');
+  const fixture = library.find((f) => String(f.id) === chosen);
+  const chain = fixture ? dependencyChain(fixture.key, library) : [];
+
+  return (
+    <div className="space-y-2 rounded-md bg-muted/40 p-3">
+      <Label className="flex items-center gap-2">
+        <Library className="h-4 w-4" /> {t('dataFixtures.library.addTitle')}
+      </Label>
+      <div className="flex flex-wrap items-center gap-2">
+        <Select
+          value={projectId ? String(projectId) : ''}
+          onValueChange={(value) => {
+            setChosen('');
+            onProjectChange(value ? Number(value) : null);
+          }}
+        >
+          <SelectTrigger className="w-48" aria-label={t('dataFixtures.library.project')}>
+            <SelectValue placeholder={t('dataFixtures.library.project')} />
+          </SelectTrigger>
+          <SelectContent>
+            {projects.map((p) => (
+              <SelectItem key={p.id} value={String(p.id)}>
+                {p.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select value={chosen} onValueChange={setChosen} disabled={!projectId || isLoading}>
+          <SelectTrigger className="w-64" aria-label={t('dataFixtures.library.fixture')}>
+            <SelectValue placeholder={t('dataFixtures.library.fixture')} />
+          </SelectTrigger>
+          <SelectContent>
+            {library.map((f) => (
+              <SelectItem key={f.id} value={String(f.id)}>
+                {f.name} ({f.key})
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={!fixture}
+          onClick={() => {
+            if (!fixture) return;
+            onAdd(fixture);
+            setChosen('');
+          }}
+        >
+          <PlusCircle className="mr-2 h-4 w-4" />
+          {t('dataFixtures.library.add')}
+        </Button>
+      </div>
+      {projectId && !isLoading && library.length === 0 && (
+        <p className="text-xs text-muted-foreground">{t('dataFixtures.library.emptyProject')}</p>
+      )}
+      {chain.length > 1 && (
+        <p className="text-xs text-muted-foreground">
+          {t('dataFixtures.library.runsInOrder', { chain: chain.join(' → ') })}
+        </p>
+      )}
+    </div>
+  );
+}
+
+/** A reference to a library fixture: which version, under which alias, with which values. */
+function LibraryRefEditor({
+  entry,
+  projectId,
+  header,
+  onChange,
+}: {
+  entry: DataFixtureRef;
+  projectId: number | null;
+  header: (title: string) => React.ReactNode;
+  onChange: (patch: Partial<DataFixtureRef>) => void;
+}) {
+  const { t } = useTranslation();
+  const { data: library = [] } = useFixtureLibrary(projectId);
+  const fixture = library.find((f) => f.id === entry.fixtureId);
+  const fieldId = (name: string) => `fixture-${entry.id}-${name}`;
+  const chain = fixture ? dependencyChain(fixture.key, library) : [];
+  const versions = fixture
+    ? Array.from({ length: fixture.currentVersion }, (_, i) => fixture.currentVersion - i)
+    : [];
+  const setParam = (name: string, value: string) => {
+    const next = { ...entry.params };
+    if (value === '') delete next[name];
+    else next[name] = value;
+    onChange({ params: next });
+  };
+
+  return (
+    <>
+      {header(
+        fixture
+          ? `${fixture.name} · ${t('dataFixtures.library.fromLibrary', { key: fixture.key })}`
+          : t('dataFixtures.library.unknown', { id: entry.fixtureId }),
+      )}
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+        <div className="space-y-1">
+          <Label htmlFor={fieldId('alias')}>{t('dataFixtures.alias')}</Label>
+          <Input
+            id={fieldId('alias')}
+            value={entry.alias}
+            className="font-mono"
+            onChange={(e) => onChange({ alias: e.target.value })}
+          />
+        </div>
+        <div className="space-y-1">
+          <Label>{t('dataFixtures.library.version')}</Label>
+          <Select
+            value={String(entry.version)}
+            onValueChange={(v) => onChange({ version: v === 'latest' ? 'latest' : Number(v) })}
+          >
+            <SelectTrigger aria-label={t('dataFixtures.library.version')}>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="latest">
+                {t('dataFixtures.library.latest', { version: fixture?.currentVersion ?? '?' })}
+              </SelectItem>
+              {versions.map((v) => (
+                <SelectItem key={v} value={String(v)}>
+                  v{v}
+                </SelectItem>
+              ))}
+              {typeof entry.version === 'number' && !versions.includes(entry.version) && (
+                <SelectItem value={String(entry.version)}>v{entry.version}</SelectItem>
+              )}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+      {fixture && fixture.definition.params.length > 0 && (
+        <div className="space-y-2">
+          <Label>{t('dataFixtures.library.values')}</Label>
+          {fixture.definition.params.map((param) => (
+            <div key={param.name} className="flex items-center gap-2">
+              <span className="w-40 font-mono text-xs">{param.name}</span>
+              <Input
+                aria-label={t('dataFixtures.library.valueFor', { name: param.name })}
+                value={entry.params[param.name] ?? ''}
+                className="flex-1 font-mono"
+                placeholder={param.value}
+                onChange={(e) => setParam(param.name, e.target.value)}
+              />
+            </div>
+          ))}
+        </div>
+      )}
+      {fixture && (chain.length > 1 || fixture.definition.outputs.length > 0) && (
+        <p className="text-xs text-muted-foreground">
+          {chain.length > 1 && t('dataFixtures.library.runsInOrder', { chain: chain.join(' → ') })}{' '}
+          {fixture.definition.outputs.length > 0 &&
+            t('dataFixtures.outputsHint', {
+              example: `{{fx.${entry.alias || 'alias'}.${fixture.definition.outputs[0]}}}`,
+            })}
+        </p>
+      )}
+    </>
+  );
+}

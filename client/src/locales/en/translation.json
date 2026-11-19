@@ -664,7 +664,8 @@
     "requirements": "Requirements",
     "mobileTests": "Mobile apps",
     "testData": "Test data",
-    "loadTests": "Load tests"
+    "loadTests": "Load tests",
+    "dataFixtures": "Data fixtures"
   },
   "dashboardPage": {
     "user": {
@@ -3002,7 +3003,21 @@
     "add": "Add data fixture",
     "remove": "Remove data fixture",
     "moveUp": "Move up",
-    "moveDown": "Move down"
+    "moveDown": "Move down",
+    "library": {
+      "addTitle": "Add from the project library",
+      "project": "Project",
+      "fixture": "Library fixture",
+      "add": "Add from library",
+      "emptyProject": "This project has no library fixtures yet.",
+      "runsInOrder": "Runs in this order: {{chain}}",
+      "fromLibrary": "library {{key}}",
+      "unknown": "Library fixture #{{id}} (not in the chosen project)",
+      "version": "Version",
+      "latest": "Latest (now v{{version}})",
+      "values": "Values (empty keeps the default)",
+      "valueFor": "Value for {{name}}"
+    }
   },
   "environments": {
     "newEnvironmentPlaceholder": "New environment (e.g. Staging)",
@@ -5897,5 +5912,46 @@
         }
       }
     }
+  },
+  "fixtureLibrary": {
+    "title": "Data fixture library",
+    "pageDescription": "The data tests need in the application database, written once per project, in versions, and named by tests instead of copied.",
+    "new": "New fixture",
+    "newTitle": "New library fixture",
+    "editTitle": "{{name}} (v{{version}})",
+    "editorHint": "Saving a changed definition keeps it as a new version; tests on \"latest\" follow it, pinned tests do not.",
+    "key": "Key",
+    "description": "Description",
+    "tags": "Tags",
+    "dependsOn": "Needs first",
+    "dependency": "Fixture needed",
+    "dependencyAlias": "Read as",
+    "removeDependency": "Remove dependency",
+    "addDependency": "Add a fixture it needs",
+    "note": "What this version changes",
+    "versions": "Versions",
+    "usedBy": "Used by",
+    "unused": "No test or fixture names it.",
+    "usedByTest": "Test",
+    "usedByFixture": "Fixture",
+    "tryIt": "Try it",
+    "environment": "Environment",
+    "mode": "Mode",
+    "modeCheck": "Check only (reads, writes nothing)",
+    "modeDry": "Dry run (writes, then rolls back)",
+    "run": "Run",
+    "dryNeedsSetup": "A dry run needs an environment that allows data setup.",
+    "tryOk": "Everything the fixture needs is in place.",
+    "status": {
+      "satisfied": "Found",
+      "applied": "Created",
+      "missing": "Missing",
+      "failed": "Failed"
+    },
+    "open": "Open {{name}}",
+    "delete": "Delete {{name}}",
+    "confirmDelete": "Delete {{name}} and its versions?",
+    "deleteFailed": "Not deleted",
+    "stillUsed": "Still named by: {{names}}"
   }
 }

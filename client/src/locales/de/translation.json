@@ -664,7 +664,8 @@
     "requirements": "Anforderungen",
     "mobileTests": "Mobile Apps",
     "testData": "Testdaten",
-    "loadTests": "Lasttests"
+    "loadTests": "Lasttests",
+    "dataFixtures": "Datenfixtures"
   },
   "dashboardPage": {
     "user": {
@@ -3002,7 +3003,21 @@
     "add": "Daten-Fixture hinzufügen",
     "remove": "Daten-Fixture entfernen",
     "moveUp": "Nach oben",
-    "moveDown": "Nach unten"
+    "moveDown": "Nach unten",
+    "library": {
+      "addTitle": "Aus der Projektbibliothek hinzufügen",
+      "project": "Projekt",
+      "fixture": "Bibliotheks-Fixture",
+      "add": "Aus Bibliothek hinzufügen",
+      "emptyProject": "Dieses Projekt hat noch keine Bibliotheks-Fixtures.",
+      "runsInOrder": "Läuft in dieser Reihenfolge: {{chain}}",
+      "fromLibrary": "Bibliothek {{key}}",
+      "unknown": "Bibliotheks-Fixture #{{id}} (nicht im gewählten Projekt)",
+      "version": "Version",
+      "latest": "Neueste (jetzt v{{version}})",
+      "values": "Werte (leer behält den Standard)",
+      "valueFor": "Wert für {{name}}"
+    }
   },
   "environments": {
     "newEnvironmentPlaceholder": "Neue Umgebung (z. B. Staging)",
@@ -5897,5 +5912,46 @@
         }
       }
     }
+  },
+  "fixtureLibrary": {
+    "title": "Datenfixture-Bibliothek",
+    "pageDescription": "Die Daten, die Tests in der Anwendungsdatenbank brauchen, einmal pro Projekt geschrieben, versioniert und von Tests referenziert statt kopiert.",
+    "new": "Neues Fixture",
+    "newTitle": "Neues Bibliotheks-Fixture",
+    "editTitle": "{{name}} (v{{version}})",
+    "editorHint": "Eine geänderte Definition wird als neue Version gespeichert; Tests auf „neueste\" folgen ihr, festgelegte nicht.",
+    "key": "Schlüssel",
+    "description": "Beschreibung",
+    "tags": "Tags",
+    "dependsOn": "Braucht zuerst",
+    "dependency": "Benötigtes Fixture",
+    "dependencyAlias": "Gelesen als",
+    "removeDependency": "Abhängigkeit entfernen",
+    "addDependency": "Benötigtes Fixture hinzufügen",
+    "note": "Was diese Version ändert",
+    "versions": "Versionen",
+    "usedBy": "Verwendet von",
+    "unused": "Kein Test und kein Fixture verweist darauf.",
+    "usedByTest": "Test",
+    "usedByFixture": "Fixture",
+    "tryIt": "Ausprobieren",
+    "environment": "Umgebung",
+    "mode": "Modus",
+    "modeCheck": "Nur prüfen (liest, schreibt nichts)",
+    "modeDry": "Probelauf (schreibt, dann Rollback)",
+    "run": "Ausführen",
+    "dryNeedsSetup": "Ein Probelauf braucht eine Umgebung, die Data Setup erlaubt.",
+    "tryOk": "Alles, was das Fixture braucht, ist vorhanden.",
+    "status": {
+      "satisfied": "Gefunden",
+      "applied": "Angelegt",
+      "missing": "Fehlt",
+      "failed": "Fehlgeschlagen"
+    },
+    "open": "{{name}} öffnen",
+    "delete": "{{name}} löschen",
+    "confirmDelete": "{{name}} und seine Versionen löschen?",
+    "deleteFailed": "Nicht gelöscht",
+    "stillUsed": "Noch verwendet von: {{names}}"
   }
 }

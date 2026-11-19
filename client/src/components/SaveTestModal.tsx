@@ -33,6 +33,8 @@ interface SaveTestModalProps {
   onClose: () => void;
   onSave: (testName: string, projectId?: number) => void;
   initialTestName?: string;
+  /** Offered first: the project whose fixture library the test's references come from. */
+  initialProjectId?: number | null;
 }
 
 const SaveTestModal: React.FC<SaveTestModalProps> = ({
@@ -40,6 +42,7 @@ const SaveTestModal: React.FC<SaveTestModalProps> = ({
   onClose,
   onSave,
   initialTestName,
+  initialProjectId,
 }) => {
   const { t } = useTranslation();
   const [internalTestName, setInternalTestName] = useState(initialTestName || '');
@@ -48,6 +51,10 @@ const SaveTestModal: React.FC<SaveTestModalProps> = ({
   const [newProjectName, setNewProjectName] = useState('');
   const queryClient = useQueryClient(); // For invalidating queries
   const [projectListVersion, setProjectListVersion] = useState(0); // State to force re-mount Select
+  useEffect(() => {
+    if (isOpen && initialProjectId)
+      setSelectedProjectId((current) => current ?? String(initialProjectId));
+  }, [isOpen, initialProjectId]);
 
   // Fetch projects only when the modal is open
   const {

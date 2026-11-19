@@ -664,7 +664,8 @@
     "requirements": "Exigences",
     "mobileTests": "Applications mobiles",
     "testData": "Données de test",
-    "loadTests": "Tests de charge"
+    "loadTests": "Tests de charge",
+    "dataFixtures": "Fixtures de données"
   },
   "dashboardPage": {
     "user": {
@@ -3002,7 +3003,21 @@
     "add": "Ajouter une fixture de données",
     "remove": "Retirer la fixture de données",
     "moveUp": "Monter",
-    "moveDown": "Descendre"
+    "moveDown": "Descendre",
+    "library": {
+      "addTitle": "Ajouter depuis la bibliothèque du projet",
+      "project": "Projet",
+      "fixture": "Fixture de la bibliothèque",
+      "add": "Ajouter depuis la bibliothèque",
+      "emptyProject": "Ce projet n'a pas encore de fixtures en bibliothèque.",
+      "runsInOrder": "S'exécutent dans cet ordre : {{chain}}",
+      "fromLibrary": "bibliothèque {{key}}",
+      "unknown": "Fixture de bibliothèque #{{id}} (absente du projet choisi)",
+      "version": "Version",
+      "latest": "Dernière (actuellement v{{version}})",
+      "values": "Valeurs (vide garde la valeur par défaut)",
+      "valueFor": "Valeur pour {{name}}"
+    }
   },
   "environments": {
     "newEnvironmentPlaceholder": "Nouvel environnement (ex. Staging)",
@@ -5897,5 +5912,46 @@
         }
       }
     }
+  },
+  "fixtureLibrary": {
+    "title": "Bibliothèque de fixtures de données",
+    "pageDescription": "Les données dont les tests ont besoin dans la base de l'application, écrites une fois par projet, versionnées, et référencées par les tests au lieu d'être copiées.",
+    "new": "Nouvelle fixture",
+    "newTitle": "Nouvelle fixture de bibliothèque",
+    "editTitle": "{{name}} (v{{version}})",
+    "editorHint": "Enregistrer une définition modifiée crée une nouvelle version ; les tests sur « dernière » la suivent, les tests figés non.",
+    "key": "Clé",
+    "description": "Description",
+    "tags": "Étiquettes",
+    "dependsOn": "A besoin d'abord de",
+    "dependency": "Fixture requise",
+    "dependencyAlias": "Lue comme",
+    "removeDependency": "Retirer la dépendance",
+    "addDependency": "Ajouter une fixture requise",
+    "note": "Ce que change cette version",
+    "versions": "Versions",
+    "usedBy": "Utilisée par",
+    "unused": "Aucun test ni fixture ne la référence.",
+    "usedByTest": "Test",
+    "usedByFixture": "Fixture",
+    "tryIt": "Essayer",
+    "environment": "Environnement",
+    "mode": "Mode",
+    "modeCheck": "Vérification seule (lit, n'écrit rien)",
+    "modeDry": "Essai à blanc (écrit, puis annule)",
+    "run": "Exécuter",
+    "dryNeedsSetup": "Un essai à blanc exige un environnement qui autorise la préparation des données.",
+    "tryOk": "Tout ce dont la fixture a besoin est en place.",
+    "status": {
+      "satisfied": "Trouvée",
+      "applied": "Créée",
+      "missing": "Manquante",
+      "failed": "Échec"
+    },
+    "open": "Ouvrir {{name}}",
+    "delete": "Supprimer {{name}}",
+    "confirmDelete": "Supprimer {{name}} et ses versions ?",
+    "deleteFailed": "Non supprimée",
+    "stillUsed": "Encore référencée par : {{names}}"
   }
 }
