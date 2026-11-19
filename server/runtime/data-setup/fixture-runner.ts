@@ -26,7 +26,12 @@
  */
 
 import { createHash } from 'node:crypto';
-import type { DataFixture, DataFixtureParam } from '@shared/schema';
+import {
+  isDataFixtureRef,
+  type DataFixture,
+  type DataFixtureParam,
+  type TestDataFixture,
+} from '@shared/schema';
 import { bindSql, splitBatches, type BoundSql } from '@shared/sql-template';
 import {
   DATABASE_TIMEOUT_MS,
@@ -55,6 +60,8 @@ export interface FixtureStep {
   durationMs: number;
   /** {{fx.<alias>.<column>}} values this fixture set. */
   outputs: Record<string, string>;
+  /** The library fixture and version it was expanded from, e.g. `customer v2`. */
+  source?: string;
 }
 
 export interface FixtureRunResult {
@@ -74,6 +81,12 @@ export interface FixtureRunOptions {
   /** Stands in for the egress check in tests. */
   vet?: (kind: DatabaseKind, url: string) => Promise<DatabaseTarget>;
   signal?: AbortSignal;
+  /**
+   * Turns library references into plain fixtures (server/authoring/fixture-graph.ts). A run
+   * queued after release 2 has them expanded already; this covers one queued before, and the
+   * paths that run a test as it is saved. Without it, a reference fails the fixtures.
+   */
+  expand?: (fixtures: TestDataFixture[]) => Promise<DataFixture[]>;
 }
 
 /** The address a fixture writes with: db[.<name>].setup.url when set, else db[.<name>].url. */
@@ -144,13 +157,32 @@ function column(row: Record<string, unknown>, name: string): unknown {
  * ({{run.tag}}) and the test's data. Fixture outputs are added as each fixture finishes.
  */
 export async function runDataFixtures(
-  fixtures: DataFixture[] | null | undefined,
+  fixtures: readonly TestDataFixture[] | null | undefined,
   vars: Record<string, string>,
   options: FixtureRunOptions,
 ): Promise<FixtureRunResult> {
-  const list = fixtures ?? [];
   const steps: FixtureStep[] = [];
   const variables: Record<string, string> = {};
+  let list: DataFixture[];
+  try {
+    const given = [...(fixtures ?? [])];
+    if (!given.some(isDataFixtureRef)) list = given as DataFixture[];
+    else if (options.expand) list = await options.expand(given);
+    else throw new Error('this run cannot read the data fixture library');
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : String(error);
+    const name = 'Data fixture library';
+    steps.push({
+      id: 'library',
+      name,
+      alias: 'library',
+      status: 'failed',
+      detail: reason,
+      durationMs: 0,
+      outputs: {},
+    });
+    return { ok: false, steps, variables, failedAt: name, reason };
+  }
   const open = options.openSession ?? openSqlSession;
   const vet = options.vet ?? ((kind, url) => vetDatabaseTarget(kind, url));
   // A connection's identity is asked once per run of the fixtures, not once per fixture.
@@ -168,6 +200,7 @@ export async function runDataFixtures(
         detail,
         durationMs: Date.now() - started,
         outputs,
+        ...(fixture.source ? { source: `${fixture.source.key} v${fixture.source.version}` } : {}),
       });
     const fail = (reason: string): FixtureRunResult => {
       step('failed', reason);
@@ -355,7 +388,7 @@ export function fixtureReportSteps(result: FixtureRunResult): Array<{
       .map(([k, v]) => `fx.${s.alias}.${k} = ${v}`)
       .join(', ');
     return {
-      name: `Data fixture: ${s.name}`,
+      name: `Data fixture: ${s.name}${s.source ? ` (${s.source})` : ''}`,
       type: 'fixture',
       status: s.status === 'failed' ? 'failed' : 'passed',
       details: `${s.status === 'satisfied' ? 'Already there' : s.status === 'applied' ? 'Created' : 'Failed'}: ${s.detail}${outputs ? `. ${outputs}` : ''} (${s.durationMs} ms)`,

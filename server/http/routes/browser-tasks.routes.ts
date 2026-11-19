@@ -7,6 +7,8 @@ import {
   AdhocTestStepSchema,
   CleanupSchema,
   DataFixturesSchema,
+  isDataFixtureRef,
+  type DataFixture,
   PreconditionSchema,
 } from '@shared/schema';
 import { sharedSetIdOf } from '@shared/test-data';
@@ -18,6 +20,11 @@ import { requireRole } from '../middleware/require-role';
 import { withTenantTransaction } from '../../platform/middleware/tenancy';
 import type { playwrightService } from '../../web/playwright-service';
 import { SharedDataError, expandSharedDataset } from '../../authoring/test-data';
+import {
+  FixtureGraphError,
+  expandDataFixtures,
+  libraryLoader,
+} from '../../authoring/fixture-graph';
 import { quotaErrorBody, quotaErrorStatus } from '../../tenancy/tenant-quotas';
 
 /**
@@ -45,6 +52,8 @@ const executeDirectTestSchema = z.object({
   cleanups: z.array(CleanupSchema).max(50).optional().nullable(),
   // And the data it needs in the application's database, made sure of first (data-setup).
   dataFixtures: DataFixturesSchema.optional().nullable(),
+  // The project whose library the fixtures taken from it are read in (fixture-graph.ts).
+  projectId: z.number().int().positive().optional().nullable(),
   // Which environment resolves `{{name}}` placeholders. The organization it must belong
   // to is taken from the session, so naming another tenant's environment resolves nothing.
   environmentId: z.number().int().positive().optional().nullable(),
@@ -151,12 +160,22 @@ router.post(
     if (!parseResult.success) return invalidPayload(res, parseResult.error);
 
     // A test running over a shared data set runs over its rows here too (shared/test-data.ts).
-    let payload = parseResult.data;
+    const { projectId, ...body } = parseResult.data;
+    let payload: Omit<typeof body, 'dataFixtures'> & { dataFixtures?: DataFixture[] | null };
     try {
-      if (sharedSetIdOf(payload.dataset) !== null)
-        payload = await withTenantTransaction((tx) => expandSharedDataset(tx, parseResult.data));
+      const withRows =
+        sharedSetIdOf(body.dataset) !== null
+          ? await withTenantTransaction((tx) => expandSharedDataset(tx, body))
+          : body;
+      // Fixtures taken from the library run as the library holds them now, as a run queued now.
+      const dataFixtures = withRows.dataFixtures?.some(isDataFixtureRef)
+        ? await withTenantTransaction((tx) =>
+            expandDataFixtures(withRows.dataFixtures, projectId, libraryLoader(tx)),
+          )
+        : (withRows.dataFixtures as DataFixture[] | null | undefined);
+      payload = { ...withRows, dataFixtures };
     } catch (error) {
-      if (error instanceof SharedDataError)
+      if (error instanceof SharedDataError || error instanceof FixtureGraphError)
         return res.status(400).json({ success: false, error: error.message });
       throw error;
     }

@@ -2,7 +2,7 @@ import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 import net from 'net';
 import { PGlite } from '@electric-sql/pglite';
 import { PGLiteSocketServer } from '@electric-sql/pglite-socket';
-import type { DataFixture } from '@shared/schema';
+import type { DataFixture, DataFixtureRef } from '@shared/schema';
 import {
   expectedIdentity,
   fixtureConnection,
@@ -236,4 +236,44 @@ describe('against a real Postgres', () => {
     });
     expect(step.details).toMatch(/^Created: .*fx\.customer\.id = 1/);
   }, 30_000);
+
+  it('runs library references as the expansion gives them, named with their version', async () => {
+    const ref: DataFixtureRef = {
+      kind: 'ref',
+      id: 'r1',
+      alias: 'customer',
+      fixtureId: 1,
+      version: 'latest',
+      params: {},
+    };
+    const result = await runDataFixtures([ref], vars, {
+      dataSetup: true,
+      vet,
+      expand: async () => [fixture({ source: { fixtureId: 1, key: 'customer', version: 3 } })],
+    });
+    expect(result.ok).toBe(true);
+    expect(fixtureReportSteps(result)[0].name).toBe('Data fixture: Customer Ann (customer v3)');
+  }, 30_000);
+
+  it('fails a reference it cannot expand, before touching the database', async () => {
+    const ref = {
+      kind: 'ref',
+      id: 'r1',
+      alias: 'c',
+      fixtureId: 1,
+      version: 1,
+      params: {},
+    } as const;
+    const without = await runDataFixtures([ref], vars, { dataSetup: true, vet });
+    expect(without).toMatchObject({ ok: false, failedAt: 'Data fixture library' });
+    const refused = await runDataFixtures([ref], vars, {
+      dataSetup: true,
+      vet,
+      expand: async () => {
+        throw new Error('the library fixture 1 has no version 1');
+      },
+    });
+    expect(refused.reason).toBe('the library fixture 1 has no version 1');
+    expect(await count('customers')).toBe(0);
+  });
 });
