@@ -555,7 +555,7 @@ export const hubWaveResults = pgTable(
 export type HubWaveResultRow = typeof hubWaveResults.$inferSelect;
 export type InsertHubWaveResultRow = typeof hubWaveResults.$inferInsert;
 
-export const HUB_JOB_KINDS = ['waves_sync', 'wave_import'] as const;
+export const HUB_JOB_KINDS = ['waves_sync', 'wave_import', 'modules_import'] as const;
 export type HubJobKind = (typeof HUB_JOB_KINDS)[number];
 export const HUB_JOB_STATUSES = ['queued', 'running', 'succeeded', 'failed', 'cancelled'] as const;
 export type HubJobStatus = (typeof HUB_JOB_STATUSES)[number];

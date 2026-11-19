@@ -482,6 +482,20 @@ router.get('/api/testcase-hub/facets', readLimit, requireRole('viewer'), async (
         .where(present)
         .groupBy(hubTestCases.module)
         .orderBy(asc(hubTestCases.module));
+      // Per module, what a module import would find: active cases, and those already in the library.
+      const coverage = await tx
+        .select({
+          module: hubTestCases.module,
+          total: sql<number>`count(*)`,
+          active: sql<number>`count(*) filter (where ${hubTestCases.status} = 'active')`,
+          imported: sql<number>`count(*) filter (where ${hubTestCases.testId} is not null)`,
+          importedActive: sql<number>`count(*) filter (where ${hubTestCases.testId} is not null and ${hubTestCases.status} = 'active')`,
+          changed: sql<number>`count(*) filter (where ${listedColumns.changedSinceImport})`,
+        })
+        .from(hubTestCases)
+        .where(present)
+        .groupBy(hubTestCases.module)
+        .orderBy(asc(hubTestCases.module));
       const statuses = await tx
         .select({ value: hubTestCases.status, count: sql<number>`count(*)` })
         .from(hubTestCases)
@@ -512,6 +526,14 @@ router.get('/api/testcase-hub/facets', readLimit, requireRole('viewer'), async (
         rows.map((row) => ({ value: row.value, count: Number(row.count) }));
       return {
         modules: asCounts(modules),
+        moduleCoverage: coverage.map((row) => ({
+          module: row.module,
+          total: Number(row.total),
+          active: Number(row.active),
+          imported: Number(row.imported),
+          importedActive: Number(row.importedActive),
+          changed: Number(row.changed),
+        })),
         statuses: asCounts(statuses),
         priorities: asCounts(priorities),
         readiness: asCounts(readiness),

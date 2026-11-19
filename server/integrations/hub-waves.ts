@@ -22,7 +22,7 @@ import { constants as fsConstants } from 'fs';
 import path from 'path';
 import { createHash, randomUUID } from 'crypto';
 import type { Request } from 'express';
-import { and, eq, inArray, isNull, sql } from 'drizzle-orm';
+import { and, eq, inArray, isNotNull, isNull, ne, or, sql } from 'drizzle-orm';
 import {
   AUDIT_ACTIONS,
   hubJobs,
@@ -57,6 +57,7 @@ import {
   type HubWaveResult,
 } from '@shared/hub-waves';
 import { manualStepsOf, type ManualResultLog, type ManualStep } from '@shared/manual-tests';
+import type { HubModuleImportCounts, HubModuleImportParams } from '@shared/testcases-hub';
 import {
   runWithTenant,
   withTenantTransaction,
@@ -662,11 +663,37 @@ async function importMissingCases(
     list.push(row.caseId);
     byModule.set(module, list);
   }
+  const counts = await importIntoModuleSuites(actor, params, byModule, hooks);
+  return counts.reduce((sum, c) => sum + c.created, 0);
+}
+
+/**
+ * Cases imported as manual tests, each module into its suite (`QA hub · <module>`, made on the
+ * first chunk when the project has none): a chunk per transaction, so a long import neither holds
+ * one transaction open nor loses what it did when cancelled. What it did, module by module, in
+ * the order of the map.
+ */
+async function importIntoModuleSuites(
+  actor: WaveActor,
+  params: { projectId: number | null; variant: 'standard' | 'reference' },
+  byModule: Map<string, string[]>,
+  hooks: WorkHooks,
+): Promise<HubModuleImportCounts[]> {
   const total = Array.from(byModule.values()).reduce((sum, list) => sum + list.length, 0);
   let done = 0;
-  let created = 0;
+  const counts: HubModuleImportCounts[] = [];
   const req = requestOf(actor);
   for (const [module, list] of byModule) {
+    const tally: HubModuleImportCounts = {
+      module,
+      requested: list.length,
+      created: 0,
+      updated: 0,
+      unchanged: 0,
+      skipped: 0,
+    };
+    counts.push(tally);
+    if (list.length === 0) continue;
     let suiteId = await withTenantTransaction((tx) => moduleSuite(tx, params.projectId, module));
     for (let start = 0; start < list.length; start += HUB_WAVE_IMPORT_CHUNK) {
       if (await hooks.cancelled?.()) throw new WorkCancelled();
@@ -682,12 +709,70 @@ async function importMissingCases(
         }),
       );
       suiteId = result.suiteId;
-      created += result.created;
+      tally.created += result.created;
+      tally.updated += result.updated;
+      tally.unchanged += result.unchanged;
+      tally.skipped += result.skipped;
       done += chunk.length;
     }
   }
   await hooks.progress?.(total, total, null);
-  return created;
+  return counts;
+}
+
+/** What a module import did. */
+export interface HubModuleImportSummary {
+  modules: HubModuleImportCounts[];
+  created: number;
+  updated: number;
+  unchanged: number;
+  skipped: number;
+}
+
+/**
+ * Every case of the chosen modules that the library does not have yet, imported as manual tests
+ * module by module (and, when asked, the imported ones whose case changed in the hub since).
+ * Cases the last refresh no longer found are left out, and deprecated ones unless asked.
+ */
+export async function importModules(
+  actor: WaveActor,
+  params: HubModuleImportParams,
+  hooks: WorkHooks,
+): Promise<HubModuleImportSummary> {
+  const pending = or(
+    isNull(hubTestCases.testId),
+    params.updateChanged
+      ? and(
+          isNotNull(hubTestCases.importedHash),
+          ne(hubTestCases.importedHash, hubTestCases.contentHash),
+        )
+      : undefined,
+  );
+  const rows = await withTenantTransaction((tx) =>
+    tx
+      .select({ caseId: hubTestCases.caseId, module: hubTestCases.module })
+      .from(hubTestCases)
+      .where(
+        and(
+          inArray(hubTestCases.module, params.modules),
+          isNull(hubTestCases.missingSince),
+          params.includeDeprecated ? undefined : eq(hubTestCases.status, 'active'),
+          pending,
+        ),
+      )
+      .orderBy(hubTestCases.module, hubTestCases.caseId),
+  );
+  // The modules in the order they were asked for, those with nothing to import too.
+  const byModule = new Map<string, string[]>(params.modules.map((m) => [m, []]));
+  for (const row of rows) byModule.get(row.module)?.push(row.caseId);
+  const counts = await importIntoModuleSuites(actor, params, byModule, hooks);
+  return {
+    modules: counts,
+    created: counts.reduce((sum, c) => sum + c.created, 0),
+    updated: counts.reduce((sum, c) => sum + c.updated, 0),
+    unchanged: counts.reduce((sum, c) => sum + c.unchanged, 0),
+    skipped: counts.reduce((sum, c) => sum + c.skipped, 0),
+  };
 }
 
 interface LinkedTest {
