@@ -18,7 +18,7 @@ import {
 import { partialUpdate } from '@shared/partial-update';
 import { withTenantTransaction, type TenantTx } from '../../platform/middleware/tenancy';
 import { requireRole } from '../middleware/require-role';
-import { sharedHeavyRateLimit } from '../middleware/rate-limits';
+import { sessionRateLimit, sharedHeavyRateLimit } from '../middleware/rate-limits';
 import { auditActor, recordAudit } from '../../tenancy/audit';
 import {
   FixtureGraphError,
@@ -39,6 +39,8 @@ import logger from '../../platform/logger';
  */
 
 const router = asyncRouter();
+// Every route is rate-limited before its role check; trying a fixture runs SQL, so it shares the heavy limit.
+const fixturesLimit = sessionRateLimit();
 
 const fixtureBodySchema = z.object({
   key: z
@@ -131,29 +133,34 @@ async function loadFixture(tx: TenantTx, id: number) {
 
 // GET /api/projects/:projectId/data-fixtures — the library, each with its current definition,
 // which is what a test adding one needs to show its parameters.
-router.get('/api/projects/:projectId/data-fixtures', requireRole('viewer'), async (req, res) => {
-  const projectId = idOf(req.params.projectId);
-  if (!projectId) return res.status(400).json({ error: 'Invalid project id.' });
-  // No organization predicate: RLS supplies it, so another tenant's project lists nothing.
-  const rows = await withTenantTransaction((tx) =>
-    tx
-      .select({ fixture: dataFixtureLibrary, definition: dataFixtureVersions.definition })
-      .from(dataFixtureLibrary)
-      .leftJoin(
-        dataFixtureVersions,
-        and(
-          eq(dataFixtureVersions.fixtureId, dataFixtureLibrary.id),
-          eq(dataFixtureVersions.version, dataFixtureLibrary.currentVersion),
-        ),
-      )
-      .where(eq(dataFixtureLibrary.projectId, projectId))
-      .orderBy(asc(dataFixtureLibrary.name)),
-  );
-  res.json(rows.map((row) => ({ ...row.fixture, definition: row.definition })));
-});
+router.get(
+  '/api/projects/:projectId/data-fixtures',
+  fixturesLimit,
+  requireRole('viewer'),
+  async (req, res) => {
+    const projectId = idOf(req.params.projectId);
+    if (!projectId) return res.status(400).json({ error: 'Invalid project id.' });
+    // No organization predicate: RLS supplies it, so another tenant's project lists nothing.
+    const rows = await withTenantTransaction((tx) =>
+      tx
+        .select({ fixture: dataFixtureLibrary, definition: dataFixtureVersions.definition })
+        .from(dataFixtureLibrary)
+        .leftJoin(
+          dataFixtureVersions,
+          and(
+            eq(dataFixtureVersions.fixtureId, dataFixtureLibrary.id),
+            eq(dataFixtureVersions.version, dataFixtureLibrary.currentVersion),
+          ),
+        )
+        .where(eq(dataFixtureLibrary.projectId, projectId))
+        .orderBy(asc(dataFixtureLibrary.name)),
+    );
+    res.json(rows.map((row) => ({ ...row.fixture, definition: row.definition })));
+  },
+);
 
 // GET /api/data-fixtures/:id — the fixture with every version, newest first.
-router.get('/api/data-fixtures/:id', requireRole('viewer'), async (req, res) => {
+router.get('/api/data-fixtures/:id', fixturesLimit, requireRole('viewer'), async (req, res) => {
   const id = idOf(req.params.id);
   if (!id) return res.status(400).json({ error: 'Invalid fixture id.' });
   const found = await withTenantTransaction(async (tx) => {
@@ -171,86 +178,98 @@ router.get('/api/data-fixtures/:id', requireRole('viewer'), async (req, res) => 
 });
 
 // GET /api/data-fixtures/:id/references — the tests and fixtures that name it.
-router.get('/api/data-fixtures/:id/references', requireRole('viewer'), async (req, res) => {
-  const id = idOf(req.params.id);
-  if (!id) return res.status(400).json({ error: 'Invalid fixture id.' });
-  const found = await withTenantTransaction(async (tx) => {
-    const fixture = await loadFixture(tx, id);
-    return fixture ? fixtureReferences(tx, fixture) : null;
-  });
-  if (!found) return res.status(404).json({ error: 'Data fixture not found.' });
-  res.json(found);
-});
+router.get(
+  '/api/data-fixtures/:id/references',
+  fixturesLimit,
+  requireRole('viewer'),
+  async (req, res) => {
+    const id = idOf(req.params.id);
+    if (!id) return res.status(400).json({ error: 'Invalid fixture id.' });
+    const found = await withTenantTransaction(async (tx) => {
+      const fixture = await loadFixture(tx, id);
+      return fixture ? fixtureReferences(tx, fixture) : null;
+    });
+    if (!found) return res.status(404).json({ error: 'Data fixture not found.' });
+    res.json(found);
+  },
+);
 
 // POST /api/projects/:projectId/data-fixtures — a new fixture, as its version 1.
-router.post('/api/projects/:projectId/data-fixtures', requireRole('editor'), async (req, res) => {
-  const projectId = idOf(req.params.projectId);
-  if (!projectId) return res.status(400).json({ error: 'Invalid project id.' });
-  const parsed = fixtureBodySchema.safeParse(req.body);
-  if (!parsed.success)
-    return res.status(400).json({ error: 'Invalid data', details: flattenZodError(parsed.error) });
-  const body = parsed.data;
-
-  try {
-    const outcome = await withTenantTransaction(async (tx) => {
-      // The project has to be one of ours, and RLS decides that: another tenant's id finds nothing.
-      const [project] = await tx
-        .select({ id: projects.id })
-        .from(projects)
-        .where(eq(projects.id, projectId))
-        .limit(1);
-      if (!project) return { notFound: true as const };
-      // Its dependencies must resolve before it is kept.
-      await checkLibraryFixture(
-        { id: 0, projectId, key: body.key, name: body.name, currentVersion: 1 },
-        body.definition,
-        libraryLoader(tx),
-      );
-      const [fixture] = await tx
-        .insert(dataFixtureLibrary)
-        .values({
-          organizationId: req.user!.organizationId,
-          projectId,
-          key: body.key,
-          name: body.name,
-          description: body.description ?? null,
-          tags: body.tags ?? [],
-          currentVersion: 1,
-          createdBy: req.user!.id,
-        })
-        .returning();
-      await tx.insert(dataFixtureVersions).values({
-        organizationId: req.user!.organizationId,
-        fixtureId: fixture.id,
-        version: 1,
-        definition: body.definition,
-        note: body.note ?? null,
-        createdBy: req.user!.id,
-      });
-      await recordAudit(tx, {
-        action: AUDIT_ACTIONS.DATA_FIXTURE_CREATED,
-        actor: auditActor(req),
-        targetType: 'data_fixture',
-        targetId: fixture.id,
-        metadata: { key: fixture.key, name: fixture.name, projectId },
-      });
-      return { fixture };
-    });
-    if ('notFound' in outcome) return res.status(404).json({ error: 'Project not found.' });
-    res.status(201).json(outcome.fixture);
-  } catch (error) {
-    if (error instanceof FixtureGraphError) return res.status(400).json({ error: error.message });
-    if (isUniqueViolation(error))
+router.post(
+  '/api/projects/:projectId/data-fixtures',
+  fixturesLimit,
+  requireRole('editor'),
+  async (req, res) => {
+    const projectId = idOf(req.params.projectId);
+    if (!projectId) return res.status(400).json({ error: 'Invalid project id.' });
+    const parsed = fixtureBodySchema.safeParse(req.body);
+    if (!parsed.success)
       return res
-        .status(409)
-        .json({ error: `The project already has a fixture with the key "${body.key}".` });
-    logger.error({ message: 'Failed to create a data fixture', error: errorText(error) });
-    res.status(500).json({ error: 'Failed to create the data fixture.' });
-  }
-});
+        .status(400)
+        .json({ error: 'Invalid data', details: flattenZodError(parsed.error) });
+    const body = parsed.data;
+
+    try {
+      const outcome = await withTenantTransaction(async (tx) => {
+        // The project has to be one of ours, and RLS decides that: another tenant's id finds nothing.
+        const [project] = await tx
+          .select({ id: projects.id })
+          .from(projects)
+          .where(eq(projects.id, projectId))
+          .limit(1);
+        if (!project) return { notFound: true as const };
+        // Its dependencies must resolve before it is kept.
+        await checkLibraryFixture(
+          { id: 0, projectId, key: body.key, name: body.name, currentVersion: 1 },
+          body.definition,
+          libraryLoader(tx),
+        );
+        const [fixture] = await tx
+          .insert(dataFixtureLibrary)
+          .values({
+            organizationId: req.user!.organizationId,
+            projectId,
+            key: body.key,
+            name: body.name,
+            description: body.description ?? null,
+            tags: body.tags ?? [],
+            currentVersion: 1,
+            createdBy: req.user!.id,
+          })
+          .returning();
+        await tx.insert(dataFixtureVersions).values({
+          organizationId: req.user!.organizationId,
+          fixtureId: fixture.id,
+          version: 1,
+          definition: body.definition,
+          note: body.note ?? null,
+          createdBy: req.user!.id,
+        });
+        await recordAudit(tx, {
+          action: AUDIT_ACTIONS.DATA_FIXTURE_CREATED,
+          actor: auditActor(req),
+          targetType: 'data_fixture',
+          targetId: fixture.id,
+          metadata: { key: fixture.key, name: fixture.name, projectId },
+        });
+        return { fixture };
+      });
+      if ('notFound' in outcome) return res.status(404).json({ error: 'Project not found.' });
+      res.status(201).json(outcome.fixture);
+    } catch (error) {
+      if (error instanceof FixtureGraphError) return res.status(400).json({ error: error.message });
+      if (isUniqueViolation(error))
+        return res
+          .status(409)
+          .json({ error: `The project already has a fixture with the key "${body.key}".` });
+      logger.error({ message: 'Failed to create a data fixture', error: errorText(error) });
+      res.status(500).json({ error: 'Failed to create the data fixture.' });
+    }
+  },
+);
 
 // PUT /api/data-fixtures/:id — name, description and tags in place; a definition as a new version.
-router.put('/api/data-fixtures/:id', requireRole('editor'), async (req, res) => {
+router.put('/api/data-fixtures/:id', fixturesLimit, requireRole('editor'), async (req, res) => {
   const id = idOf(req.params.id);
   if (!id) return res.status(400).json({ error: 'Invalid fixture id.' });
   const parsed = updateBodySchema.safeParse(req.body);
@@ -315,7 +334,7 @@ router.put('/api/data-fixtures/:id', requireRole('editor'), async (req, res) => 
 });
 
 // DELETE /api/data-fixtures/:id — refused while a test or another fixture names it.
-router.delete('/api/data-fixtures/:id', requireRole('editor'), async (req, res) => {
+router.delete('/api/data-fixtures/:id', fixturesLimit, requireRole('editor'), async (req, res) => {
   const id = idOf(req.params.id);
   if (!id) return res.status(400).json({ error: 'Invalid fixture id.' });
   try {
@@ -356,8 +375,8 @@ router.delete('/api/data-fixtures/:id', requireRole('editor'), async (req, res) 
  */
 router.post(
   '/api/data-fixtures/:id/try',
-  requireRole('editor'),
   sharedHeavyRateLimit(),
+  requireRole('editor'),
   async (req, res) => {
     const id = idOf(req.params.id);
     if (!id) return res.status(400).json({ error: 'Invalid fixture id.' });
