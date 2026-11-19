@@ -1,12 +1,42 @@
 import React, { useState } from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
-import type { DataFixture } from '@shared/schema';
-import { DataFixturesPanel, fixtureProblems } from './DataFixturesPanel';
+import type { DataFixture, DataFixtureRef, TestDataFixture } from '@shared/schema';
+import { aliasFor, DataFixturesPanel, fixtureProblems } from './DataFixturesPanel';
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({ t: (key: string) => key }),
 }));
+vi.mock('@/hooks/use-projects', () => ({
+  useProjects: () => ({ data: [{ id: 7, name: 'Shop' }] }),
+}));
+vi.mock('@/hooks/use-data-fixture-library', async (actual) => ({
+  ...(await actual<typeof import('@/hooks/use-data-fixture-library')>()),
+  useFixtureLibrary: (projectId: number | null) => ({
+    isLoading: false,
+    data: projectId === 7 ? library : [],
+  }),
+}));
+
+const library = [
+  {
+    id: 1,
+    projectId: 7,
+    key: 'customer',
+    name: 'A customer',
+    description: null,
+    tags: [],
+    currentVersion: 3,
+    updatedAt: '2026-11-19T00:00:00Z',
+    definition: {
+      params: [{ name: 'code', type: 'string', value: 'C-1' }],
+      check: 'SELECT id FROM customers WHERE code = {{params.code}}',
+      apply: 'SELECT 1',
+      outputs: ['id'],
+      dependsOn: [],
+    },
+  },
+];
 
 /**
  * The data fixtures editor: it builds what the server accepts, and shows what the server would
@@ -25,7 +55,15 @@ const valid: DataFixture = {
   timeoutMs: null,
 };
 
-function Harness({ initial, seen }: { initial: DataFixture[]; seen: (f: DataFixture[]) => void }) {
+function Harness({
+  initial,
+  seen,
+  projectId,
+}: {
+  initial: TestDataFixture[];
+  seen: (f: TestDataFixture[]) => void;
+  projectId?: number;
+}) {
   const [fixtures, setFixtures] = useState(initial);
   return (
     <DataFixturesPanel
@@ -34,6 +72,7 @@ function Harness({ initial, seen }: { initial: DataFixture[]; seen: (f: DataFixt
         seen(next);
         setFixtures(next);
       }}
+      library={projectId ? { projectId, onProjectChange: vi.fn() } : undefined}
     />
   );
 }
@@ -76,5 +115,39 @@ describe('DataFixturesPanel', () => {
       />,
     );
     expect(screen.getByText(/does not declare/)).toBeInTheDocument();
+  });
+});
+
+describe('a library reference', () => {
+  const ref: DataFixtureRef = {
+    kind: 'ref',
+    id: 'r1',
+    alias: 'customer',
+    fixtureId: 1,
+    version: 'latest',
+    params: {},
+  };
+
+  it('is accepted beside written fixtures, with its own alias', () => {
+    expect(fixtureProblems([valid, { ...ref, alias: 'buyer' }]).size).toBe(0);
+    expect(fixtureProblems([valid, ref]).get(1)?.join(' ')).toMatch(/alias "customer"/);
+  });
+
+  it('keeps only the values the test changes', () => {
+    const seen = vi.fn();
+    render(<Harness initial={[ref]} seen={seen} projectId={7} />);
+    expect(screen.getByText(/A customer/)).toBeInTheDocument();
+    const value = screen.getByLabelText('dataFixtures.library.valueFor');
+    expect(value).toHaveAttribute('placeholder', 'C-1');
+    fireEvent.change(value, { target: { value: 'VIP-1' } });
+    expect((seen.mock.calls.at(-1)![0] as DataFixtureRef[])[0].params).toEqual({ code: 'VIP-1' });
+    fireEvent.change(value, { target: { value: '' } });
+    expect((seen.mock.calls.at(-1)![0] as DataFixtureRef[])[0].params).toEqual({});
+  });
+
+  it('takes an alias from the key that is not already used', () => {
+    expect(aliasFor('customer-order', [])).toBe('customer_order');
+    expect(aliasFor('customer', ['customer', 'customer_2'])).toBe('customer_3');
+    expect(aliasFor('9lives', [])).toBe('fx_9lives');
   });
 });

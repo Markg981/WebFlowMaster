@@ -4,7 +4,7 @@ Generato da `shared/schema/` (un file per dominio) con `node scripts/generate-sc
 
 Leggere prima lo [schema per dominio](./database-schema) per le spiegazioni e le relazioni, poi cercare qui la tabella. Ogni riga riporta la proprietà TypeScript, il nome SQL e il builder completo: tipo, nullabilità, default e riferimenti dichiarati nella colonna. I vincoli definiti nel callback della tabella non sono espansi qui.
 
-**91 tabelle / 1122 colonne dichiarate.**
+**93 tabelle / 1142 colonne dichiarate.**
 
 ## Indice
 
@@ -78,6 +78,8 @@ Leggere prima lo [schema per dominio](./database-schema) per le spiegazioni e le
 | [comparison_runs](#comparison-runs)                           | `comparisonRuns`             | 26      |
 | [comparison_results](#comparison-results)                     | `comparisonResults`          | 24      |
 | [comparison_known_differences](#comparison-known-differences) | `comparisonKnownDifferences` | 12      |
+| [data_fixture_library](#data-fixture-library)                 | `dataFixtureLibrary`         | 12      |
+| [data_fixture_versions](#data-fixture-versions)               | `dataFixtureVersions`        | 8       |
 | [runners](#runners)                                           | `runners`                    | 12      |
 | [environments](#environments)                                 | `environments`               | 11      |
 | [secrets](#secrets)                                           | `secrets`                    | 10      |
@@ -486,7 +488,7 @@ Leggere prima lo [schema per dominio](./database-schema) per le spiegazioni e le
 
 ## sessions {#sessions}
 
-`sessions` — `shared/schema/identity.ts:907`
+`sessions` — `shared/schema/identity.ts:911`
 
 | Proprietà TS | Colonna SQL | Dichiarazione                   |
 | ------------ | ----------- | ------------------------------- |
@@ -1362,6 +1364,40 @@ Leggere prima lo [schema per dominio](./database-schema) per le spiegazioni e le
 | `approvedByUserId` | `approved_by_user_id` | `integer('approved_by_user_id').references(() => users.id, { onDelete: 'set null', })` |
 | `createdAt`        | `created_at`          | `timestamp('created_at').notNull().defaultNow()`                                       |
 | `expiresAt`        | `expires_at`          | `timestamp('expires_at')`                                                              |
+
+## data_fixture_library {#data-fixture-library}
+
+`dataFixtureLibrary` — `shared/schema/data-fixtures.ts:18`
+
+| Proprietà TS     | Colonna SQL       | Dichiarazione                                                                              |
+| ---------------- | ----------------- | ------------------------------------------------------------------------------------------ |
+| `id`             | `id`              | `serial('id').primaryKey()`                                                                |
+| `organizationId` | `organization_id` | `integer('organization_id') .notNull() .references(() => organizations.id)`                |
+| `projectId`      | `project_id`      | `integer('project_id') .notNull() .references(() => projects.id, { onDelete: 'cascade' })` |
+| `key`            | `key`             | `text('key').notNull()`                                                                    |
+| `name`           | `name`            | `text('name').notNull()`                                                                   |
+| `description`    | `description`     | `text('description')`                                                                      |
+| `kind`           | `kind`            | `text('kind').notNull().default('sql')`                                                    |
+| `tags`           | `tags`            | `text('tags').array().notNull().default([])`                                               |
+| `currentVersion` | `current_version` | `integer('current_version').notNull().default(1)`                                          |
+| `createdBy`      | `created_by`      | `integer('created_by').references(() => users.id, { onDelete: 'set null' })`               |
+| `createdAt`      | `created_at`      | `timestamp('created_at').defaultNow().notNull()`                                           |
+| `updatedAt`      | `updated_at`      | `timestamp('updated_at').defaultNow().notNull()`                                           |
+
+## data_fixture_versions {#data-fixture-versions}
+
+`dataFixtureVersions` — `shared/schema/data-fixtures.ts:49`
+
+| Proprietà TS     | Colonna SQL       | Dichiarazione                                                                                        |
+| ---------------- | ----------------- | ---------------------------------------------------------------------------------------------------- |
+| `id`             | `id`              | `serial('id').primaryKey()`                                                                          |
+| `organizationId` | `organization_id` | `integer('organization_id') .notNull() .references(() => organizations.id)`                          |
+| `fixtureId`      | `fixture_id`      | `integer('fixture_id') .notNull() .references(() => dataFixtureLibrary.id, { onDelete: 'cascade' })` |
+| `version`        | `version`         | `integer('version').notNull()`                                                                       |
+| `definition`     | `definition`      | `jsonb('definition').$type<LibraryFixtureDefinition>().notNull()`                                    |
+| `note`           | `note`            | `text('note')`                                                                                       |
+| `createdBy`      | `created_by`      | `integer('created_by').references(() => users.id, { onDelete: 'set null' })`                         |
+| `createdAt`      | `created_at`      | `timestamp('created_at').defaultNow().notNull()`                                                     |
 
 ## runners {#runners}
 

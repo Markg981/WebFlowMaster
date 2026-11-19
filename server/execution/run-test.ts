@@ -7,7 +7,8 @@ import type { Test, ApiTest, Precondition, Cleanup } from '@shared/schema';
 import { runPreconditions } from '../runtime/precondition-runner';
 import { cleanupReportStep, runCleanups } from '../runtime/cleanup-runner';
 import { fixtureReportSteps, runDataFixtures } from '../runtime/data-setup/fixture-runner';
-import type { DataFixture } from '@shared/schema';
+import type { TestDataFixture } from '@shared/schema';
+import { expandFromLibrary } from '../authoring/fixture-graph';
 import type { StepResult } from '../web/playwright-service';
 import logger from '../platform/logger';
 import fs from 'fs-extra';
@@ -280,11 +281,13 @@ export async function runTest(
       // The data the test needs in the application's database (server/runtime/data-setup),
       // checked and, where the environment allows it, created, before anything else: the API
       // preconditions and the steps may use what a fixture found as {{fx.<alias>.<column>}}.
-      const fixtures = (uiTest as unknown as { dataFixtures?: DataFixture[] | null }).dataFixtures;
+      const fixtures = (uiTest as unknown as { dataFixtures?: TestDataFixture[] | null })
+        .dataFixtures;
       if (fixtures && fixtures.length > 0) {
         const fx = await runDataFixtures(fixtures, vars, {
           dataSetup: options?.dataSetup === true,
           signal: options?.signal,
+          expand: expandFromLibrary((uiTest as { projectId?: number | null }).projectId),
         });
         setupSteps.push(...(fixtureReportSteps(fx) as StepResult[]));
         vars = { ...vars, ...fx.variables };

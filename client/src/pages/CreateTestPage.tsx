@@ -32,7 +32,7 @@ import SaveTestModal from '@/components/SaveTestModal';
 import { CleanupPanel, PreconditionsPanel } from '@/components/PreconditionsPanel';
 import { DataFixturesPanel } from '@/components/DataFixturesPanel';
 import { DatasetPanel, type DatasetRow, type SharedSetOption } from '@/components/DatasetPanel';
-import type { Cleanup, DataFixture, Precondition } from '@shared/schema';
+import type { Cleanup, Precondition, TestDataFixture } from '@shared/schema';
 import {
   ACTION_I18N,
   ADHOC_ACTION_IDS,
@@ -162,7 +162,9 @@ function CreateTestPage() {
   // API calls after the test that remove what it created (server/runtime/cleanup-runner.ts).
   const [cleanups, setCleanups] = useState<Cleanup[]>([]);
   // The data the test needs in the application's database, checked (and created) before it runs.
-  const [dataFixtures, setDataFixtures] = useState<DataFixture[]>([]);
+  const [dataFixtures, setDataFixtures] = useState<TestDataFixture[]>([]);
+  // The project whose fixture library the test's references come from.
+  const [libraryProjectId, setLibraryProjectId] = useState<number | null>(null);
   // Rows this test runs over, one run each. Empty means a single run, which is what every
   // test did before datasets existed.
   const [dataset, setDataset] = useState<DatasetRow[]>([]);
@@ -648,7 +650,7 @@ function CreateTestPage() {
       projectId?: number;
       preconditions?: Precondition[];
       cleanups?: Cleanup[];
-      dataFixtures?: DataFixture[] | null;
+      dataFixtures?: TestDataFixture[] | null;
       dataset?: DatasetRow[] | null;
     }) => {
       // Saving under a name that already exists used to quietly create a second test, so
@@ -864,9 +866,10 @@ function CreateTestPage() {
       name?: string;
       preconditions?: Precondition[];
       cleanups?: Cleanup[];
-      dataFixtures?: DataFixture[] | null;
+      dataFixtures?: TestDataFixture[] | null;
       environmentId?: number;
       dataset?: DatasetRow[];
+      projectId?: number;
     }) => {
       const res = await apiRequest('POST', '/api/execute-test-direct', payload);
       // The backend for /api/execute-test-direct should directly return { success: boolean; steps?: StepResult[]; error?: string; duration?: number }
@@ -1101,6 +1104,8 @@ function CreateTestPage() {
       environmentId: environmentIdFor(selectedEnvironment),
       // Sent so the preview runs the same number of times the saved test will.
       dataset: dataset.length > 0 ? dataset : undefined,
+      // The library the fixtures' references are expanded from.
+      projectId: libraryProjectId ?? undefined,
     };
     executeDirectTestMutation.mutate(payload);
   };
@@ -1702,7 +1707,11 @@ function CreateTestPage() {
         </div>
       </div>
       <div className="px-4 pb-4 space-y-4">
-        <DataFixturesPanel fixtures={dataFixtures} onChange={setDataFixtures} />
+        <DataFixturesPanel
+          fixtures={dataFixtures}
+          onChange={setDataFixtures}
+          library={{ projectId: libraryProjectId, onProjectChange: setLibraryProjectId }}
+        />
         <PreconditionsPanel preconditions={preconditions} onChange={setPreconditions} />
         <CleanupPanel cleanups={cleanups} onChange={setCleanups} />
         {/* Below the preconditions, because both describe the run rather than the steps. */}
@@ -1736,6 +1745,7 @@ function CreateTestPage() {
         isOpen={isSaveModalOpen}
         onClose={handleCloseSaveModal}
         onSave={handleConfirmSaveTest}
+        initialProjectId={libraryProjectId}
         initialTestName={testName}
       />
       <SaveStepGroupModal

@@ -3,6 +3,7 @@ import { tests, apiTests, testVersions, type Test, type ApiTest } from '@shared/
 import type { TenantTx } from '../platform/middleware/tenancy';
 import { currentContentOf } from '../authoring/test-version-store';
 import { publishedContentOf } from '../authoring/test-publishing';
+import { freezeDataFixtures } from '../authoring/fixture-graph';
 import {
   captureDependencies,
   readVersionBundle,
@@ -87,6 +88,11 @@ export async function freezeTestDefinitions(
             bdd: content.bdd,
           } as Test)
         : row;
+      // Library fixtures expanded now: the run executes the versions the library holds at
+      // enqueue, even if a fixture is changed while it waits (server/authoring/fixture-graph.ts).
+      const frozenFixtures = await freezeDataFixtures(tx, definition.dataFixtures, row.projectId);
+      if (frozenFixtures !== definition.dataFixtures)
+        (definition as { dataFixtures: unknown }).dataFixtures = frozenFixtures;
       ui.push({
         id: row.id,
         definition,

@@ -74,6 +74,8 @@ const PROVENANCE = [
   'comparison_runs.requested_by_user_id',
   'comparison_results.reviewed_by_user_id',
   'comparison_known_differences.approved_by_user_id',
+  'data_fixture_library.created_by',
+  'data_fixture_versions.created_by',
 ];
 
 /**

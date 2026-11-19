@@ -1,4 +1,5 @@
-import type { Test, Precondition, Cleanup, DataFixture } from '@shared/schema';
+import type { Test, Precondition, Cleanup, TestDataFixture } from '@shared/schema';
+import { expandFromLibrary } from '../authoring/fixture-graph';
 import { BDD_MAX_OUTPUT_BYTES, BddAgentResultSchema, type BddAgentResult } from '@shared/bdd-agent';
 import { validateBddTest } from './gherkin';
 import { resolveBddBinding } from './bdd-profiles';
@@ -52,11 +53,12 @@ export async function runDedicatedBddTest(
     // The data the scenario needs in the application's database, once for the test as a UI run
     // does it (server/execution/run-test.ts), from this server: the agent only runs Cucumber.
     let blockedByFixture = false;
-    const fixtures = (test as { dataFixtures?: DataFixture[] | null }).dataFixtures;
+    const fixtures = (test as { dataFixtures?: TestDataFixture[] | null }).dataFixtures;
     if (fixtures && fixtures.length > 0) {
       const fx = await runDataFixtures(fixtures, variables, {
         dataSetup: options?.dataSetup === true,
         signal: options?.signal,
+        expand: expandFromLibrary(test.projectId),
       });
       steps.push(
         ...fixtureReportSteps(fx).map((step) => ({

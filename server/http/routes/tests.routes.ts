@@ -48,6 +48,7 @@ import {
 } from '../../bdd/gherkin-source';
 import { GherkinImportOptionsSchema } from '@shared/bdd';
 import { BddDefinitionError, prepareBddForSave } from '../../bdd/bdd-definition';
+import { FixtureGraphError, checkTestFixtureRefs } from '../../authoring/fixture-graph';
 import { partialUpdate } from '@shared/partial-update';
 
 const router = asyncRouter();
@@ -129,6 +130,7 @@ router.post('/api/tests', requireRole('editor'), async (req, res) => {
   try {
     const created = await withTenantTransaction(async (tx) => {
       const definition = await prepareBddForSave(tx, parseResult.data);
+      await checkTestFixtureRefs(tx, definition.dataFixtures, definition.projectId);
       // Saving the same test again must not silently make a second one. Recording is
       // iterative — you walk the path, replay it, find a step wrong, walk it again — and
       // every pass through that loop used to leave another row behind, all with the same
@@ -184,7 +186,8 @@ router.post('/api/tests', requireRole('editor'), async (req, res) => {
   } catch (error: any) {
     const quota = quotaErrorBody(error);
     if (quota) return res.status(429).json(quota);
-    if (error instanceof BddDefinitionError) return res.status(400).json({ error: error.message });
+    if (error instanceof BddDefinitionError || error instanceof FixtureGraphError)
+      return res.status(400).json({ error: error.message });
     if (isForeignKeyError(error))
       return res.status(400).json({ error: 'Invalid project ID or project does not exist.' });
     logger.error({ message: 'Error creating test', error: error.message });
@@ -238,6 +241,13 @@ router.put('/api/tests/:id', requireRole('editor'), async (req, res) => {
       if (expected && existing.updatedAt && existing.updatedAt.getTime() !== expected.getTime())
         return 'stale' as const;
       const definition = await prepareBddForSave(tx, parseResult.data, existing);
+      // A save that changes neither keeps what was valid: the library may have changed since.
+      if (definition.dataFixtures !== undefined || definition.projectId !== undefined)
+        await checkTestFixtureRefs(
+          tx,
+          definition.dataFixtures !== undefined ? definition.dataFixtures : existing.dataFixtures,
+          definition.projectId !== undefined ? definition.projectId : existing.projectId,
+        );
       const rows = await tx
         .update(tests)
         // userId is not touched: the test keeps its author. organizationId is not in the
@@ -283,7 +293,8 @@ router.put('/api/tests/:id', requireRole('editor'), async (req, res) => {
     if (quota) return res.status(429).json(quota);
     if (isForeignKeyError(error))
       return res.status(400).json({ error: 'Invalid project ID or project does not exist.' });
-    if (error instanceof BddDefinitionError) return res.status(400).json({ error: error.message });
+    if (error instanceof BddDefinitionError || error instanceof FixtureGraphError)
+      return res.status(400).json({ error: error.message });
     // Two saves that raced to the same version number: the unique index refused the second.
     if ((error?.cause?.code ?? error?.code) === '23505')
       return res.status(409).json({

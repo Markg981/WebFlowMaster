@@ -256,3 +256,34 @@ owner. Audit actions: `DATA_FIXTURE_CREATED/UPDATED/DELETED`, `ENVIRONMENT_DATA_
 /api/environments/:id/data-setup`: owner, session only, audited.
 - Runs: UI runner, ad-hoc preview and BDD runs (once before the rows), from the server. Debug
   sessions do not run fixtures. The Playwright export reports them as unsupported.
+
+## Release 2 as built
+
+- Tables `data_fixture_library` (org, project, key, name, description, tags, current version) and
+  `data_fixture_versions` (frozen definition, note, author), migration 0117, RLS on both, unique
+  `(project, key)`. The definition is the release 1 fixture without its alias and entry id,
+  plus `dependsOn: [{ fixture: key, as, params }]`.
+- A test entry is either an inline fixture (release 1) or `{ kind: 'ref', alias, fixtureId,
+version: 'latest' | n, params }`, in the same `data_fixtures` column: no new column, so no
+  change to the execution snapshot decision list.
+- `server/authoring/fixture-graph.ts` expands references depth first: dependencies before the
+  fixture that needs them, a dependency's alias is `<caller>__<as>`, a dependency at the same
+  version with the same bound values runs once (entries named by the test itself are not
+  merged), a cycle fails with the chain. `dependsOn` names a key, not a version: a dependency
+  always runs at its current version, also under a pinned reference, so pinning freezes the
+  fixture named and not its chain. Each expanded step carries `source: "key vN"` for the report.
+- Save-time checks: a test's references must belong to the project it is saved in; a library
+  definition may read `{{fx.X.*}}` only for an `X` in its `dependsOn`; a new version that closes a
+  cycle is refused.
+- Freeze: `execution-definitions.ts` expands references when a run is queued, so the run snapshot
+  holds plain fixtures and `latest` means the version current at enqueue. A reference that no
+  longer resolves is left in place and the run fails on it with the reason, rather than the
+  enqueue failing. The ad-hoc preview expands at request time.
+- Routes are internal (`/api/projects/:projectId/data-fixtures`, `/api/data-fixtures/:id`,
+  `/references`, `/try`), not API v1: the public surface waits until the agent path (release 3)
+  settles the shape. Delete answers 409 with the tests and fixtures still naming it.
+- Try it: `mode: check` reads only; `mode: dry` applies inside a transaction that is always rolled
+  back and needs `dataSetup`, as a run does. MySQL/MariaDB DDL commits implicitly and cannot be
+  undone by a dry run; the guide says so.
+- Not done: `scope` on references (with row scope, release 4); bundle export carries references
+  only, so they dangle once imported into another organization.

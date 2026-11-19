@@ -23,6 +23,7 @@ import {
   Target,
   Smartphone,
   Database,
+  DatabaseZap,
   Gauge,
   Sparkles,
   CircleHelp,
@@ -86,6 +87,11 @@ function useNav(): NavSection[] {
         { href: '/suites', label: t('nav.testSuites', 'Suites'), icon: Layers },
         { href: '/requirements', label: t('nav.requirements', 'Requirements'), icon: Target },
         { href: '/test-data', label: t('nav.testData', 'Test data'), icon: Database },
+        {
+          href: '/data-fixtures',
+          label: t('nav.dataFixtures', 'Data fixtures'),
+          icon: DatabaseZap,
+        },
         { href: '/test-plans', label: t('nav.suites'), icon: ListChecks },
         { href: '/reviews', label: t('nav.reviews', 'Reviews'), icon: ClipboardCheck },
         {

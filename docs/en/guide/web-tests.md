@@ -521,6 +521,59 @@ A run whose fixture fails is reported as blocked, as with a failed precondition,
 shows a **Data fixture** step for each one: already there, created, or why it failed.
 The [Playwright export](./playwright-export) does not include fixtures.
 
+### The project library {#fixture-library}
+
+A fixture that several tests need is written once, in the project's library, rather than copied
+into each test. Open **Data fixtures** in the side menu, choose the project and press
+**New fixture**. A library fixture has the fields above, plus a **key** (lower case, such as
+`customer`, fixed once saved), a description, tags, and the fixtures it **needs first**.
+
+**Versions.** Saving a changed check, script, parameters, outputs or dependencies keeps the old
+definition and adds a new version, with an optional note on what changed; the name, description and
+tags change in place. The editor lists every version.
+
+**Naming it from a test.** In the builder, under **Data fixtures**, **Add from library** picks a
+project and one of its fixtures. The test keeps a reference, not a copy:
+
+| Setting | What it does                                                                                                |
+| ------- | ----------------------------------------------------------------------------------------------------------- |
+| Alias   | The name its outputs are read under, as in <code v-pre>{{fx.customer.id}}</code>                            |
+| Version | **Latest** follows each new version; a number such as `v2` stays on that version until you change it        |
+| Values  | A value for one of the fixture's parameters, for this test only; an empty field keeps the library's default |
+
+The test is saved in the project the references come from: a reference to another project's fixture
+is refused on save. When a run is queued, **Latest** is resolved to the version current at that
+moment, so a new version saved while the run waits does not change it. A run whose reference no
+longer resolves, because the fixture or the pinned version was deleted, is blocked with the reason.
+
+**Dependencies.** A fixture can need others first: an order needs a customer. Under **Needs first**,
+choose the fixture, the name it is read as (`customer`) and, if needed, values for its parameters;
+the SQL then reads <code v-pre>{{fx.customer.id}}</code>. Reading a fixture that is not listed
+there is refused on save, and so is a loop (`a` needs `b`, which needs `a`), with the chain named.
+At run time the dependencies run before the fixture that needs them, each once even when two
+fixtures need it with the same values. A dependency always runs at its current version: pinning
+`order` to `v1` freezes `order`, not the `customer` it needs. In the report a dependency's step is named after the fixture
+that needs it (`order__customer`) and shows the library key and version, for instance
+`customer v2`.
+
+**Who uses it.** The editor lists the tests and fixtures that name a fixture. A fixture still named
+cannot be deleted; the message lists who names it.
+
+**Try it.** In the editor, **Try it** runs the fixture and its dependencies against an environment's
+database, from the server, without running a test:
+
+- **Check only** runs the checks and writes nothing. It reports each fixture as found or missing.
+- **Dry run** also runs the scripts, then rolls everything back. It needs an environment where
+  **Data setup** is on, as a real run does.
+
+On MySQL and MariaDB, a statement such as `CREATE TABLE` or `ALTER TABLE` commits at once, so a dry
+run cannot undo it: keep schema changes out of fixture scripts, or try them on a database you can
+throw away.
+
+An [export as files](./organizing#tests-as-files) carries a test's references, not the library: imported into
+another organization, they name fixtures it does not have, and the run is blocked until the
+references are added again from that organization's library.
+
 ## Preconditions
 
 **Preconditions** are API calls that run before the steps, to put the application in the state the

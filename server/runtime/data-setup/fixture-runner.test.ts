@@ -2,7 +2,7 @@ import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 import net from 'net';
 import { PGlite } from '@electric-sql/pglite';
 import { PGLiteSocketServer } from '@electric-sql/pglite-socket';
-import type { DataFixture } from '@shared/schema';
+import type { DataFixture, DataFixtureRef } from '@shared/schema';
 import {
   expectedIdentity,
   fixtureConnection,
@@ -235,5 +235,109 @@ describe('against a real Postgres', () => {
       status: 'passed',
     });
     expect(step.details).toMatch(/^Created: .*fx\.customer\.id = 1/);
+  }, 30_000);
+
+  it('runs library references as the expansion gives them, named with their version', async () => {
+    const ref: DataFixtureRef = {
+      kind: 'ref',
+      id: 'r1',
+      alias: 'customer',
+      fixtureId: 1,
+      version: 'latest',
+      params: {},
+    };
+    const result = await runDataFixtures([ref], vars, {
+      dataSetup: true,
+      vet,
+      expand: async () => [fixture({ source: { fixtureId: 1, key: 'customer', version: 3 } })],
+    });
+    expect(result.ok).toBe(true);
+    expect(fixtureReportSteps(result)[0].name).toBe('Data fixture: Customer Ann (customer v3)');
+  }, 30_000);
+
+  it('fails a reference it cannot expand, before touching the database', async () => {
+    const ref = {
+      kind: 'ref',
+      id: 'r1',
+      alias: 'c',
+      fixtureId: 1,
+      version: 1,
+      params: {},
+    } as const;
+    const without = await runDataFixtures([ref], vars, { dataSetup: true, vet });
+    expect(without).toMatchObject({ ok: false, failedAt: 'Data fixture library' });
+    const refused = await runDataFixtures([ref], vars, {
+      dataSetup: true,
+      vet,
+      expand: async () => {
+        throw new Error('the library fixture 1 has no version 1');
+      },
+    });
+    expect(refused.reason).toBe('the library fixture 1 has no version 1');
+    expect(await count('customers')).toBe(0);
+  });
+
+  it('check mode only reads, and stops at the first fixture whose data is missing', async () => {
+    const result = await runDataFixtures(
+      [
+        fixture(),
+        fixture({
+          id: 'fx-order',
+          name: 'An open order',
+          alias: 'order',
+          params: [{ name: 'total', type: 'decimal', value: '42.50' }],
+          check: 'SELECT id FROM orders WHERE customer_id = {{fx.customer.id}}',
+          apply:
+            'INSERT INTO orders (customer_id, total) VALUES ({{fx.customer.id}}, {{params.total}})',
+        }),
+      ],
+      vars,
+      {
+        dataSetup: true,
+        vet,
+        mode: 'check',
+      },
+    );
+    expect(result).toMatchObject({ ok: false, failedAt: 'Customer Ann' });
+    expect(result.steps.map((s) => s.status)).toEqual(['missing']);
+    expect(fixtureReportSteps(result)[0]).toMatchObject({ status: 'failed' });
+    expect(await count('customers')).toBe(0);
+  }, 30_000);
+
+  it('dry mode runs the whole chain in one transaction and rolls it back', async () => {
+    const result = await runDataFixtures(
+      [
+        fixture(),
+        fixture({
+          id: 'fx-order',
+          name: 'An open order',
+          alias: 'order',
+          params: [{ name: 'total', type: 'decimal', value: '42.50' }],
+          check: 'SELECT id FROM orders WHERE customer_id = {{fx.customer.id}}',
+          apply:
+            'INSERT INTO orders (customer_id, total) VALUES ({{fx.customer.id}}, {{params.total}})',
+        }),
+      ],
+      vars,
+      {
+        dataSetup: true,
+        vet,
+        mode: 'dry',
+      },
+    );
+    expect(result.ok).toBe(true);
+    expect(result.steps.map((s) => s.status)).toEqual(['applied', 'applied']);
+    expect(result.steps[1].detail).toMatch(/rolled back/);
+    expect(await count('customers')).toBe(0);
+    expect(await count('orders')).toBe(0);
+  }, 30_000);
+
+  it('dry mode needs data setup, as a real run does', async () => {
+    const result = await runDataFixtures([fixture()], vars, {
+      dataSetup: false,
+      vet,
+      mode: 'dry',
+    });
+    expect(result.reason).toMatch(/does not allow data setup/);
   }, 30_000);
 });

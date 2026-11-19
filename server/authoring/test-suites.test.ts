@@ -411,7 +411,8 @@ describe('rows that point across organizations', () => {
     // An outbound delivery belongs to a run of the same organization (0108).
     // Run comparisons: plan, both environments, both runs and requester; a result's comparison,
     // tests, reviewer and both report results; a known difference's project, test and approver (0110).
-    expect(rows.length).toBe(126);
+    // A library data fixture's project and author; a fixture version's fixture and author (0117).
+    expect(rows.length).toBe(130);
     expect(rows.filter((r) => !r.convalidated)).toEqual([]);
   });
 

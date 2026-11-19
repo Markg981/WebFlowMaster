@@ -25,6 +25,9 @@ export const ORG_SCOPED_TABLES = [
   'comparison_runs',
   'comparison_results',
   'comparison_known_differences',
+  // The data fixture library and its frozen versions (migration 0117).
+  'data_fixture_library',
+  'data_fixture_versions',
   'test_plan_selected_tests',
   'test_plan_webhooks',
   'report_test_case_results',
