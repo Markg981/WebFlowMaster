@@ -3311,7 +3311,8 @@
       "step_group": "Groupes d’étapes",
       "project_element": "Référentiel d’éléments",
       "healing_proposal": "Propositions de réparation",
-      "visual_baseline": "Baselines visuelles"
+      "visual_baseline": "Baselines visuelles",
+      "data_fixture": "Fixtures de données"
     },
     "actions": {
       "bdd_profile_created": "Profil BDD créé",

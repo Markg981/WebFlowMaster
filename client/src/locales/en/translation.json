@@ -3311,7 +3311,8 @@
       "step_group": "Step groups",
       "project_element": "Element repository",
       "healing_proposal": "Healing proposals",
-      "visual_baseline": "Visual baselines"
+      "visual_baseline": "Visual baselines",
+      "data_fixture": "Data fixtures"
     },
     "actions": {
       "bdd_profile_created": "BDD profile created",
