@@ -8,6 +8,7 @@ import logger from '../../platform/logger';
 import { withTenantTransaction } from '../../platform/middleware/tenancy';
 import { requireRole } from '../middleware/require-role';
 import { sessionOnly } from '../middleware/session-only';
+import { sharedSensitiveRateLimit } from '../middleware/rate-limits';
 import { encryptSecret } from '../../platform/crypto';
 
 /**
@@ -140,6 +141,7 @@ const dataSetupSchema = z.object({ dataSetup: z.boolean() }).strict();
  */
 router.put(
   '/api/environments/:id/data-setup',
+  sharedSensitiveRateLimit(),
   requireRole('owner'),
   sessionOnly('Owner action (put /api/environments/:id/data-setup)'),
   async (req, res) => {
