@@ -18,6 +18,7 @@ export interface AuditEntry {
   actor?: AuditActor | null;
   targetType?:
     | 'bdd_profile'
+    | 'data_fixture'
     | 'user'
     | 'invitation'
     | 'testcase_hub'

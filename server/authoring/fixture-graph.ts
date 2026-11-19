@@ -339,3 +339,16 @@ export function expandFromLibrary(projectId: number | null | undefined) {
       async (tx) => (await expandDataFixtures(fixtures, projectId, libraryLoader(tx))) ?? [],
     );
 }
+
+/**
+ * When a test is saved: every library reference names a fixture of the test's project, with
+ * parameters it has, and expands. Refused here rather than discovered when the test runs.
+ */
+export async function checkTestFixtureRefs(
+  tx: TenantTx,
+  fixtures: unknown,
+  projectId: number | null | undefined,
+): Promise<void> {
+  if (!Array.isArray(fixtures) || !fixtures.some(isDataFixtureRef)) return;
+  await expandDataFixtures(fixtures as TestDataFixture[], projectId, libraryLoader(tx));
+}
