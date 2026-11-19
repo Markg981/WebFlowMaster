@@ -73,6 +73,12 @@ una versione diversa resta connesso ma non viene scelto per i run, e
 Se Redis perde i dati, tutti vengono disconnessi, e i run che aspettavano in coda restano
 _in coda_ senza partire: annullateli e avviateli di nuovo.
 
+Se Redis non è raggiungibile quando viene chiesto un confronto, la richiesta risponde `503` e il run
+di baseline termina in errore con il codice `queue_submission_failed`, ma il confronto resta _in
+coda_. Non viene ritentato subito: il recupero periodico dei confronti, che passa una volta al
+minuto, lo fa ripartire da solo quando Redis torna disponibile. Lo stesso vale per un run candidato
+rifiutato dalla coda.
+
 ### Lo strumento di backup
 
 Per l'installazione Docker Compose fornita dal repository, `scripts/wfm-backup.ts` fa le tre cose che

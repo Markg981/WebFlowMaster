@@ -1,0 +1,15 @@
+{
+  "id": "OPS-80",
+  "area": "OPS",
+  "title": "Confronto chiesto con Redis giù: nessun ciclo di ritentativi senza pausa",
+  "priority": "P2",
+  "actor": "Operatore del Collaudo",
+  "preconditions": "Stack di collaudo avviato con api e worker healthy; un piano web con almeno un test e due ambienti.",
+  "steps": [
+    "Fermare Redis (wfmc stop redis).",
+    "Avviare un confronto del piano fra i due ambienti (pagina Confronti, Nuovo confronto); annotare l'ora.",
+    "Per un minuto contare le righe 'A comparison could not be advanced' nel log di api (wfmc logs api).",
+    "Riavviare Redis (wfmc start redis) e attendere fino a due minuti."
+  ],
+  "expected": "Passo 2: la richiesta risponde 503 (run non accodabile); il run di baseline risulta in errore con codice queue_submission_failed e il confronto resta in coda. Passo 3: nessuna raffica di avvisi; al più un tentativo per passaggio del recupero periodico (uno al minuto), non decine al secondo. Passo 4: al passaggio successivo del recupero periodico il confronto riparte da solo: la baseline viene accodata e il confronto passa in esecuzione."
+}

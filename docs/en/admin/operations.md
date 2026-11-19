@@ -71,6 +71,11 @@ connected but is not chosen for runs, and **Settings → Local agents** shows wh
 If Redis loses its data, everyone is signed out, and runs that were waiting in the queue stay
 _queued_ without starting: cancel them and start them again.
 
+If Redis is unreachable when a comparison is requested, the request answers `503` and its
+baseline run ends in error with the code `queue_submission_failed`, but the comparison itself stays
+_queued_. It is not retried at once: the comparison sweep, which runs once a minute, starts it again
+on its own once Redis is back. The same holds for a candidate run the queue refuses.
+
 ### The backup tool
 
 For the Docker Compose installation the repository ships, `scripts/wfm-backup.ts` does the three things
