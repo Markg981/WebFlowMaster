@@ -338,6 +338,7 @@ function toComparison(row: ComparisonRun, planName: string | null) {
     planName,
     name: row.name,
     mode: row.mode,
+    candidateDelaySeconds: row.candidateDelaySeconds,
     status: row.status,
     /** regressions, inconclusive, parity_with_accepted or parity; null until computed. */
     verdict: row.verdict,

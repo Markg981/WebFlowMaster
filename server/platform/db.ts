@@ -9,6 +9,7 @@ import { unwrapDrizzleQueryErrors } from './db-errors';
 import { readPoolSettings, sessionSetupStatements } from './db-pool-settings';
 import logger from './logger';
 import { attachPoolErrorHandler } from './pool-errors';
+import { pgliteWatchdogThreshold, watchPgliteLocks, type WatchedClient } from './pglite-watchdog';
 
 // Before any query: failed queries surface as the driver's own error, not as drizzle's wrapper
 // carrying the SQL and its parameters (see server/platform/db-errors.ts).
@@ -151,6 +152,13 @@ if (dbUrl.startsWith('postgres://') || dbUrl.startsWith('postgresql://')) {
     fs.mkdirSync(path.dirname(dbUrl), { recursive: true });
   }
   const client = new PGlite(dbUrl);
+  const watchdogMs = pgliteWatchdogThreshold();
+  if (watchdogMs > 0) {
+    watchPgliteLocks(client as unknown as WatchedClient, {
+      thresholdMs: watchdogMs,
+      report: (message, details) => logger.warn({ message, ...details }),
+    });
+  }
   // One connection, and PGlite runs statements in the order they arrive, so this lands before
   // the first query anybody else sends.
   client.exec(setSessionTimeZone).catch((error: Error) => {

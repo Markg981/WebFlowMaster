@@ -8,6 +8,7 @@ import logger from '../platform/logger';
 import {
   getTenantOrgId,
   runWithTenant,
+  tenantTransactionInScope,
   withTenantTransaction,
 } from '../platform/middleware/tenancy';
 import { quotaUsage, quotasFor, QuotaError } from './tenant-quotas';
@@ -74,7 +75,13 @@ async function organizationFor(key: string): Promise<number | null> {
   let organizationId = baseline ? Number(baseline[1]) : null;
   const execution = /^results\/([^/]+)\/([^/]+)\//.exec(key);
   if (execution) {
-    const [row] = await privilegedDb
+    // Through the transaction the caller already has open, when there is one: PGlite has one
+    // connection, and a query sent beside an open transaction waits for it while the transaction
+    // waits for this answer (a comparison is computed in one transaction and reads the runs'
+    // screenshots from inside it: TD-002). Outside any transaction the privileged handle finds the
+    // owner across organizations, as before.
+    const openTx = tenantTransactionInScope();
+    const [row] = await (openTx ?? privilegedDb)
       .select({ organizationId: testPlanExecutions.organizationId })
       .from(testPlanExecutions)
       .where(
@@ -83,6 +90,9 @@ async function organizationFor(key: string): Promise<number | null> {
           eq(testPlanExecutions.id, execution[2]),
         ),
       );
+    // Row-level security hides another organization's run from the transaction, so "not found"
+    // there cannot be told from "someone else's": refuse, never fall through to an unmetered read.
+    if (!row && openTx) throw new Error('Artifact belongs to another organization');
     organizationId = row?.organizationId ?? null;
   }
   const ambient = getTenantOrgId();

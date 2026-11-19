@@ -269,6 +269,8 @@ node wfm.mjs compare --plan <planId> --baseline 3 \
 | `--candidate-url <url>` | Where the version under judgement answers. The two sides must differ.                                                                                                         |
 | `--recorded-url <url>`  | The address the tests were recorded on, replaced on both sides. Needs both URLs.                                                                                              |
 | `--mode <mode>`         | `sequential` (default) or `parallel`.                                                                                                                                         |
+| `--candidate-delay <s>` | Sequential only: seconds the candidate waits after the baseline has ended (0-7200), for a system that keeps working after a run and would slow the candidate down.            |
+| `--policy <file>`       | A JSON file with the comparison policy, for example `{"performance":{"mode":"off"}}` for two runs of the same version; what it leaves out keeps its default.                  |
 | `--name <name>`         | A name for the comparison, such as the migration.                                                                                                                             |
 | `--fail-on <verdicts>`  | Test verdicts that fail the step, comma separated, from `different`, `outcome_mismatch`, `both_failed`, `not_comparable`, `equivalent`. Default `different,outcome_mismatch`. |
 | `--wait`                | Wait for the comparison to finish and turn its verdict into the exit code.                                                                                                    |

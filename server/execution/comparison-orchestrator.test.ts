@@ -78,7 +78,11 @@ async function endRun(id: string, status: 'completed' | 'failed' | 'error' | 'ca
 
 function create(
   orchestrator: ReturnType<typeof orchestratorWith>,
-  input: Partial<{ mode: 'sequential' | 'parallel'; candidateEnvironmentId: number }> = {},
+  input: Partial<{
+    mode: 'sequential' | 'parallel';
+    candidateEnvironmentId: number;
+    candidateDelaySeconds: number;
+  }> = {},
   idempotencyKey?: string,
 ) {
   return asUs(() =>
@@ -90,6 +94,7 @@ function create(
         baselineEnvironmentId: prodId,
         candidateEnvironmentId: input.candidateEnvironmentId ?? stagingId,
         mode: input.mode ?? 'sequential',
+        candidateDelaySeconds: input.candidateDelaySeconds,
       },
     }),
   );
@@ -328,6 +333,26 @@ describe('advancing a comparison', () => {
     expect(done?.completedAt).toBeInstanceOf(Date);
     await asUs(() => orchestrator.advance(comparison.id));
     expect(engine).toHaveBeenCalledTimes(1);
+  });
+
+  it('holds the candidate for the delay after the baseline ended, then starts it', async () => {
+    const orchestrator = orchestratorWith();
+    const { comparison } = await create(orchestrator, { candidateDelaySeconds: 600 });
+    expect(comparison.candidateDelaySeconds).toBe(600);
+
+    await endRun(comparison.baselineExecutionId!, 'completed');
+    expect(await asUs(() => orchestrator.advance(comparison.id))).toMatchObject({
+      status: 'running',
+      candidateExecutionId: null,
+    });
+
+    // Ended eleven minutes ago: the delay is over.
+    await privilegedDb
+      .update(testPlanExecutions)
+      .set({ completedAt: new Date(Date.now() - 11 * 60_000) })
+      .where(eq(testPlanExecutions.id, comparison.baselineExecutionId!));
+    const started = await asUs(() => orchestrator.advance(comparison.id));
+    expect(started?.candidateExecutionId).toBeTruthy();
   });
 
   it('is computed by only one of two callers that see the second run end', async () => {

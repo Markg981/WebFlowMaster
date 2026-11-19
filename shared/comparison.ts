@@ -220,6 +220,9 @@ export function comparisonPolicyOf(value: unknown): ComparisonPolicy {
   return parsed.success ? parsed.data : ComparisonPolicySchema.parse({});
 }
 
+/** The longest wait between the baseline's end and the candidate's start: two hours. */
+export const MAX_CANDIDATE_DELAY_SECONDS = 7200;
+
 /** The longest address a comparison side takes. */
 export const MAX_COMPARISON_URL_LENGTH = 2048;
 
@@ -262,8 +265,18 @@ export const CreateComparisonSchema = z
     /** Where the tests were recorded, when it is neither side: also replaced by each side's URL. */
     recordedUrl: ComparisonUrlSchema.nullable().optional(),
     mode: z.enum(COMPARISON_MODES).default('sequential'),
+    /**
+     * Sequential mode: how long the candidate waits after the baseline has ended. A system under
+     * test that keeps working after a run (background calls, caches warming) would otherwise make
+     * the candidate pay for the baseline's load.
+     */
+    candidateDelaySeconds: z.number().int().min(0).max(MAX_CANDIDATE_DELAY_SECONDS).optional(),
     name: z.string().trim().max(200).optional(),
     policy: ComparisonPolicySchema.optional(),
+  })
+  .refine((body) => body.mode !== 'parallel' || !body.candidateDelaySeconds, {
+    message: 'A delay before the candidate needs the sequential mode.',
+    path: ['candidateDelaySeconds'],
   })
   .refine((body) => body.baselineEnvironmentId != null || !!body.baselineUrl, {
     message: 'Choose an environment or enter an address for the baseline.',

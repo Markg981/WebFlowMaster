@@ -4,7 +4,7 @@ Generato da `shared/schema/` (un file per dominio) con `node scripts/generate-sc
 
 Leggere prima lo [schema per dominio](./database-schema) per le spiegazioni e le relazioni, poi cercare qui la tabella. Ogni riga riporta la proprietà TypeScript, il nome SQL e il builder completo: tipo, nullabilità, default e riferimenti dichiarati nella colonna. I vincoli definiti nel callback della tabella non sono espansi qui.
 
-**91 tabelle / 1118 colonne dichiarate.**
+**91 tabelle / 1119 colonne dichiarate.**
 
 ## Indice
 
@@ -75,7 +75,7 @@ Leggere prima lo [schema per dominio](./database-schema) per le spiegazioni e le
 | [test_quarantines](#test-quarantines)                         | `testQuarantines`            | 12      |
 | [mobile_test_runs](#mobile-test-runs)                         | `mobileTestRuns`             | 18      |
 | [load_test_runs](#load-test-runs)                             | `loadTestRuns`               | 17      |
-| [comparison_runs](#comparison-runs)                           | `comparisonRuns`             | 25      |
+| [comparison_runs](#comparison-runs)                           | `comparisonRuns`             | 26      |
 | [comparison_results](#comparison-results)                     | `comparisonResults`          | 24      |
 | [comparison_known_differences](#comparison-known-differences) | `comparisonKnownDifferences` | 12      |
 | [runners](#runners)                                           | `runners`                    | 12      |
@@ -1298,6 +1298,7 @@ Leggere prima lo [schema per dominio](./database-schema) per le spiegazioni e le
 | `baselineExecutionId`      | `baseline_execution_id`      | `text('baseline_execution_id').references(() => testPlanExecutions.id, { onDelete: 'set null', })`  |
 | `candidateExecutionId`     | `candidate_execution_id`     | `text('candidate_execution_id').references(() => testPlanExecutions.id, { onDelete: 'set null', })` |
 | `mode`                     | `mode`                       | `text('mode').$type<ComparisonMode>().notNull().default('sequential')`                              |
+| `candidateDelaySeconds`    | `candidate_delay_seconds`    | `integer('candidate_delay_seconds').notNull().default(0)`                                           |
 | `policy`                   | `policy`                     | `jsonb('policy').$type<Record<string, unknown>>().notNull().default({})`                            |
 | `status`                   | `status`                     | `text('status').$type<ComparisonStatus>().notNull().default('queued')`                              |
 | `verdict`                  | `verdict`                    | `text('verdict').$type<ComparisonVerdict>()`                                                        |
@@ -1312,7 +1313,7 @@ Leggere prima lo [schema per dominio](./database-schema) per le spiegazioni e le
 
 ## comparison_results {#comparison-results}
 
-`comparisonResults` — `shared/schema/comparison.ts:92`
+`comparisonResults` — `shared/schema/comparison.ts:94`
 
 | Proprietà TS          | Colonna SQL             | Dichiarazione                                                                                        |
 | --------------------- | ----------------------- | ---------------------------------------------------------------------------------------------------- |
@@ -1343,7 +1344,7 @@ Leggere prima lo [schema per dominio](./database-schema) per le spiegazioni e le
 
 ## comparison_known_differences {#comparison-known-differences}
 
-`comparisonKnownDifferences` — `shared/schema/comparison.ts:141`
+`comparisonKnownDifferences` — `shared/schema/comparison.ts:143`
 
 | Proprietà TS       | Colonna SQL           | Dichiarazione                                                                          |
 | ------------------ | --------------------- | -------------------------------------------------------------------------------------- |
