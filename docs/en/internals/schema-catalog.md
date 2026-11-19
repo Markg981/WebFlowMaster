@@ -4,7 +4,7 @@ Generated from `shared/schema/` (one file per domain) with `node scripts/generat
 
 Read the [domain schema](./database-schema) for explanations and relationships, then find the table here. Each row lists the TypeScript property, SQL name and complete builder: type, nullability, default and references declared on the column. Table callback constraints are not expanded here.
 
-**91 tables / 1122 declared columns.**
+**93 tables / 1142 declared columns.**
 
 ## Index
 
@@ -78,6 +78,8 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 | [comparison_runs](#comparison-runs)                           | `comparisonRuns`             | 26      |
 | [comparison_results](#comparison-results)                     | `comparisonResults`          | 24      |
 | [comparison_known_differences](#comparison-known-differences) | `comparisonKnownDifferences` | 12      |
+| [data_fixture_library](#data-fixture-library)                 | `dataFixtureLibrary`         | 12      |
+| [data_fixture_versions](#data-fixture-versions)               | `dataFixtureVersions`        | 8       |
 | [runners](#runners)                                           | `runners`                    | 12      |
 | [environments](#environments)                                 | `environments`               | 11      |
 | [secrets](#secrets)                                           | `secrets`                    | 10      |
@@ -486,7 +488,7 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 
 ## sessions {#sessions}
 
-`sessions` — `shared/schema/identity.ts:907`
+`sessions` — `shared/schema/identity.ts:911`
 
 | TS property | SQL column | Declaration                     |
 | ----------- | ---------- | ------------------------------- |
@@ -1362,6 +1364,40 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 | `approvedByUserId` | `approved_by_user_id` | `integer('approved_by_user_id').references(() => users.id, { onDelete: 'set null', })` |
 | `createdAt`        | `created_at`          | `timestamp('created_at').notNull().defaultNow()`                                       |
 | `expiresAt`        | `expires_at`          | `timestamp('expires_at')`                                                              |
+
+## data_fixture_library {#data-fixture-library}
+
+`dataFixtureLibrary` — `shared/schema/data-fixtures.ts:18`
+
+| TS property      | SQL column        | Declaration                                                                                |
+| ---------------- | ----------------- | ------------------------------------------------------------------------------------------ |
+| `id`             | `id`              | `serial('id').primaryKey()`                                                                |
+| `organizationId` | `organization_id` | `integer('organization_id') .notNull() .references(() => organizations.id)`                |
+| `projectId`      | `project_id`      | `integer('project_id') .notNull() .references(() => projects.id, { onDelete: 'cascade' })` |
+| `key`            | `key`             | `text('key').notNull()`                                                                    |
+| `name`           | `name`            | `text('name').notNull()`                                                                   |
+| `description`    | `description`     | `text('description')`                                                                      |
+| `kind`           | `kind`            | `text('kind').notNull().default('sql')`                                                    |
+| `tags`           | `tags`            | `text('tags').array().notNull().default([])`                                               |
+| `currentVersion` | `current_version` | `integer('current_version').notNull().default(1)`                                          |
+| `createdBy`      | `created_by`      | `integer('created_by').references(() => users.id, { onDelete: 'set null' })`               |
+| `createdAt`      | `created_at`      | `timestamp('created_at').defaultNow().notNull()`                                           |
+| `updatedAt`      | `updated_at`      | `timestamp('updated_at').defaultNow().notNull()`                                           |
+
+## data_fixture_versions {#data-fixture-versions}
+
+`dataFixtureVersions` — `shared/schema/data-fixtures.ts:49`
+
+| TS property      | SQL column        | Declaration                                                                                          |
+| ---------------- | ----------------- | ---------------------------------------------------------------------------------------------------- |
+| `id`             | `id`              | `serial('id').primaryKey()`                                                                          |
+| `organizationId` | `organization_id` | `integer('organization_id') .notNull() .references(() => organizations.id)`                          |
+| `fixtureId`      | `fixture_id`      | `integer('fixture_id') .notNull() .references(() => dataFixtureLibrary.id, { onDelete: 'cascade' })` |
+| `version`        | `version`         | `integer('version').notNull()`                                                                       |
+| `definition`     | `definition`      | `jsonb('definition').$type<LibraryFixtureDefinition>().notNull()`                                    |
+| `note`           | `note`            | `text('note')`                                                                                       |
+| `createdBy`      | `created_by`      | `integer('created_by').references(() => users.id, { onDelete: 'set null' })`                         |
+| `createdAt`      | `created_at`      | `timestamp('created_at').defaultNow().notNull()`                                                     |
 
 ## runners {#runners}
 
