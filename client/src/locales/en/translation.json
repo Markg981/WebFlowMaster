@@ -3313,6 +3313,7 @@
       "comparison_known_difference_deleted": "Known difference deleted",
       "environment_created": "Environment created",
       "environment_deleted": "Environment deleted",
+      "environment_data_setup_changed": "Environment data setup changed",
       "secret_set": "Secret set",
       "secret_deleted": "Secret deleted",
       "system_settings_changed": "System setting changed",

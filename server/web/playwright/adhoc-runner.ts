@@ -12,11 +12,12 @@ import { FlowCursor } from '../../runtime/flow-cursor';
 import { recordRunnerFailure } from '../../platform/observability/taps/runner';
 import { requestVariables, substituteVariables } from '../../platform/outbound-http';
 import { runPreconditions } from '../../runtime/precondition-runner';
+import { fixtureReportSteps, runDataFixtures } from '../../runtime/data-setup/fixture-runner';
 import { resolveSequenceForRun } from '../../authoring/step-elements';
 import { executeStep } from '../step-executor';
 import { expandSequenceForRun } from '../../authoring/step-groups';
 import { storage } from '../../identity/storage';
-import { resolveVariables } from '../../runtime/variables';
+import { environmentAllowsDataSetup, resolveVariables } from '../../runtime/variables';
 
 import {
   AUTHORING_USER_AGENT,
@@ -105,14 +106,15 @@ export class AdhocRunner {
     }
     // The preview resolves variables the same way a scheduled run does, so a test that
     // works here is not relying on something only this path provides.
-    const vars = {
-      ...(payload.organizationId
-        ? await resolveVariables({
-            userId,
-            organizationId: payload.organizationId,
-            environmentId: payload.environmentId,
-          })
-        : requestVariables()),
+    const environmentVars = payload.organizationId
+      ? await resolveVariables({
+          userId,
+          organizationId: payload.organizationId,
+          environmentId: payload.environmentId,
+        })
+      : requestVariables();
+    const vars: Record<string, string> = {
+      ...environmentVars,
       // The dataset row for this pass, layered over the environment's values.
       ...(payload.rowVariables ?? {}),
     };
@@ -156,6 +158,26 @@ export class AdhocRunner {
     }
 
     try {
+      // Data fixtures first, as a saved run does (server/execution/run-test.ts), and from the
+      // environment's values only: a plan run makes them once for the test, not per row.
+      if (payload.dataFixtures && payload.dataFixtures.length > 0) {
+        const fx = await runDataFixtures(payload.dataFixtures, environmentVars, {
+          dataSetup: payload.organizationId
+            ? await environmentAllowsDataSetup(payload.organizationId, payload.environmentId)
+            : false,
+        });
+        stepResults.push(...(fixtureReportSteps(fx) as StepResult[]));
+        if (!fx.ok)
+          return {
+            success: false,
+            error: `Data fixture failed at "${fx.failedAt}": ${fx.reason}`,
+            duration: Date.now() - startTime,
+            detection: undefined,
+            steps: stepResults,
+          };
+        Object.assign(vars, fx.variables);
+      }
+
       // Preconditions run before the browser is even launched, exactly as the scheduled
       // runner does it (see test-execution-service). Fail-fast: a broken setup call makes
       // the run blocked, never a misleading pass or a confusing mid-sequence failure.

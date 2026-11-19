@@ -158,18 +158,19 @@ letteralmente è un rilievo — in modalità strict l'esportazione è rifiutata,
 
 <div v-pre>
 
-| Funzionalità             | Supporto    | Area      | Nel file                                                                                   |
-| ------------------------ | ----------- | --------- | ------------------------------------------------------------------------------------------ |
-| frames                   | supported   | frame     | catena di frameLocator, dal più esterno                                                    |
-| tabs                     | supported   | tab       | switchTab/closeTab, handleDialog per scheda                                                |
-| dataset                  | supported   | data      | un test Playwright per riga, valori come stringhe                                          |
-| datasetWithPreconditions | partial     | data      | un run fa le precondizioni una volta per tutte le righe; il file una volta per riga        |
-| groups                   | supported   | group     | espansi prima dell'esportazione, dalle dipendenze della versione esportata                 |
-| preconditions            | supported   | setup     | fixture request: prima il controllo, satisfiedStatuses, header e body inviati come scritti |
-| cleanups                 | supported   | cleanup   | in finally, ogni chiamata tentata, 404/410 contano come fatte, non fa mai fallire il test  |
-| variables                | supported   | variables | variabili d'ambiente `WFM_<NOME>`; una non impostata fa fallire lo step che la usa         |
-| generators               | unsupported | variables | i valori {{$random…}} sono generati da WebFlowMaster                                       |
-| literalCredentials       | unsupported | secrets   | una credenziale scritta in un header o nel body non viene mai copiata nel file             |
+| Funzionalità             | Supporto    | Area      | Nel file                                                                                                         |
+| ------------------------ | ----------- | --------- | ---------------------------------------------------------------------------------------------------------------- |
+| frames                   | supported   | frame     | catena di frameLocator, dal più esterno                                                                          |
+| tabs                     | supported   | tab       | switchTab/closeTab, handleDialog per scheda                                                                      |
+| dataset                  | supported   | data      | un test Playwright per riga, valori come stringhe                                                                |
+| datasetWithPreconditions | partial     | data      | un run fa le precondizioni una volta per tutte le righe; il file una volta per riga                              |
+| groups                   | supported   | group     | espansi prima dell'esportazione, dalle dipendenze della versione esportata                                       |
+| preconditions            | supported   | setup     | fixture request: prima il controllo, satisfiedStatuses, header e body inviati come scritti                       |
+| cleanups                 | supported   | cleanup   | in finally, ogni chiamata tentata, 404/410 contano come fatte, non fa mai fallire il test                        |
+| dataFixtures             | unsupported | setup     | le data fixture eseguono SQL sul database dell'ambiente da WebFlowMaster; il file si aspetta che i dati ci siano |
+| variables                | supported   | variables | variabili d'ambiente `WFM_<NOME>`; una non impostata fa fallire lo step che la usa                               |
+| generators               | unsupported | variables | i valori {{$random…}} sono generati da WebFlowMaster                                                             |
+| literalCredentials       | unsupported | secrets   | una credenziale scritta in un header o nel body non viene mai copiata nel file                                   |
 
 </div>
 

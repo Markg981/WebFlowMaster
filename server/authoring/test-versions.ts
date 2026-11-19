@@ -24,6 +24,7 @@ export interface TestSnapshot {
   elements: unknown;
   preconditions?: unknown;
   cleanups?: unknown;
+  dataFixtures?: unknown;
   dataset?: unknown;
   bdd?: unknown;
 }
@@ -127,6 +128,14 @@ export function describeChange(previous: TestSnapshot | null, next: TestSnapshot
   else if (JSON.stringify(previousCleanups) !== JSON.stringify(nextCleanups))
     parts.push('cleanup changed');
 
+  // By content too: a fixture with another script writes other data.
+  const previousFixtures = asSteps(previous.dataFixtures);
+  const nextFixtures = asSteps(next.dataFixtures);
+  if (previousFixtures.length !== nextFixtures.length)
+    parts.push(`data fixtures ${previousFixtures.length} → ${nextFixtures.length}`);
+  else if (JSON.stringify(previousFixtures) !== JSON.stringify(nextFixtures))
+    parts.push('data fixtures changed');
+
   if (parts.length === 0) return '';
   const sentence = parts.join(', ');
   return `${sentence.charAt(0).toUpperCase()}${sentence.slice(1)}.`;
@@ -145,6 +154,7 @@ export function snapshotOf(test: {
   elements: unknown;
   preconditions?: unknown;
   cleanups?: unknown;
+  dataFixtures?: unknown;
   dataset?: unknown;
   bdd?: unknown;
 }): TestSnapshot {
@@ -155,6 +165,7 @@ export function snapshotOf(test: {
     elements: test.elements,
     preconditions: test.preconditions ?? null,
     cleanups: test.cleanups ?? null,
+    dataFixtures: test.dataFixtures ?? null,
     dataset: test.dataset ?? null,
     bdd: test.bdd ?? null,
   };

@@ -231,6 +231,7 @@ export function versionExecutableFingerprint(version: {
   elements: unknown;
   preconditions: unknown;
   cleanups: unknown;
+  dataFixtures?: unknown;
   dataset: unknown;
   bdd?: unknown;
   snapshot: unknown;
@@ -245,6 +246,8 @@ export function versionExecutableFingerprint(version: {
     cleanups: version.cleanups ?? null,
     dataset: version.dataset ?? null,
     bdd: version.bdd ?? null,
+    // Only when there are some: a version from before fixtures keeps the fingerprint it had.
+    ...(version.dataFixtures ? { dataFixtures: version.dataFixtures } : {}),
     dependencies: read.bundle.fingerprint,
   };
   return createHash('sha256')

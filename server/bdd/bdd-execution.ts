@@ -1,4 +1,4 @@
-import type { Test, Precondition, Cleanup } from '@shared/schema';
+import type { Test, Precondition, Cleanup, DataFixture } from '@shared/schema';
 import { BDD_MAX_OUTPUT_BYTES, BddAgentResultSchema, type BddAgentResult } from '@shared/bdd-agent';
 import { validateBddTest } from './gherkin';
 import { resolveBddBinding } from './bdd-profiles';
@@ -7,6 +7,7 @@ import { runBddOnAgent } from '../runtime/agents/agent-bdd';
 import { AgentHttp } from '../runtime/agents/agent-fetch';
 import { runPreconditions } from '../runtime/precondition-runner';
 import { runCleanups } from '../runtime/cleanup-runner';
+import { fixtureReportSteps, runDataFixtures } from '../runtime/data-setup/fixture-runner';
 import { redactHistoryEntry } from '../runtime/history-redaction';
 import { redactString } from '../platform/utils/log-redactor';
 import type { IndividualTestRunResult, RunTestOptions } from '../execution/test-execution-service';
@@ -48,7 +49,36 @@ export async function runDedicatedBddTest(
     const organizationId = getTenantOrgId();
     if (!organizationId) throw new Error('BDD execution requires an organization context.');
     const target = { organizationId, pool: profile.pool };
-    const rows = Array.isArray(test.dataset) && test.dataset.length ? test.dataset : [{}];
+    // The data the scenario needs in the application's database, once for the test as a UI run
+    // does it (server/execution/run-test.ts), from this server: the agent only runs Cucumber.
+    let blockedByFixture = false;
+    const fixtures = (test as { dataFixtures?: DataFixture[] | null }).dataFixtures;
+    if (fixtures && fixtures.length > 0) {
+      const fx = await runDataFixtures(fixtures, variables, {
+        dataSetup: options?.dataSetup === true,
+        signal: options?.signal,
+      });
+      steps.push(
+        ...fixtureReportSteps(fx).map((step) => ({
+          ...step,
+          details: sanitize(step.details, variables),
+          ...(step.error ? { error: sanitize(step.error, variables) } : {}),
+        })),
+      );
+      variables = { ...variables, ...fx.variables };
+      redactionValues = { ...variables };
+      if (!fx.ok && options?.onPreconditionFailure !== 'continue') {
+        blockedByFixture = true;
+        result.blockedByPrecondition = true;
+        result.status = options?.onPreconditionFailure === 'skip' ? 'skipped' : 'error';
+        result.error = `Data fixture failed at "${fx.failedAt}": ${fx.reason}`;
+      }
+    }
+    const rows = blockedByFixture
+      ? []
+      : Array.isArray(test.dataset) && test.dataset.length
+        ? test.dataset
+        : [{}];
     for (const [index, row] of rows.entries()) {
       const vars = {
         ...variables,

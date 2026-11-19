@@ -7,6 +7,7 @@ import { z } from 'zod';
 import logger from '../../platform/logger';
 import { withTenantTransaction } from '../../platform/middleware/tenancy';
 import { requireRole } from '../middleware/require-role';
+import { sessionOnly } from '../middleware/session-only';
 import { encryptSecret } from '../../platform/crypto';
 
 /**
@@ -72,6 +73,8 @@ router.get('/api/environments', requireRole('viewer'), async (req, res) => {
           // Enough for the interface to say whether a saved login exists and how old it
           // is, without handing out the session itself.
           loginStateCapturedAt: environments.loginStateCapturedAt,
+          // Whether data fixtures may write on it (server/runtime/data-setup).
+          dataSetup: environments.dataSetup,
         })
         .from(environments)
         .orderBy(asc(environments.name)),
@@ -127,6 +130,59 @@ router.post('/api/environments', requireRole('editor'), async (req, res) => {
     res.status(500).json({ error: 'Failed to create environment' });
   }
 });
+
+const dataSetupSchema = z.object({ dataSetup: z.boolean() }).strict();
+
+/**
+ * Whether runs on this environment may write the data a test's fixtures find missing. An owner's
+ * decision, from a signed-in session only: it is what lets a test change a database, and an API
+ * key that runs tests must not be able to grant itself that.
+ */
+router.put(
+  '/api/environments/:id/data-setup',
+  requireRole('owner'),
+  sessionOnly('Owner action (put /api/environments/:id/data-setup)'),
+  async (req, res) => {
+    if (!req.isAuthenticated()) return res.status(401).json({ error: 'Unauthorized' });
+    const id = Number(req.params.id);
+    if (!Number.isInteger(id)) return res.status(400).json({ error: 'Invalid environment id' });
+    const parsed = dataSetupSchema.safeParse(req.body ?? {});
+    if (!parsed.success)
+      return res
+        .status(400)
+        .json({ error: 'Invalid data setup', details: flattenZodError(parsed.error) });
+    try {
+      const updated = await withTenantTransaction(async (tx) => {
+        const [before] = await tx
+          .select({ name: environments.name, dataSetup: environments.dataSetup })
+          .from(environments)
+          .where(eq(environments.id, id))
+          .limit(1);
+        if (!before) return null;
+        if (before.dataSetup === parsed.data.dataSetup) return before;
+        const [row] = await tx
+          .update(environments)
+          .set({ dataSetup: parsed.data.dataSetup })
+          .where(eq(environments.id, id))
+          .returning();
+        await recordAudit(tx, {
+          action: AUDIT_ACTIONS.ENVIRONMENT_DATA_SETUP_CHANGED,
+          actor: auditActor(req),
+          targetType: 'environment',
+          targetId: id,
+          metadata: { name: row.name, from: before.dataSetup, to: row.dataSetup },
+        });
+        return row;
+      });
+      // Under RLS another organization's environment is not there: 404, not a leak.
+      if (!updated) return res.status(404).json({ error: 'Environment not found' });
+      res.json({ id, dataSetup: updated.dataSetup });
+    } catch (error: any) {
+      logger.error({ message: 'Error changing data setup', error: error.message });
+      res.status(500).json({ error: 'Failed to change data setup' });
+    }
+  },
+);
 
 class EnvironmentInUseError extends Error {
   constructor(readonly schedules: string[]) {

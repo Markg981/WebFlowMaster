@@ -1,6 +1,6 @@
 import { and, eq, inArray } from 'drizzle-orm';
 import { privilegedDb } from '../platform/db';
-import { secrets as secretsTable, testDataSets } from '@shared/schema';
+import { environments, secrets as secretsTable, testDataSets } from '@shared/schema';
 import { dataVariables } from '@shared/test-data';
 import { decryptSecret } from '../platform/crypto';
 import logger from '../platform/logger';
@@ -56,6 +56,23 @@ function referencedSetNames(text: string | undefined): string[] | null {
  */
 export function defaultVariables(): Record<string, string> {
   return { baseUrl: process.env.APP_BASE_URL || process.env.DMO_BASE_URL || DEFAULT_BASE_URL };
+}
+
+/**
+ * Whether the environment allows data fixtures to write what they find missing
+ * (environments.data_setup). Scoped by organization, like the secrets: the id is the caller's.
+ */
+export async function environmentAllowsDataSetup(
+  organizationId: number,
+  environmentId: number | null | undefined,
+): Promise<boolean> {
+  if (!environmentId) return false;
+  const [row] = await privilegedDb
+    .select({ dataSetup: environments.dataSetup })
+    .from(environments)
+    .where(and(eq(environments.id, environmentId), eq(environments.organizationId, organizationId)))
+    .limit(1);
+  return row?.dataSetup === true;
 }
 
 export async function resolveVariables(scope: VariableScope): Promise<Record<string, string>> {

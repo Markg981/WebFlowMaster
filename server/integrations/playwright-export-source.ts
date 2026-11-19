@@ -43,6 +43,7 @@ interface Content {
   sequence: unknown;
   preconditions: unknown;
   cleanups: unknown;
+  dataFixtures?: unknown;
   dataset: unknown;
 }
 
@@ -121,6 +122,7 @@ export async function loadExportDefinition(
       sequence: prepared.steps as ExportableStep[],
       preconditions: (content.preconditions as ExportableTest['preconditions']) ?? null,
       cleanups: (content.cleanups as ExportableTest['cleanups']) ?? null,
+      dataFixtures: (content.dataFixtures as unknown[] | null) ?? null,
       dataset: content.dataset ?? null,
       source: picked.source,
     },

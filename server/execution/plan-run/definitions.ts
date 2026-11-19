@@ -256,6 +256,7 @@ async function uiDefinitions(
         elements: content.elements,
         preconditions: content.preconditions,
         cleanups: content.cleanups,
+        dataFixtures: content.dataFixtures ?? null,
         dataset: content.dataset,
         bdd: content.bdd as import('@shared/bdd').BddTest | null,
       } as Test);

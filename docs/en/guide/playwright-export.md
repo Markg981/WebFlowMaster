@@ -157,18 +157,19 @@ described. **unsupported** — the step needs WebFlowMaster: refused in strict m
 
 <div v-pre>
 
-| Feature                  | Support     | Area      | In the file                                                                       |
-| ------------------------ | ----------- | --------- | --------------------------------------------------------------------------------- |
-| frames                   | supported   | frame     | frameLocator chain, outermost first                                               |
-| tabs                     | supported   | tab       | switchTab/closeTab, handleDialog per tab                                          |
-| dataset                  | supported   | data      | one Playwright test per row, values as strings                                    |
-| datasetWithPreconditions | partial     | data      | a run makes the preconditions once for all rows; the file makes them once per row |
-| groups                   | supported   | group     | expanded before export, from the exported version's own dependencies              |
-| preconditions            | supported   | setup     | request fixture: check first, satisfiedStatuses, headers and body sent as written |
-| cleanups                 | supported   | cleanup   | in finally, each call attempted, 404/410 count as done, never fails the test      |
-| variables                | supported   | variables | `WFM_<NAME>` environment variables; an unset one fails the step that needs it     |
-| generators               | unsupported | variables | {{$random…}} values are made by WebFlowMaster                                     |
-| literalCredentials       | unsupported | secrets   | a credential written in a header or body is never copied into the file            |
+| Feature                  | Support     | Area      | In the file                                                                                                   |
+| ------------------------ | ----------- | --------- | ------------------------------------------------------------------------------------------------------------- |
+| frames                   | supported   | frame     | frameLocator chain, outermost first                                                                           |
+| tabs                     | supported   | tab       | switchTab/closeTab, handleDialog per tab                                                                      |
+| dataset                  | supported   | data      | one Playwright test per row, values as strings                                                                |
+| datasetWithPreconditions | partial     | data      | a run makes the preconditions once for all rows; the file makes them once per row                             |
+| groups                   | supported   | group     | expanded before export, from the exported version's own dependencies                                          |
+| preconditions            | supported   | setup     | request fixture: check first, satisfiedStatuses, headers and body sent as written                             |
+| cleanups                 | supported   | cleanup   | in finally, each call attempted, 404/410 count as done, never fails the test                                  |
+| dataFixtures             | unsupported | setup     | data fixtures run SQL on the environment's database from WebFlowMaster; the file expects the data to be there |
+| variables                | supported   | variables | `WFM_<NAME>` environment variables; an unset one fails the step that needs it                                 |
+| generators               | unsupported | variables | {{$random…}} values are made by WebFlowMaster                                                                 |
+| literalCredentials       | unsupported | secrets   | a credential written in a header or body is never copied into the file                                        |
 
 </div>
 

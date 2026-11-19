@@ -55,6 +55,8 @@ export interface ExportableTest {
   sequence: ExportableStep[];
   preconditions?: Precondition[] | null;
   cleanups?: Cleanup[] | null;
+  /** Only counted: a file cannot reach the application's database the way a run does. */
+  dataFixtures?: unknown[] | null;
   /** Rows to run over: one test per row. */
   dataset?: unknown;
   source?: ExportSource | null;
@@ -268,6 +270,11 @@ export const FEATURE_CONFORMANCE: Record<string, ConformanceRow & { area: Confor
     area: 'cleanup',
     support: 'supported',
     how: 'in finally, each call attempted, 404/410 count as done, never fails the test',
+  },
+  dataFixtures: {
+    area: 'setup',
+    support: 'unsupported',
+    how: "data fixtures run SQL against the environment's database from WebFlowMaster; the file expects the data to be there",
   },
   variables: {
     area: 'variables',
@@ -886,6 +893,14 @@ export function toPlaywright(
       );
     }
   }
+  if ((test.dataFixtures ?? []).length > 0)
+    find({
+      step: null,
+      area: 'setup',
+      support: 'unsupported',
+      label: 'data fixtures',
+      reason: FEATURE_CONFORMANCE.dataFixtures.how,
+    });
   if (GENERATOR.test(test.url ?? ''))
     find({
       step: null,

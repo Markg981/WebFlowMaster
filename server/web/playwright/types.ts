@@ -2,7 +2,7 @@ import type { AccessibilityFinding } from '@shared/accessibility';
 import type { DownloadFinding } from '@shared/downloads';
 import type { CheckpointCapture } from '@shared/comparison';
 import { type MatrixEvidence } from '@shared/matrix-evidence';
-import type { Cleanup, Precondition } from '@shared/schema';
+import type { Cleanup, DataFixture, Precondition } from '@shared/schema';
 import type { LighthouseFinding, PerformanceFinding } from '@shared/web-performance';
 import { type BrowserChoice } from '../../runtime/browsers';
 import { type EvidenceOptions } from '../../runtime/run-evidence';
@@ -189,6 +189,8 @@ export interface AdhocSequencePayload {
   preconditions?: Precondition[] | null;
   /** Same cleanup calls the scheduled runner makes after the test (server/runtime/cleanup-runner.ts). */
   cleanups?: Cleanup[] | null;
+  /** The data the test needs in the application's database (server/runtime/data-setup). */
+  dataFixtures?: DataFixture[] | null;
   /** Environment whose secrets resolve `{{name}}` placeholders, as picked in the builder. */
   environmentId?: number | null;
   /** Organization the environment must belong to — set by the route, never by the client. */

@@ -510,6 +510,7 @@ async function runDefinition(
         signal: unitSignal(scope),
         http: agentHttp?.fetch,
         evidenceDir,
+        dataSetup: variables.dataSetup,
         dependencies:
           testType === 'ui' && unit.link.testId
             ? scope.tests.dependencies.get(unit.link.testId)

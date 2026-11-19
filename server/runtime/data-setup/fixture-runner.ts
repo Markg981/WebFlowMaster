@@ -349,7 +349,6 @@ export function fixtureReportSteps(result: FixtureRunResult): Array<{
   status: 'passed' | 'failed';
   details: string;
   error?: string;
-  duration: number;
 }> {
   return result.steps.map((s) => {
     const outputs = Object.entries(s.outputs)
@@ -359,9 +358,8 @@ export function fixtureReportSteps(result: FixtureRunResult): Array<{
       name: `Data fixture: ${s.name}`,
       type: 'fixture',
       status: s.status === 'failed' ? 'failed' : 'passed',
-      details: `${s.status === 'satisfied' ? 'Already there' : s.status === 'applied' ? 'Created' : 'Failed'}: ${s.detail}${outputs ? `. ${outputs}` : ''}`,
+      details: `${s.status === 'satisfied' ? 'Already there' : s.status === 'applied' ? 'Created' : 'Failed'}: ${s.detail}${outputs ? `. ${outputs}` : ''} (${s.durationMs} ms)`,
       ...(s.status === 'failed' ? { error: s.detail } : {}),
-      duration: s.durationMs,
     };
   });
 }

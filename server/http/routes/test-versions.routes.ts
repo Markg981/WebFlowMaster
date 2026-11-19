@@ -303,6 +303,7 @@ router.post(
                   elements: snapshot.elements,
                   preconditions: snapshot.preconditions,
                   cleanups: snapshot.cleanups,
+                  dataFixtures: snapshot.dataFixtures ?? null,
                   bdd: snapshot.bdd as import('@shared/bdd').BddTest | null,
                   dataset: snapshot.dataset,
                   updatedAt: new Date(),

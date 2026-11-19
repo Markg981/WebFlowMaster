@@ -203,6 +203,7 @@ async function executableDefinitions(
       elements: testVersions.elements,
       preconditions: testVersions.preconditions,
       cleanups: testVersions.cleanups,
+      dataFixtures: testVersions.dataFixtures,
       dataset: testVersions.dataset,
       bdd: testVersions.bdd,
       snapshot: testVersions.snapshot,
