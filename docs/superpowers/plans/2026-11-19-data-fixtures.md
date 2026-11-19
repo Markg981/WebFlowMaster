@@ -74,6 +74,11 @@ them.
 7. Docs + collaudo: library CRUD, dependency chain on an empty database, cycle rejected,
    dry apply leaves no data.
 
+Status: done in PR (feat/data-fixtures-r2). Differences from the list above: migration 0117 (not
+0116, taken by release 1), table `data_fixture_library`; references are entries of
+`data_fixtures`, not a precondition kind; routes are internal, no API v1 yet; `scope` moves to
+release 4. See "Release 2 as built" in the design.
+
 ## Release 3: execution through the local agent (about 6 days)
 
 Outcome: fixtures and `queryDatabase` run on the agent when the plan uses an agent pool; the

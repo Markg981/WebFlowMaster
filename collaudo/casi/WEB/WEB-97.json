@@ -1,0 +1,18 @@
+{
+  "id": "WEB-97",
+  "area": "WEB",
+  "title": "Libreria delle data fixture: versioni, dipendenze in ordine, prova a secco senza dati, eliminazione bloccata se in uso",
+  "priority": "P1",
+  "actor": "owner.a",
+  "preconditions": "Database applicativo di prova con le tabelle customers(id serial, code text unique) e orders(id serial, customer_id int) vuote; ambiente QA con db.url verso quel database e Preparazione dati attiva; progetto Shop.",
+  "steps": [
+    "Aprire Data fixture nel menu laterale, progetto Shop, Nuova fixture: chiave customer, parametro code = C-1, verifica SELECT id FROM customers WHERE code = {{params.code}}, script INSERT INTO customers (code) VALUES ({{params.code}}), output id. Salvare.",
+    "Nuova fixture: chiave order, Richiede prima customer letta come customer, verifica SELECT id FROM orders WHERE customer_id = {{fx.customer.id}}, script INSERT INTO orders (customer_id) VALUES ({{fx.customer.id}}), output id. Salvare.",
+    "Aprire customer e aggiungere tra le fixture richieste order, letta come order. Salvare.",
+    "Aprire order, Prova sull'ambiente QA in modalità Prova a secco, poi in modalità Solo verifica.",
+    "Nel builder creare un test web nel progetto Shop: Aggiungi dalla libreria, progetto Shop, fixture order, versione Ultima; uno step che digita {{fx.order.id}}. Salvare ed eseguire sull'ambiente QA.",
+    "Modificare la verifica di customer (per esempio aggiungere AND id > 0) e salvare; riaprire il test, fissare la versione di order a v1, salvare ed eseguire di nuovo.",
+    "Tornare alla libreria ed eliminare customer."
+  ],
+  "expected": "1: la fixture è elencata come v1. 2: la scheda di order mostra la catena customer → order. 3: il salvataggio è rifiutato con la catena del ciclo customer → order → customer; customer resta a v1. 4: la prova a secco riporta customer e order Created, poi la verifica le riporta Missing: le tabelle restano vuote. 5: il report mostra lo step order__customer (customer v1) prima di order (order v1), entrambi Created; la riga di orders punta al cliente creato e lo step digita il suo id. 6: customer passa a v2 e l'elenco versioni ne mostra due; il report mostra order v1, ma la sua dipendenza come customer v2 (una versione fissata non fissa le dipendenze), entrambe Already there. 7: l'eliminazione è rifiutata e il messaggio nomina la fixture order; customer resta in libreria."
+}

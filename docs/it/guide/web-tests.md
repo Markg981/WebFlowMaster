@@ -545,6 +545,63 @@ Un'esecuzione con una fixture fallita viene riportata come bloccata, come per un
 fallita. Il report mostra uno step **Data fixture** per ognuna: già presente, creata, oppure il
 motivo del fallimento. L'[export Playwright](./playwright-export) non include le fixture.
 
+### La libreria del progetto {#libreria-fixture}
+
+Una fixture che serve a più test si scrive una volta sola, nella libreria del progetto, invece di
+copiarla in ogni test. Aprire **Data fixture** nel menu laterale, scegliere il progetto e premere
+**Nuova fixture**. Una fixture di libreria ha i campi descritti sopra, più una **chiave** (minuscola,
+per esempio `customer`, non modificabile dopo il salvataggio), una descrizione, dei tag e le fixture
+che **richiede prima**.
+
+**Versioni.** Se si salva una verifica, uno script, dei parametri, degli output o delle dipendenze
+modificati, la definizione precedente resta e se ne aggiunge una nuova versione, con una nota
+facoltativa su cosa cambia. Nome, descrizione e tag invece si modificano direttamente. L'editor
+elenca tutte le versioni.
+
+**Richiamarla da un test.** Nel builder, sotto **Data fixture**, **Aggiungi dalla libreria** permette
+di scegliere un progetto e una delle sue fixture. Il test conserva un riferimento, non una copia:
+
+| Impostazione | Che cosa fa                                                                                                            |
+| ------------ | ---------------------------------------------------------------------------------------------------------------------- |
+| Alias        | Il nome con cui si leggono i suoi output, come in <code v-pre>{{fx.customer.id}}</code>                                |
+| Versione     | **Ultima** segue ogni nuova versione; un numero come `v2` resta su quella versione finché non lo si cambia             |
+| Valori       | Un valore per uno dei parametri della fixture, solo per questo test; un campo vuoto mantiene il default della libreria |
+
+Il test va salvato nel progetto da cui vengono i riferimenti: un riferimento alla fixture di un altro
+progetto viene rifiutato al salvataggio. Quando un'esecuzione viene messa in coda, **Ultima** diventa
+la versione corrente in quel momento: una nuova versione salvata mentre l'esecuzione aspetta non la
+cambia. Se un riferimento non si risolve più, perché la fixture o la versione fissata è stata
+eliminata, l'esecuzione viene bloccata con il motivo.
+
+**Dipendenze.** Una fixture può richiederne altre prima: un ordine richiede un cliente. Sotto
+**Richiede prima** si sceglie la fixture, il nome con cui leggerla (`customer`) e, se serve, i valori
+dei suoi parametri; l'SQL legge poi <code v-pre>{{fx.customer.id}}</code>. Leggere una fixture che non
+è in quell'elenco viene rifiutato al salvataggio, e così un ciclo (`a` richiede `b`, che richiede
+`a`), con la catena indicata. In esecuzione le dipendenze girano prima della fixture che le richiede,
+ognuna una sola volta anche quando due fixture la richiedono con gli stessi valori. Una dipendenza gira sempre alla sua versione corrente: fissare `order` a
+`v1` fissa `order`, non il `customer` che richiede. Nel report lo step
+di una dipendenza porta il nome della fixture che la richiede (`order__customer`) e mostra chiave e
+versione della libreria, per esempio `customer v2`.
+
+**Chi la usa.** L'editor elenca i test e le fixture che richiamano una fixture. Una fixture ancora
+richiamata non si può eliminare; il messaggio dice chi la richiama.
+
+**Prova.** Nell'editor, **Prova** esegue la fixture e le sue dipendenze sul database di un ambiente,
+dal server, senza eseguire un test:
+
+- **Solo verifica** esegue le verifiche e non scrive nulla. Riporta ogni fixture come trovata o
+  mancante.
+- **Prova a secco** esegue anche gli script, poi annulla tutto. Richiede un ambiente con
+  **Preparazione dati** attiva, come un'esecuzione vera.
+
+Su MySQL e MariaDB un'istruzione come `CREATE TABLE` o `ALTER TABLE` fa subito commit, quindi una
+prova a secco non può annullarla: le modifiche di schema vanno tenute fuori dagli script delle
+fixture, oppure provate su un database sacrificabile.
+
+Un [export come file](./organizing#test-come-file) porta con sé i riferimenti del test, non la libreria: importati
+in un'altra organizzazione, richiamano fixture che lì non esistono, e l'esecuzione resta bloccata
+finché i riferimenti non vengono aggiunti di nuovo dalla libreria di quell'organizzazione.
+
 ## Precondizioni
 
 Le **precondizioni** sono chiamate API eseguite prima degli step, per portare l'applicazione nello
