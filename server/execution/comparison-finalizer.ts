@@ -6,6 +6,7 @@ import { ADVISORY_KEYS, withAdvisoryLock } from '../platform/advisory-lock';
 import { runDetachedForOrganization } from '../platform/middleware/tenancy';
 import { isTerminalExecutionStatus, onExecutionTransition } from './execution-state';
 import { readExecutionSnapshot } from './execution-snapshot';
+import { QUEUE_SUBMISSION_FAILED } from './execution-outbox';
 import type { ComparisonOrchestrator } from './comparison-orchestrator';
 
 /**
@@ -30,9 +31,17 @@ function advanceLogged(orchestrator: Advancer, organizationId: number, compariso
   );
 }
 
-/** The comparison a run belongs to, when it has ended. */
+/**
+ * The comparison a run belongs to, when it has ended.
+ *
+ * A run the queue refused (QUEUE_SUBMISSION_FAILED) is not one: it never reached a worker, and
+ * whoever submitted it was just told so. Advancing the comparison on it would submit the same run
+ * again at once, be refused again and end it again — with Redis down, a loop with no pause that
+ * filled the log at dozens of lines a second. The sweep, which waits between passes, retries it.
+ */
 export function comparisonOfEndedRun(execution: TestPlanExecution): string | null {
   if (!isTerminalExecutionStatus(execution.status)) return null;
+  if (execution.failureCode === QUEUE_SUBMISSION_FAILED) return null;
   return readExecutionSnapshot(execution.configurationSnapshot)?.comparison?.id ?? null;
 }
 

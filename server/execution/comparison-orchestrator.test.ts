@@ -541,4 +541,33 @@ describe('the finalizer', () => {
       off();
     }
   });
+
+  it('leaves a run the queue refused to the sweep instead of resubmitting it at once', async () => {
+    // Redis down: every job is refused, and the refused run is ended in error. Advancing the
+    // comparison on that end submitted the same run again at once, without pause, for ever.
+    const refusing = {
+      add: async () => {
+        throw new Error('Connection is closed.');
+      },
+    };
+    const orchestrator = createComparisonOrchestrator({
+      executions: createExecutionOrchestrator(refusing as any),
+      engine,
+      notify,
+    });
+    const advance = vi.fn((id: string) => orchestrator.advance(id));
+    const off = registerComparisonFinalizer({ advance });
+    try {
+      await expect(create(orchestrator)).rejects.toMatchObject({ status: 503 });
+      await new Promise((resolve) => setTimeout(resolve, 300));
+      expect(advance).not.toHaveBeenCalled();
+
+      const [row] = await privilegedDb.select().from(comparisonRuns);
+      expect(row.status).toBe('queued');
+      const [run] = await privilegedDb.select().from(testPlanExecutions);
+      expect(run).toMatchObject({ status: 'error', failureCode: 'queue_submission_failed' });
+    } finally {
+      off();
+    }
+  });
 });
