@@ -2978,6 +2978,32 @@
     "help": "Help",
     "helpForPage": "Help for this page (opens the manual)"
   },
+  "dataFixtures": {
+    "title": "Data fixtures",
+    "description": "The data this test needs in the application's database. Each check runs first; only when it finds nothing, and the environment allows data setup, does the script run, in one transaction.",
+    "empty": "No data fixtures. The test runs against whatever data the database holds.",
+    "untitled": "Untitled fixture",
+    "name": "Name",
+    "namePlaceholder": "e.g. A customer with an open order",
+    "alias": "Alias",
+    "connection": "Database",
+    "params": "Parameters",
+    "paramName": "Parameter name",
+    "paramType": "Parameter type",
+    "paramValue": "Parameter value",
+    "addParam": "Add parameter",
+    "removeParam": "Remove parameter",
+    "check": "Check (SELECT)",
+    "apply": "Script, when the check finds nothing",
+    "applyHint": "Separate statements with a line holding GO. Values go in as {{param}} or {{variable}}, never inside quotes.",
+    "outputs": "Outputs",
+    "outputsHint": "Columns of the check's first row, for the steps as {{example}}.",
+    "timeout": "Timeout (seconds)",
+    "add": "Add data fixture",
+    "remove": "Remove data fixture",
+    "moveUp": "Move up",
+    "moveDown": "Move down"
+  },
   "environments": {
     "newEnvironmentPlaceholder": "New environment (e.g. Staging)",
     "add": "Add",
@@ -3005,7 +3031,14 @@
       "description": "Tests that reference {{key}} in this environment will no longer resolve it. This cannot be undone."
     },
     "deleteEnv": "Delete environment {{name}}",
-    "deleteSecret": "Delete secret {{key}}"
+    "deleteSecret": "Delete secret {{key}}",
+    "dataSetup": {
+      "label": "Data setup",
+      "description": "Lets runs on this environment create the data a test's fixtures find missing in the application database. While off, fixtures only check.",
+      "ownerOnly": "Only an owner can change this.",
+      "toastOn": "Data setup turned on",
+      "toastOff": "Data setup turned off"
+    }
   },
   "testReportPage": {
     "cancel": {

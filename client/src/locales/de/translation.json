@@ -2978,6 +2978,32 @@
     "help": "Hilfe",
     "helpForPage": "Hilfe zu dieser Seite (öffnet das Handbuch)"
   },
+  "dataFixtures": {
+    "title": "Daten-Fixtures",
+    "description": "Die Daten, die dieser Test in der Anwendungsdatenbank braucht. Jede Prüfung läuft zuerst; nur wenn sie nichts findet und die Umgebung Datenvorbereitung erlaubt, läuft das Skript, in einer Transaktion.",
+    "empty": "Keine Daten-Fixtures. Der Test läuft mit den Daten, die die Datenbank enthält.",
+    "untitled": "Fixture ohne Namen",
+    "name": "Name",
+    "namePlaceholder": "z. B. Ein Kunde mit offener Bestellung",
+    "alias": "Alias",
+    "connection": "Datenbank",
+    "params": "Parameter",
+    "paramName": "Parametername",
+    "paramType": "Parametertyp",
+    "paramValue": "Parameterwert",
+    "addParam": "Parameter hinzufügen",
+    "removeParam": "Parameter entfernen",
+    "check": "Prüfung (SELECT)",
+    "apply": "Skript, wenn die Prüfung nichts findet",
+    "applyHint": "Anweisungen mit einer Zeile GO trennen. Werte als {{param}} oder {{variable}} einsetzen, nie in Anführungszeichen.",
+    "outputs": "Ausgaben",
+    "outputsHint": "Spalten der ersten Zeile der Prüfung, für die Schritte als {{example}}.",
+    "timeout": "Timeout (Sekunden)",
+    "add": "Daten-Fixture hinzufügen",
+    "remove": "Daten-Fixture entfernen",
+    "moveUp": "Nach oben",
+    "moveDown": "Nach unten"
+  },
   "environments": {
     "newEnvironmentPlaceholder": "Neue Umgebung (z. B. Staging)",
     "add": "Hinzufügen",
@@ -3005,7 +3031,14 @@
       "description": "Tests, die {{key}} in dieser Umgebung verwenden, können es nicht mehr auflösen. Das lässt sich nicht rückgängig machen."
     },
     "deleteEnv": "Umgebung {{name}} löschen",
-    "deleteSecret": "Geheimnis {{key}} löschen"
+    "deleteSecret": "Geheimnis {{key}} löschen",
+    "dataSetup": {
+      "label": "Datenvorbereitung",
+      "description": "Erlaubt Läufen in dieser Umgebung, die Daten anzulegen, die die Fixtures eines Tests in der Anwendungsdatenbank nicht finden. Ausgeschaltet prüfen Fixtures nur.",
+      "ownerOnly": "Nur ein Owner kann das ändern.",
+      "toastOn": "Datenvorbereitung eingeschaltet",
+      "toastOff": "Datenvorbereitung ausgeschaltet"
+    }
   },
   "testReportPage": {
     "cancel": {

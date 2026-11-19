@@ -5,13 +5,14 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Key, Plus, Trash2, Loader2, ChevronDown, ChevronRight } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { apiRequest, errorMessage } from '@/lib/queryClient';
 import { useEnvironments, type EnvironmentSummary } from '@/hooks/use-environments';
 
-export default function EnvironmentsCard() {
+export default function EnvironmentsCard({ isOwner = false }: { isOwner?: boolean }) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [newEnvName, setNewEnvName] = useState('');
@@ -62,6 +63,26 @@ export default function EnvironmentsCard() {
       toast({ title: t('environments.toast.deleted') });
     },
     onSettled: () => setDeletingEnv(null),
+  });
+
+  // Whether runs on it may write data (server/runtime/data-setup). Off until an owner says so.
+  const dataSetupMutation = useMutation({
+    mutationFn: async (data: { id: number; dataSetup: boolean }) => {
+      const res = await apiRequest('PUT', `/api/environments/${data.id}/data-setup`, {
+        dataSetup: data.dataSetup,
+      });
+      return res.json();
+    },
+    onSuccess: (_, data) => {
+      queryClient.invalidateQueries({ queryKey: ['environments'] });
+      toast({
+        title: data.dataSetup
+          ? t('environments.dataSetup.toastOn')
+          : t('environments.dataSetup.toastOff'),
+      });
+    },
+    onError: (error: unknown) =>
+      toast({ title: t('common.error'), description: errorMessage(error), variant: 'destructive' }),
   });
 
   const createSecretMutation = useMutation({
@@ -170,6 +191,29 @@ export default function EnvironmentsCard() {
                 {/* Secrets Panel */}
                 {expandedEnv === env.id && (
                   <div className="p-4 bg-background/50 space-y-4">
+                    <div className="flex items-start justify-between gap-4 rounded border bg-card p-3">
+                      <div className="space-y-1">
+                        <Label htmlFor={`data-setup-${env.id}`}>
+                          {t('environments.dataSetup.label')}
+                        </Label>
+                        <p className="text-xs text-muted-foreground">
+                          {t('environments.dataSetup.description')}
+                        </p>
+                        {!isOwner && (
+                          <p className="text-xs text-muted-foreground">
+                            {t('environments.dataSetup.ownerOnly')}
+                          </p>
+                        )}
+                      </div>
+                      <Switch
+                        id={`data-setup-${env.id}`}
+                        checked={env.dataSetup === true}
+                        disabled={!isOwner || dataSetupMutation.isPending}
+                        onCheckedChange={(checked) =>
+                          dataSetupMutation.mutate({ id: env.id, dataSetup: checked })
+                        }
+                      />
+                    </div>
                     {isLoadingSecrets ? (
                       <Loader2 className="h-4 w-4 animate-spin" />
                     ) : secrets.length === 0 ? (

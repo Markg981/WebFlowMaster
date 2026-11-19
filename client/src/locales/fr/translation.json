@@ -2978,6 +2978,32 @@
     "help": "Aide",
     "helpForPage": "Aide sur cette page (ouvre le manuel)"
   },
+  "dataFixtures": {
+    "title": "Fixtures de données",
+    "description": "Les données dont ce test a besoin dans la base de l'application. Chaque vérification s'exécute d'abord ; seulement si elle ne trouve rien, et si l'environnement autorise la préparation des données, le script s'exécute, en une seule transaction.",
+    "empty": "Aucune fixture de données. Le test s'exécute sur les données présentes dans la base.",
+    "untitled": "Fixture sans nom",
+    "name": "Nom",
+    "namePlaceholder": "ex. Un client avec une commande ouverte",
+    "alias": "Alias",
+    "connection": "Base de données",
+    "params": "Paramètres",
+    "paramName": "Nom du paramètre",
+    "paramType": "Type du paramètre",
+    "paramValue": "Valeur du paramètre",
+    "addParam": "Ajouter un paramètre",
+    "removeParam": "Retirer le paramètre",
+    "check": "Vérification (SELECT)",
+    "apply": "Script, quand la vérification ne trouve rien",
+    "applyHint": "Séparez les instructions par une ligne contenant GO. Les valeurs s'écrivent {{param}} ou {{variable}}, jamais entre guillemets.",
+    "outputs": "Sorties",
+    "outputsHint": "Colonnes de la première ligne de la vérification, pour les étapes sous la forme {{example}}.",
+    "timeout": "Délai (secondes)",
+    "add": "Ajouter une fixture de données",
+    "remove": "Retirer la fixture de données",
+    "moveUp": "Monter",
+    "moveDown": "Descendre"
+  },
   "environments": {
     "newEnvironmentPlaceholder": "Nouvel environnement (ex. Staging)",
     "add": "Ajouter",
@@ -3005,7 +3031,14 @@
       "description": "Les tests qui utilisent {{key}} dans cet environnement ne pourront plus le résoudre. Cette action est irréversible."
     },
     "deleteEnv": "Supprimer l'environnement {{name}}",
-    "deleteSecret": "Supprimer le secret {{key}}"
+    "deleteSecret": "Supprimer le secret {{key}}",
+    "dataSetup": {
+      "label": "Préparation des données",
+      "description": "Permet aux exécutions sur cet environnement de créer dans la base de l'application les données que les fixtures d'un test ne trouvent pas. Désactivée, les fixtures ne font que vérifier.",
+      "ownerOnly": "Seul un owner peut la modifier.",
+      "toastOn": "Préparation des données activée",
+      "toastOff": "Préparation des données désactivée"
+    }
   },
   "testReportPage": {
     "cancel": {
