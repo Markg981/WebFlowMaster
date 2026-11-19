@@ -65,7 +65,7 @@ export type HubJobStatus = 'queued' | 'running' | 'succeeded' | 'failed' | 'canc
 
 export interface HubJob {
   id: string;
-  kind: 'waves_sync' | 'wave_import';
+  kind: 'waves_sync' | 'wave_import' | 'modules_import';
   status: HubJobStatus;
   params: Record<string, unknown>;
   progress: { phase?: string; done?: number; total?: number; current?: string | null };
@@ -226,11 +226,12 @@ export function useHubJob(jobId: string | null) {
   useEffect(() => {
     if (!endedId) return;
     void queryClient.invalidateQueries({ queryKey: HUB_WAVES_KEY });
-    if (endedKind === 'wave_import') {
+    if (endedKind === 'wave_import' || endedKind === 'modules_import') {
       for (const key of [
         ['/api/testcase-hub/cases'],
         ['/api/testcase-hub/facets'],
         ['/api/tests'],
+        ['/api/suites'],
         ['/api/test-plans'],
       ])
         void queryClient.invalidateQueries({ queryKey: key });
@@ -250,6 +251,38 @@ export function useImportHubWaves() {
   return useMutation({
     mutationFn: (input: HubWaveImportParams) =>
       json<HubJob>('POST', '/api/testcase-hub/waves/import', input),
+  });
+}
+
+/** Every case of the chosen modules not in the library yet, imported module by module. */
+export interface HubModuleImportInput {
+  modules: string[];
+  projectId: number | null;
+  variant: 'standard' | 'reference';
+  includeDeprecated: boolean;
+  updateChanged: boolean;
+}
+
+/** What a finished module import did, as its job summary holds it. */
+export interface HubModuleImportSummary {
+  modules: Array<{
+    module: string;
+    requested: number;
+    created: number;
+    updated: number;
+    unchanged: number;
+    skipped: number;
+  }>;
+  created: number;
+  updated: number;
+  unchanged: number;
+  skipped: number;
+}
+
+export function useImportHubModules() {
+  return useMutation({
+    mutationFn: (input: HubModuleImportInput) =>
+      json<HubJob>('POST', '/api/testcase-hub/import/modules', input),
   });
 }
 

@@ -4052,7 +4052,27 @@
       "wave_not_found": "La wave non esiste.",
       "job_running": "Un job dell’hub è già in corso: attendi che finisca.",
       "no_linked_tests": "Nessuno dei casi scelti è ancora un test: importa prima la wave.",
-      "too_many_waves": "L’hub contiene più wave di quante una sincronizzazione ne possa leggere."
+      "too_many_waves": "L’hub contiene più wave di quante una sincronizzazione ne possa leggere.",
+      "module_not_found": "Uno o più moduli non sono nel catalogo. Aggiornalo e riprova."
+    },
+    "modules": {
+      "open": "Importa moduli…",
+      "title": "Importa moduli",
+      "description": "Ogni caso dei moduli scelti che non è ancora un test diventa un test manuale, nella suite “QA hub · <modulo>”. I casi già importati restano come sono.",
+      "modules": "Moduli",
+      "all": "Seleziona tutti",
+      "none": "Deseleziona tutti",
+      "empty": "Il catalogo non ha ancora moduli. Aggiornalo prima.",
+      "module": "Modulo",
+      "active": "Attivi",
+      "inLibrary": "In libreria",
+      "toImport": "Da importare",
+      "includeDeprecated": "Includi i casi deprecati",
+      "updateChanged": "Aggiorna anche i test il cui caso è cambiato nell’hub",
+      "tooMany": "Importa al massimo {{max}} moduli alla volta.",
+      "submit": "Importa {{count}} casi",
+      "done": "Moduli importati",
+      "doneSummary": "{{modules}} moduli: {{created}} test creati, {{updated}} aggiornati, {{skipped}} casi saltati."
     }
   },
   "hubWaves": {
@@ -4129,7 +4149,8 @@
       "syncFailed": "Non è stato possibile leggere le wave",
       "failedDetail": "Il job non è stato completato. Riprova, oppure controlla la connessione all’hub nelle Impostazioni.",
       "pollFailed": "Impossibile leggere lo stato del job",
-      "pollFailedDetail": "La connessione al server è caduta o il job non esiste più. Puoi riavviarlo."
+      "pollFailedDetail": "La connessione al server è caduta o il job non esiste più. Puoi riavviarlo.",
+      "importingModules": "Importazione dei moduli…"
     },
     "import": {
       "title_one": "Importa {{count}} wave",

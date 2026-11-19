@@ -89,8 +89,20 @@ export interface HubFacet<T = string> {
   count: number;
 }
 
+/** One module of the catalog: its cases, and how many of them the library has. */
+export interface HubModuleCoverage {
+  module: string;
+  total: number;
+  active: number;
+  imported: number;
+  importedActive: number;
+  changed: number;
+}
+
 export interface HubFacets {
   modules: HubFacet[];
+  /** Absent from a server older than the module import. */
+  moduleCoverage?: HubModuleCoverage[];
   statuses: HubFacet[];
   priorities: HubFacet<string | null>[];
   readiness: HubFacet<number>[];
