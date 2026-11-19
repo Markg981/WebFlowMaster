@@ -98,6 +98,20 @@ export type ComparisonCancellation =
 /** A baseline that ended this way lets the candidate start, in sequential mode. */
 const BASELINE_DONE = new Set(['completed', 'failed', 'timed_out']);
 
+/**
+ * How much longer the candidate of a sequential comparison waits after its baseline ended. A
+ * baseline without an end time has nothing to count from, and does not hold the candidate back.
+ */
+export function candidateDelayRemainingMs(
+  comparison: Pick<ComparisonRun, 'candidateDelaySeconds'>,
+  baseline: Pick<TestPlanExecution, 'completedAt'>,
+  nowMs: number,
+): number {
+  const delayMs = (comparison.candidateDelaySeconds ?? 0) * 1000;
+  if (delayMs <= 0 || !baseline.completedAt) return 0;
+  return Math.max(0, new Date(baseline.completedAt).getTime() + delayMs - nowMs);
+}
+
 const MAX_FAILURE_MESSAGE = 2000;
 
 function statusOf(error: unknown): number {
@@ -328,9 +342,11 @@ export function createComparisonOrchestrator({
           'baseline_error',
           baseline.failureMessage ?? 'The baseline run ended in error.',
         );
-      if (comparison.mode === 'parallel' || BASELINE_DONE.has(baseline.status))
-        return startCandidate(comparison, baseline);
-      return comparison; // Sequential: the candidate waits for the baseline to end.
+      if (comparison.mode === 'parallel') return startCandidate(comparison, baseline);
+      if (!BASELINE_DONE.has(baseline.status)) return comparison; // Sequential: it waits for the baseline.
+      // The sweep comes back for one still in its delay.
+      if (candidateDelayRemainingMs(comparison, baseline, Date.now()) > 0) return comparison;
+      return startCandidate(comparison, baseline);
     }
 
     const candidate = await readExecution(comparison.candidateExecutionId);
@@ -478,6 +494,7 @@ export function createComparisonOrchestrator({
             candidateUrl: input.candidateUrl ?? null,
             recordedUrl: input.recordedUrl ?? null,
             mode: input.mode,
+            candidateDelaySeconds: input.candidateDelaySeconds ?? 0,
             policy: ComparisonPolicySchema.parse(input.policy ?? {}),
             status: 'queued',
             idempotencyKey: key,

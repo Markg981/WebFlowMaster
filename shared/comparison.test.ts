@@ -57,6 +57,21 @@ describe('CreateComparisonSchema', () => {
     expect(parsed.success).toBe(false);
   });
 
+  it('takes a candidate delay only for a sequential comparison', () => {
+    const sides = { baselineEnvironmentId: 1, candidateEnvironmentId: 2 };
+    expect(CreateComparisonSchema.parse({ ...sides, candidateDelaySeconds: 600 })).toMatchObject({
+      candidateDelaySeconds: 600,
+    });
+    for (const extra of [
+      { mode: 'parallel', candidateDelaySeconds: 60 },
+      { candidateDelaySeconds: -1 },
+      { candidateDelaySeconds: 7201 },
+      { candidateDelaySeconds: 1.5 },
+    ]) {
+      expect(CreateComparisonSchema.safeParse({ ...sides, ...extra }).success).toBe(false);
+    }
+  });
+
   it('takes a URL per side, normalized, with or without environments', () => {
     const body = CreateComparisonSchema.parse({
       baselineEnvironmentId: 1,

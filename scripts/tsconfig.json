@@ -39,6 +39,8 @@
     // ...and sizes its pool from the environment.
     "../server/platform/db-pool-settings.ts",
     "../server/platform/pool-errors.ts",
+    // ...and watches the PGlite client's lock in local runs.
+    "../server/platform/pglite-watchdog.ts",
     // ...and logs through the application logger, with what that formats lines with.
     "../server/platform/logger.ts",
     "../server/platform/loki-transport.ts",
