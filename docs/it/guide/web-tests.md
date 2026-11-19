@@ -492,6 +492,59 @@ parte — e **Rimuovi simulazioni** toglie tutto ciò che è stato impostato.
 
 Riguarda solo ciò che chiede la pagina: precondizioni, pulizia e test API vanno ai server veri.
 
+## Data fixture {#data-fixture}
+
+Una **data fixture** è un dato di cui il test ha bisogno nel database dell'applicazione. Uno script
+lo verifica prima dell'esecuzione e, se manca, lo crea: così il test passa anche su un database
+vuoto. Si aggiungono nel builder, sotto **Data fixture**. Girano nell'ordine dell'elenco, prima
+delle [precondizioni](#precondizioni). Ognuna ha:
+
+| Campo     | Che cos'è                                                                                                                                                                                |
+| --------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Verifica  | Una `SELECT` che trova il dato. Se restituisce una riga il dato c'è e non si scrive nulla                                                                                                |
+| Script    | Ciò che crea il dato quando la verifica non trova nulla. Più istruzioni si separano con una riga che contiene `GO`; l'intero script gira in un'unica transazione                         |
+| Parametri | Valori con nome e tipo (`string`, `int`, `decimal`, `bool`, `date`) che verifica e script usano come <code v-pre>{{params.nome}}</code>; un valore può essere un generatore              |
+| Output    | Colonne della prima riga della verifica, disponibili agli step e alle fixture successive come <code v-pre>{{fx.alias.colonna}}</code>, per esempio <code v-pre>{{fx.customer.id}}</code> |
+| Database  | Vuoto per `db.url`; un nome come `crm` per `db.crm.url`                                                                                                                                  |
+
+Dopo lo script la verifica gira di nuovo, nella stessa transazione. Se ancora non trova nulla, lo
+script non ha creato ciò che serve al test e tutto viene annullato. Se due esecuzioni hanno bisogno
+dello stesso dato nello stesso momento, una aspetta l'altra invece di crearlo due volte.
+
+```sql
+-- Verifica
+SELECT id FROM customers WHERE email = {{params.email}}
+-- Script
+INSERT INTO customers (email) VALUES ({{params.email}})
+GO
+INSERT INTO carts (customer_id) SELECT id FROM customers WHERE email = {{params.email}}
+```
+
+**I valori sono legati come parametri, non incollati.** A differenza dello step Query al database,
+una fixture passa i valori <code v-pre>{{…}}</code> al database come parametri, quindi un valore non
+può cambiare ciò che fa un'istruzione. Vanno scritti senza apici, come sopra. Un segnaposto tra
+apici, o al posto del nome di una tabella o di una colonna, viene rifiutato al salvataggio del test.
+Un generatore come <code v-pre>{{$randomEmail}}</code> dà lo stesso valore alla verifica e allo
+script. Le fixture leggono le variabili dell'ambiente, <code v-pre>{{run.id}}</code> e
+<code v-pre>{{run.tag}}</code>, ma non le righe di un [dataset](#dataset): preparano i dati una
+volta sola, per tutte le righe.
+
+**Scrivere è una decisione dell'owner.** Un ambiente scrive solo se **Preparazione dati** è attiva,
+in **Impostazioni → Ambienti**. È disattivata su ogni ambiente finché un owner non la attiva, e la
+modifica viene registrata nel log di audit. Se è disattivata e la verifica di una fixture non trova
+nulla, l'esecuzione si ferma senza scrivere.
+
+**Quale database.** Una fixture scrive con `db.setup.url` (o `db.<nome>.setup.url`) se l'ambiente lo
+ha, altrimenti con `db.url`. Così l'utente che può scrivere i dati di test resta distinto da quello
+con cui leggono gli step. Se `db.expect` (o `db.<nome>.expect`) contiene il nome del database, o
+`DATABASE@SERVER`, e l'indirizzo raggiunge un altro database, non si scrive nulla. L'SQL gira dal
+server WebFlowMaster, che deve raggiungere il database, anche quando il browser gira su un agent
+locale.
+
+Un'esecuzione con una fixture fallita viene riportata come bloccata, come per una precondizione
+fallita. Il report mostra uno step **Data fixture** per ognuna: già presente, creata, oppure il
+motivo del fallimento. L'[export Playwright](./playwright-export) non include le fixture.
+
 ## Precondizioni
 
 Le **precondizioni** sono chiamate API eseguite prima degli step, per portare l'applicazione nello

@@ -434,6 +434,7 @@ export interface RunnableContent {
   elements: unknown;
   preconditions: unknown;
   cleanups: unknown;
+  dataFixtures?: unknown;
   dataset: unknown;
   bdd?: unknown;
   snapshot?: Record<string, unknown>;
@@ -475,6 +476,7 @@ export async function publishedContentOf(
       elements: version.elements,
       preconditions: version.preconditions,
       cleanups: version.cleanups,
+      dataFixtures: version.dataFixtures,
       dataset: version.dataset,
       bdd: version.bdd,
     });

@@ -6,6 +6,8 @@ import { playwrightService } from '../web/playwright-service';
 import type { Test, ApiTest, Precondition, Cleanup } from '@shared/schema';
 import { runPreconditions } from '../runtime/precondition-runner';
 import { cleanupReportStep, runCleanups } from '../runtime/cleanup-runner';
+import { fixtureReportSteps, runDataFixtures } from '../runtime/data-setup/fixture-runner';
+import type { DataFixture } from '@shared/schema';
 import type { StepResult } from '../web/playwright-service';
 import logger from '../platform/logger';
 import fs from 'fs-extra';
@@ -117,6 +119,11 @@ export interface RunTestOptions {
   dependencies?: FrozenDependencies;
   /** The attempt of the run's manifest this try is: a healing proposal names it. */
   attempt?: ExecutionAttemptRef;
+  /**
+   * Whether the environment allows data fixtures to write what they find missing
+   * (environments.data_setup). Absent or false: fixtures only check.
+   */
+  dataSetup?: boolean;
 }
 
 /** The screenshot that says most about a run of steps: a visual failure's diff, else the last one. */
@@ -229,36 +236,20 @@ export async function runTest(
     try {
       await fs.ensureDir(screenshotBaseDir);
 
-      // Establish preconditions (ordered API setup calls) before the UI sequence, so the
-      // system under test is in the required state. Fail-fast: if setup fails, the test
-      // is blocked (reported as 'error'), not a misleading pass/fail.
-      const preResult = await runPreconditions(
-        (uiTest as unknown as { preconditions?: Precondition[] | null }).preconditions,
-        vars,
-        options?.http,
-      );
-      if (!preResult.ok && options?.onPreconditionFailure === 'continue') {
-        // "Continue Anyway": the test runs from whatever state the application is in, and
-        // says so, because a failure after this may be the setup's rather than the test's.
-        getWsEmitter().emitExecutionLog(runId, {
-          level: 'warn',
-          source: 'system',
-          message:
-            `"${uiTest.name}": precondition "${preResult.failedAt}" failed (${preResult.reason}); ` +
-            `running the test anyway, as this plan asks.`,
-          timestamp: new Date().toISOString(),
-        });
-      } else if (!preResult.ok) {
-        const durationMs = Date.now() - startTime;
-        const reason = `Precondition failed at "${preResult.failedAt}": ${preResult.reason}`;
+      // The data fixtures' lines, first in the test's steps.
+      const setupSteps: StepResult[] = [];
+      // What a blocked test reports, the same for a data fixture and a precondition: the plan's
+      // prerequisite policy decides whether it is an error, a skip, or run anyway.
+      const blocked = (what: string, failedAt: string | undefined, why: string | undefined) => {
+        const reason = `${what} failed at "${failedAt}": ${why}`;
         logger.warn({
-          message: 'UI Test blocked: precondition failed',
+          message: `UI Test blocked: ${what.toLowerCase()} failed`,
           testId,
           testName,
           planId,
           runId,
-          failedAt: preResult.failedAt,
-          reason: preResult.reason,
+          failedAt,
+          reason: why,
         });
         const skipped = options?.onPreconditionFailure === 'skip';
         return withCleanup({
@@ -270,9 +261,49 @@ export async function runTest(
           status: skipped ? 'skipped' : 'error',
           blockedByPrecondition: true,
           error: skipped ? `Skipped: ${reason}` : reason,
-          durationMs,
+          durationMs: Date.now() - startTime,
+          ...(setupSteps.length > 0 ? { steps: setupSteps } : {}),
         });
+      };
+      const runAnyway = (what: string, failedAt: string | undefined, why: string | undefined) =>
+        // "Continue Anyway": the test runs from whatever state the application is in, and
+        // says so, because a failure after this may be the setup's rather than the test's.
+        getWsEmitter().emitExecutionLog(runId, {
+          level: 'warn',
+          source: 'system',
+          message:
+            `"${uiTest.name}": ${what.toLowerCase()} "${failedAt}" failed (${why}); ` +
+            `running the test anyway, as this plan asks.`,
+          timestamp: new Date().toISOString(),
+        });
+
+      // The data the test needs in the application's database (server/runtime/data-setup),
+      // checked and, where the environment allows it, created, before anything else: the API
+      // preconditions and the steps may use what a fixture found as {{fx.<alias>.<column>}}.
+      const fixtures = (uiTest as unknown as { dataFixtures?: DataFixture[] | null }).dataFixtures;
+      if (fixtures && fixtures.length > 0) {
+        const fx = await runDataFixtures(fixtures, vars, {
+          dataSetup: options?.dataSetup === true,
+          signal: options?.signal,
+        });
+        setupSteps.push(...(fixtureReportSteps(fx) as StepResult[]));
+        vars = { ...vars, ...fx.variables };
+        if (!fx.ok && options?.onPreconditionFailure === 'continue')
+          runAnyway('Data fixture', fx.failedAt, fx.reason);
+        else if (!fx.ok) return blocked('Data fixture', fx.failedAt, fx.reason);
       }
+
+      // Establish preconditions (ordered API setup calls) before the UI sequence, so the
+      // system under test is in the required state. Fail-fast: if setup fails, the test
+      // is blocked (reported as 'error'), not a misleading pass/fail.
+      const preResult = await runPreconditions(
+        (uiTest as unknown as { preconditions?: Precondition[] | null }).preconditions,
+        vars,
+        options?.http,
+      );
+      if (!preResult.ok && options?.onPreconditionFailure === 'continue')
+        runAnyway('Precondition', preResult.failedAt, preResult.reason);
+      else if (!preResult.ok) return blocked('Precondition', preResult.failedAt, preResult.reason);
 
       // A flow that visibly handles a credential records no trace (server/runtime/run-evidence.ts).
       // Including the flows inside the step groups it calls: a group call holds only a reference.
@@ -364,7 +395,7 @@ export async function runTest(
         name: uiTest.name,
         success: result.success,
         status: finalStatus,
-        steps: result.steps,
+        steps: setupSteps.length > 0 ? [...setupSteps, ...(result.steps ?? [])] : result.steps,
         error: result.error,
         durationMs,
         screenshotPath: lastScreenshotPath, // Or a specific error screenshot for the whole test

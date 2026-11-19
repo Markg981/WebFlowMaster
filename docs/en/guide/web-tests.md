@@ -469,6 +469,58 @@ takes back everything set so far.
 
 Only what the page requests is affected: preconditions, cleanup and API tests go to the real servers.
 
+## Data fixtures {#data-fixtures}
+
+A **data fixture** is the data a test needs in the application's database, checked and, where it
+is missing, created by script before the test runs, so the test also passes on an empty database.
+Add them under **Data fixtures** in the builder. They run in the order listed, before the
+[preconditions](#preconditions). Each one has:
+
+| Field      | What it is                                                                                                                                                           |
+| ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Check      | A `SELECT` that finds the data. A row means the data is there and nothing is written                                                                                 |
+| Script     | What creates the data when the check finds nothing. Several statements are separated by a line holding `GO`; the whole script runs in one transaction                |
+| Parameters | Named, typed values (`string`, `int`, `decimal`, `bool`, `date`) the check and the script use as <code v-pre>{{params.name}}</code>; a value may be a generator      |
+| Outputs    | Columns of the check's first row, for the steps and for later fixtures as <code v-pre>{{fx.alias.column}}</code>, for instance <code v-pre>{{fx.customer.id}}</code> |
+| Database   | Empty for `db.url`; a name such as `crm` for `db.crm.url`                                                                                                            |
+
+After the script, the check runs again inside the same transaction: if it still finds nothing,
+the script did not create what the test needs, and everything is rolled back. Two runs that need
+the same data at the same moment wait for each other rather than create it twice.
+
+```sql
+-- Check
+SELECT id FROM customers WHERE email = {{params.email}}
+-- Script
+INSERT INTO customers (email) VALUES ({{params.email}})
+GO
+INSERT INTO carts (customer_id) SELECT id FROM customers WHERE email = {{params.email}}
+```
+
+**Values are bound, not pasted.** Unlike the Query database step, a fixture sends
+<code v-pre>{{…}}</code> values to the database as parameters, so a value cannot change what a
+statement does. Write them bare, as above: a placeholder inside quotes, or where a table or column
+name goes, is refused when the test is saved. A generator such as <code v-pre>{{$randomEmail}}</code>
+gives the same value to the check and the script. Fixtures read the environment's variables and
+<code v-pre>{{run.id}}</code> and <code v-pre>{{run.tag}}</code>, not the rows of a
+[dataset](#datasets): they prepare the data once, for every row.
+
+**Writing is an owner's decision.** An environment writes only while **Data setup** is on, in
+**Settings → Environments**. It is off for every environment until an owner turns it on, and the
+change is recorded in the audit log. While it is off, a fixture whose check finds nothing stops the
+run without writing.
+
+**Which database.** A fixture writes with `db.setup.url` (or `db.<name>.setup.url`) when the
+environment has it, otherwise with `db.url`: a user that may write the test data can be kept apart
+from the one the steps read with. Set `db.expect` (or `db.<name>.expect`) to the database name, or
+`DATABASE@SERVER`, and nothing is written when the address reaches another database. The SQL runs
+from the WebFlowMaster server, which must reach the database, also when the browser runs on a local
+agent.
+
+A run whose fixture fails is reported as blocked, as with a failed precondition, and the report
+shows a **Data fixture** step for each one: already there, created, or why it failed.
+The [Playwright export](./playwright-export) does not include fixtures.
+
 ## Preconditions
 
 **Preconditions** are API calls that run before the steps, to put the application in the state the

@@ -35,6 +35,7 @@ const testFields = {
   dataset: {},
   preconditions: {},
   cleanups: {},
+  dataFixtures: {},
   module: nullableText,
   featureArea: nullableText,
   scenario: nullableText,

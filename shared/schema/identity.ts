@@ -810,6 +810,8 @@ export const AUDIT_ACTIONS = {
   // Where tests run and with what. Secrets by name only — never a value.
   ENVIRONMENT_CREATED: 'environment.created',
   ENVIRONMENT_DELETED: 'environment.deleted',
+  // Whether runs on it may write the data a fixture finds missing (server/runtime/data-setup).
+  ENVIRONMENT_DATA_SETUP_CHANGED: 'environment.data_setup_changed',
   SECRET_SET: 'secret.set',
   SECRET_DELETED: 'secret.deleted',
   SYSTEM_SETTINGS_CHANGED: 'system_settings.changed',

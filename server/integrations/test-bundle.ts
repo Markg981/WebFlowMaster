@@ -42,6 +42,7 @@ const TEST_FIELDS = [
   'sequence',
   'preconditions',
   'cleanups',
+  'dataFixtures',
   'dataset',
   'bdd',
 ] as const;

@@ -157,7 +157,7 @@ export default function SettingsPage() {
       label: t('settings.sections.environments'),
       description: t('settings.sections.environmentsDescription', { token: '{{KEY_NAME}}' }),
       icon: KeyRound,
-      content: <EnvironmentsCard />,
+      content: <EnvironmentsCard isOwner={user?.role === 'owner'} />,
     },
     {
       id: 'elements',

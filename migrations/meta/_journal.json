@@ -813,6 +813,13 @@
       "when": 1792400000039,
       "tag": "0115_hub_modules_import",
       "breakpoints": true
+    },
+    {
+      "idx": 116,
+      "version": "7",
+      "when": 1792400000040,
+      "tag": "0116_data_fixtures",
+      "breakpoints": true
     }
   ]
 }

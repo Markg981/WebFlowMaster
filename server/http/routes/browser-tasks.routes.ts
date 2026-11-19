@@ -6,6 +6,7 @@ import {
   AdhocDetectedElementSchema,
   AdhocTestStepSchema,
   CleanupSchema,
+  DataFixturesSchema,
   PreconditionSchema,
 } from '@shared/schema';
 import { sharedSetIdOf } from '@shared/test-data';
@@ -42,6 +43,8 @@ const executeDirectTestSchema = z.object({
   preconditions: z.array(PreconditionSchema).optional().nullable(),
   // And cleaned up after, as a saved run is (server/runtime/cleanup-runner.ts).
   cleanups: z.array(CleanupSchema).max(50).optional().nullable(),
+  // And the data it needs in the application's database, made sure of first (data-setup).
+  dataFixtures: DataFixturesSchema.optional().nullable(),
   // Which environment resolves `{{name}}` placeholders. The organization it must belong
   // to is taken from the session, so naming another tenant's environment resolves nothing.
   environmentId: z.number().int().positive().optional().nullable(),

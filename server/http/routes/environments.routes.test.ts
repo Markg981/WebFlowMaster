@@ -39,6 +39,7 @@ let userId: number;
 let otherOrganizationId: number;
 let otherUserId: number;
 let currentUser: { id: number; organizationId: number; role: string };
+let apiKeyId: string | undefined;
 
 beforeAll(async () => {
   organizationId = await createTestOrganization('Env Org');
@@ -54,6 +55,7 @@ beforeAll(async () => {
   app.use((req, _res, next) => {
     (req as any).user = currentUser;
     (req as any).isAuthenticated = () => true;
+    if (apiKeyId) (req as any).apiKeyId = apiKeyId;
     runWithTenant(currentUser.organizationId, () => next());
   });
   app.use(environmentRoutes);
@@ -63,6 +65,7 @@ beforeEach(async () => {
   await privilegedDb.delete(secrets);
   await privilegedDb.delete(environments);
   currentUser = { id: userId, organizationId, role: 'owner' };
+  apiKeyId = undefined;
 });
 
 describe('environments', () => {
@@ -242,5 +245,53 @@ describe('who may change what', () => {
 
     expect((await request(app).get('/api/environments')).status).toBe(200);
     expect((await request(app).post('/api/environments').send({ name: 'Nope' })).status).toBe(403);
+  });
+});
+
+describe('data setup', () => {
+  const setDataSetup = (id: number, dataSetup: unknown) =>
+    request(app).put(`/api/environments/${id}/data-setup`).send({ dataSetup });
+
+  it('is off on a new environment, and an owner turns it on, audited', async () => {
+    const created = await request(app).post('/api/environments').send({ name: 'QA' });
+    const listed = await request(app).get('/api/environments');
+    expect(listed.body[0].dataSetup).toBe(false);
+
+    const res = await setDataSetup(created.body.id, true);
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ id: created.body.id, dataSetup: true });
+    expect((await request(app).get('/api/environments')).body[0].dataSetup).toBe(true);
+
+    const audit = await privilegedDb.execute(
+      sql`SELECT metadata FROM audit_log WHERE action = 'environment.data_setup_changed' AND target_id = ${String(created.body.id)}`,
+    );
+    expect(audit.rows).toHaveLength(1);
+    expect(audit.rows[0]).toMatchObject({ metadata: { from: false, to: true } });
+  });
+
+  it('is an owner decision, taken from a session and never with an API key', async () => {
+    const created = await request(app).post('/api/environments').send({ name: 'QA' });
+
+    currentUser = { id: userId, organizationId, role: 'editor' };
+    expect((await setDataSetup(created.body.id, true)).status).toBe(403);
+
+    currentUser = { id: userId, organizationId, role: 'owner' };
+    apiKeyId = 'key-1';
+    const byKey = await setDataSetup(created.body.id, true);
+    expect(byKey.status).toBe(403);
+    expect(byKey.body.code).toBe('session_required');
+
+    const [row] = await privilegedDb.select().from(environments);
+    expect(row.dataSetup).toBe(false);
+  });
+
+  it('rejects anything but a boolean, and another organization environment', async () => {
+    const created = await request(app).post('/api/environments').send({ name: 'QA' });
+    expect((await setDataSetup(created.body.id, 'yes')).status).toBe(400);
+
+    currentUser = { id: otherUserId, organizationId: otherOrganizationId, role: 'owner' };
+    expect((await setDataSetup(created.body.id, true)).status).toBe(404);
+    const [row] = await privilegedDb.select().from(environments);
+    expect(row.dataSetup).toBe(false);
   });
 });

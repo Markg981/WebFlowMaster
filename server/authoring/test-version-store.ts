@@ -35,6 +35,7 @@ export interface VersionableTest {
   elements: unknown;
   preconditions?: unknown;
   cleanups?: unknown;
+  dataFixtures?: unknown;
   dataset?: unknown;
   bdd?: unknown;
 }
@@ -137,6 +138,7 @@ export async function recordTestVersion(
     elements: snapshot.elements,
     preconditions: snapshot.preconditions ?? null,
     cleanups: snapshot.cleanups ?? null,
+    dataFixtures: snapshot.dataFixtures ?? null,
     dataset: snapshot.dataset ?? null,
     bdd: (snapshot.bdd as import('@shared/bdd').BddTest | null) ?? null,
     snapshot: versionSnapshotWith(dependencies),

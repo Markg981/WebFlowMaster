@@ -1777,6 +1777,7 @@ Scope `billing:read` · operation `getBilling`
 | `dataset`          |                                     |          |                                |
 | `preconditions`    |                                     |          |                                |
 | `cleanups`         |                                     |          |                                |
+| `dataFixtures`     |                                     |          |                                |
 | `module`           | string \| null                      |          |                                |
 | `featureArea`      | string \| null                      |          |                                |
 | `scenario`         | string \| null                      |          |                                |
@@ -2222,6 +2223,7 @@ The build that asked for a run. The wfm CLI fills it in from the CI system's env
 | `dataset`       |                                     |          |                                |
 | `preconditions` |                                     |          |                                |
 | `cleanups`      |                                     |          |                                |
+| `dataFixtures`  |                                     |          |                                |
 | `module`        | string \| null                      |          |                                |
 | `featureArea`   | string \| null                      |          |                                |
 | `scenario`      | string \| null                      |          |                                |
@@ -2243,6 +2245,7 @@ The build that asked for a run. The wfm CLI fills it in from the CI system's env
 | `dataset`       |                                     |          |                                |
 | `preconditions` |                                     |          |                                |
 | `cleanups`      |                                     |          |                                |
+| `dataFixtures`  |                                     |          |                                |
 | `module`        | string \| null                      |          |                                |
 | `featureArea`   | string \| null                      |          |                                |
 | `scenario`      | string \| null                      |          |                                |

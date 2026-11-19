@@ -236,12 +236,8 @@ export function postgresConfig(url: string): {
   };
 }
 
-const runPostgres = async (
-  url: string,
-  sql: string,
-  timeoutMs: number,
-  target?: DatabaseTarget,
-): Promise<DatabaseResult> => {
+/** A connected pg client for an address the egress policy accepted. The caller ends it. */
+export async function connectPostgres(url: string, timeoutMs: number, target?: DatabaseTarget) {
   const { default: pg } = await import('pg');
   const ip = target?.ip;
   const client = new pg.Client({
@@ -263,20 +259,62 @@ const runPostgres = async (
     query_timeout: timeoutMs,
   });
   await client.connect();
+  return client;
+}
+
+/** A pg result as a DatabaseResult. Several statements give one result each; the last counts. */
+export function postgresResult(result: unknown): DatabaseResult {
+  const last = (Array.isArray(result) ? result[result.length - 1] : result) as {
+    fields?: Array<{ name: string }>;
+    rows?: Array<Record<string, unknown>>;
+    rowCount?: number | null;
+  };
+  const columns = (last.fields ?? []).map((f) => f.name);
+  return {
+    columns,
+    rows: (last.rows ?? []).slice(0, MAX_ROWS),
+    rowCount: last.rowCount ?? last.rows?.length ?? 0,
+  };
+}
+
+const runPostgres = async (
+  url: string,
+  sql: string,
+  timeoutMs: number,
+  target?: DatabaseTarget,
+): Promise<DatabaseResult> => {
+  const client = await connectPostgres(url, timeoutMs, target);
   try {
-    const result = await client.query(sql);
-    // Several statements give one result each; the last is the one a test asks about.
-    const last = Array.isArray(result) ? result[result.length - 1] : result;
-    const columns = (last.fields ?? []).map((f: { name: string }) => f.name);
-    return {
-      columns,
-      rows: (last.rows ?? []).slice(0, MAX_ROWS),
-      rowCount: last.rowCount ?? last.rows?.length ?? 0,
-    };
+    return postgresResult(await client.query(sql));
   } finally {
     await client.end().catch(() => {});
   }
 };
+
+/** A MySQL connection for an address the egress policy accepted. The caller ends it. */
+export async function connectMysql(url: string, timeoutMs: number, target?: DatabaseTarget) {
+  const mysql = await import('mysql2/promise');
+  const ip = target?.ip;
+  return mysql.createConnection({
+    uri: url.replace(/^mariadb:/i, 'mysql:'),
+    ...(ip ? { stream: () => net.connect({ host: ip, port: target?.port ?? 3306 }) } : {}),
+    connectTimeout: timeoutMs,
+  });
+}
+
+/** A mysql2 answer as a DatabaseResult: rows for a query, affected rows for a change. */
+export function mysqlResult(result: unknown, fields: unknown): DatabaseResult {
+  if (Array.isArray(result)) {
+    const rows = result as Array<Record<string, unknown>>;
+    const columns = ((fields as Array<{ name: string }> | undefined) ?? []).map((f) => f.name);
+    return { columns, rows: rows.slice(0, MAX_ROWS), rowCount: rows.length };
+  }
+  return {
+    columns: [],
+    rows: [],
+    rowCount: (result as { affectedRows?: number }).affectedRows ?? 0,
+  };
+}
 
 const runMysql = async (
   url: string,
@@ -284,25 +322,10 @@ const runMysql = async (
   timeoutMs: number,
   target?: DatabaseTarget,
 ): Promise<DatabaseResult> => {
-  const mysql = await import('mysql2/promise');
-  const ip = target?.ip;
-  const connection = await mysql.createConnection({
-    uri: url.replace(/^mariadb:/i, 'mysql:'),
-    ...(ip ? { stream: () => net.connect({ host: ip, port: target?.port ?? 3306 }) } : {}),
-    connectTimeout: timeoutMs,
-  });
+  const connection = await connectMysql(url, timeoutMs, target);
   try {
     const [result, fields] = await connection.query({ sql, timeout: timeoutMs });
-    if (Array.isArray(result)) {
-      const rows = result as Array<Record<string, unknown>>;
-      const columns = (fields ?? []).map((f) => f.name);
-      return { columns, rows: rows.slice(0, MAX_ROWS), rowCount: rows.length };
-    }
-    return {
-      columns: [],
-      rows: [],
-      rowCount: (result as { affectedRows?: number }).affectedRows ?? 0,
-    };
+    return mysqlResult(result, fields);
   } finally {
     await connection.end().catch(() => {});
   }
@@ -337,26 +360,39 @@ export function sqlServerConfig(url: string, timeoutMs: number, target?: Databas
   };
 }
 
+/** A connected mssql pool for an address the egress policy accepted. The caller closes it. */
+export async function connectSqlServer(url: string, timeoutMs: number, target?: DatabaseTarget) {
+  const { default: mssql } = await import('mssql');
+  const pool = new mssql.ConnectionPool(sqlServerConfig(url, timeoutMs, target));
+  await pool.connect();
+  return pool;
+}
+
+/** An mssql answer as a DatabaseResult: the last result set, or the rows changed. */
+export function sqlServerResult(result: {
+  recordsets: unknown;
+  rowsAffected: number[];
+}): DatabaseResult {
+  const sets = result.recordsets as unknown as Array<
+    Array<Record<string, unknown>> & { columns?: Record<string, unknown> }
+  >;
+  const last = sets.length ? sets[sets.length - 1] : null;
+  if (last) {
+    const columns = last.columns ? Object.keys(last.columns) : Object.keys(last[0] ?? {});
+    return { columns, rows: last.slice(0, MAX_ROWS), rowCount: last.length };
+  }
+  return { columns: [], rows: [], rowCount: result.rowsAffected.reduce((sum, n) => sum + n, 0) };
+}
+
 const runSqlServer = async (
   url: string,
   sql: string,
   timeoutMs: number,
   target?: DatabaseTarget,
 ): Promise<DatabaseResult> => {
-  const { default: mssql } = await import('mssql');
-  const pool = new mssql.ConnectionPool(sqlServerConfig(url, timeoutMs, target));
-  await pool.connect();
+  const pool = await connectSqlServer(url, timeoutMs, target);
   try {
-    const result = await pool.request().query(sql);
-    const sets = result.recordsets as unknown as Array<
-      Array<Record<string, unknown>> & { columns?: Record<string, unknown> }
-    >;
-    const last = sets.length ? sets[sets.length - 1] : null;
-    if (last) {
-      const columns = last.columns ? Object.keys(last.columns) : Object.keys(last[0] ?? {});
-      return { columns, rows: last.slice(0, MAX_ROWS), rowCount: last.length };
-    }
-    return { columns: [], rows: [], rowCount: result.rowsAffected.reduce((sum, n) => sum + n, 0) };
+    return sqlServerResult(await pool.request().query(sql));
   } finally {
     await pool.close().catch(() => {});
   }

@@ -76,8 +76,9 @@ self-hosted testa la propria intranet dal server, e per lei non cambia nulla.
 condivisa; `EGRESS_ALLOW_HOSTS` esenta host e CIDR da entrambi. Una richiesta rifiutata fallisce
 subito, con un errore che nomina la policy e l'host come lo ha scritto il test. La policy non
 copre le connessioni che il server non apre da sé: il browser e le richieste di un agente
-locale, il browser di una griglia, e i protocolli TCP diretti (step su database, la casella che
-un test legge tramite il browser di un agente).
+locale, il browser di una griglia, e la casella che un test legge tramite il browser di un
+agente. Le connessioni ai database, dello step Query al database e delle data fixture, le apre il
+server e le verifica con la policy prima che qualsiasi driver si connetta.
 
 **I browser del runner** (la run, l'anteprima del builder, il recorder e la detection degli
 elementi, che aprono tutti lo stesso tipo di sessione) rispettano la stessa policy su ogni

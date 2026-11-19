@@ -1,5 +1,14 @@
 /** Where tests run and with what: environments, secrets, runners, agents, browser grids, BDD profiles and test SMS inboxes. */
-import { pgTable, text, integer, serial, timestamp, jsonb, index } from 'drizzle-orm/pg-core';
+import {
+  pgTable,
+  text,
+  integer,
+  serial,
+  timestamp,
+  jsonb,
+  index,
+  boolean,
+} from 'drizzle-orm/pg-core';
 import type { BddAgentProfile } from '../bdd-agent';
 import { organizations, projects, users } from './identity';
 
@@ -59,6 +68,12 @@ export const environments = pgTable(
     loginStateIv: text('login_state_iv'),
     loginStateAuthTag: text('login_state_auth_tag'),
     loginStateCapturedAt: timestamp('login_state_captured_at'),
+    /**
+     * Whether a run on this environment may write the data its tests' data fixtures find
+     * missing (server/runtime/data-setup). Off by default and changed only by an owner: where it
+     * is off a fixture only reads, so pointing a test at a database never writes to it by itself.
+     */
+    dataSetup: boolean('data_setup').notNull().default(false),
   },
   (table) => [
     index('environments_user_id_idx').on(table.userId),

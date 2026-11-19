@@ -30,8 +30,9 @@ import {
 } from '@/components/drag-drop-provider';
 import SaveTestModal from '@/components/SaveTestModal';
 import { CleanupPanel, PreconditionsPanel } from '@/components/PreconditionsPanel';
+import { DataFixturesPanel } from '@/components/DataFixturesPanel';
 import { DatasetPanel, type DatasetRow, type SharedSetOption } from '@/components/DatasetPanel';
-import type { Cleanup, Precondition } from '@shared/schema';
+import type { Cleanup, DataFixture, Precondition } from '@shared/schema';
 import {
   ACTION_I18N,
   ADHOC_ACTION_IDS,
@@ -160,6 +161,8 @@ function CreateTestPage() {
   const [preconditions, setPreconditions] = useState<Precondition[]>([]);
   // API calls after the test that remove what it created (server/runtime/cleanup-runner.ts).
   const [cleanups, setCleanups] = useState<Cleanup[]>([]);
+  // The data the test needs in the application's database, checked (and created) before it runs.
+  const [dataFixtures, setDataFixtures] = useState<DataFixture[]>([]);
   // Rows this test runs over, one run each. Empty means a single run, which is what every
   // test did before datasets existed.
   const [dataset, setDataset] = useState<DatasetRow[]>([]);
@@ -645,6 +648,7 @@ function CreateTestPage() {
       projectId?: number;
       preconditions?: Precondition[];
       cleanups?: Cleanup[];
+      dataFixtures?: DataFixture[] | null;
       dataset?: DatasetRow[] | null;
     }) => {
       // Saving under a name that already exists used to quietly create a second test, so
@@ -758,6 +762,7 @@ function CreateTestPage() {
       elements: detectedElements,
       preconditions,
       cleanups,
+      dataFixtures: dataFixtures.length > 0 ? dataFixtures : null,
       // Null rather than an empty array: the runner reads an empty one as "no dataset"
       // anyway, and storing one would suggest a dataset exists where none does.
       dataset: dataset.length > 0 ? dataset : null,
@@ -859,6 +864,7 @@ function CreateTestPage() {
       name?: string;
       preconditions?: Precondition[];
       cleanups?: Cleanup[];
+      dataFixtures?: DataFixture[] | null;
       environmentId?: number;
       dataset?: DatasetRow[];
     }) => {
@@ -1084,6 +1090,7 @@ function CreateTestPage() {
       // Sent so the preview runs the same setup calls as a scheduled run would.
       preconditions,
       cleanups,
+      dataFixtures: dataFixtures.length > 0 ? dataFixtures : null,
       name:
         testName ||
         t('dashboardPageNew.toasts.adhocTestName', {
@@ -1695,6 +1702,7 @@ function CreateTestPage() {
         </div>
       </div>
       <div className="px-4 pb-4 space-y-4">
+        <DataFixturesPanel fixtures={dataFixtures} onChange={setDataFixtures} />
         <PreconditionsPanel preconditions={preconditions} onChange={setPreconditions} />
         <CleanupPanel cleanups={cleanups} onChange={setCleanups} />
         {/* Below the preconditions, because both describe the run rather than the steps. */}

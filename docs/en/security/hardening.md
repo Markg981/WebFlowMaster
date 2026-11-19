@@ -74,8 +74,9 @@ server, and nothing changes for it. `EGRESS_PRIVATE_TARGETS=deny` refuses them t
 the setting for a shared installation; `EGRESS_ALLOW_HOSTS` exempts named hosts and CIDRs from
 both. A refused request fails at once, with an error that names the policy and the host as the
 test wrote it. The policy does not cover connections the server does not open itself: a local
-agent's browser and requests, a browser grid's browser, and the direct TCP protocols (database
-steps, the inbox a test reads through an agent's browser).
+agent's browser and requests, a browser grid's browser, and the inbox a test reads through an
+agent's browser. Database connections, from the Query database step and from data fixtures, are
+opened by the server and checked against the policy before any driver connects.
 
 **The runner's own browsers** (the run, the builder's preview, the recorder and element
 detection, which all open the same kind of session) are held to the same policy on every

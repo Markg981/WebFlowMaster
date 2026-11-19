@@ -2978,6 +2978,32 @@
     "help": "Aiuto",
     "helpForPage": "Aiuto su questa pagina (apre il manuale)"
   },
+  "dataFixtures": {
+    "title": "Data fixture",
+    "description": "I dati di cui il test ha bisogno nel database dell'applicazione. Ogni verifica gira per prima; solo se non trova nulla, e l'ambiente consente la preparazione dati, lo script viene eseguito, in un'unica transazione.",
+    "empty": "Nessuna data fixture. Il test gira sui dati presenti nel database.",
+    "untitled": "Fixture senza nome",
+    "name": "Nome",
+    "namePlaceholder": "es. Un cliente con un ordine aperto",
+    "alias": "Alias",
+    "connection": "Database",
+    "params": "Parametri",
+    "paramName": "Nome del parametro",
+    "paramType": "Tipo del parametro",
+    "paramValue": "Valore del parametro",
+    "addParam": "Aggiungi parametro",
+    "removeParam": "Rimuovi parametro",
+    "check": "Verifica (SELECT)",
+    "apply": "Script, quando la verifica non trova nulla",
+    "applyHint": "Separa le istruzioni con una riga che contiene GO. I valori si inseriscono come {{param}} o {{variable}}, mai tra apici.",
+    "outputs": "Output",
+    "outputsHint": "Colonne della prima riga della verifica, disponibili agli step come {{example}}.",
+    "timeout": "Timeout (secondi)",
+    "add": "Aggiungi data fixture",
+    "remove": "Rimuovi data fixture",
+    "moveUp": "Sposta su",
+    "moveDown": "Sposta giù"
+  },
   "environments": {
     "newEnvironmentPlaceholder": "Nuovo ambiente (es. Staging)",
     "add": "Aggiungi",
@@ -3005,7 +3031,14 @@
       "description": "I test che usano {{key}} in questo ambiente non potranno più risolverlo. L'operazione non può essere annullata."
     },
     "deleteEnv": "Elimina l'ambiente {{name}}",
-    "deleteSecret": "Elimina il segreto {{key}}"
+    "deleteSecret": "Elimina il segreto {{key}}",
+    "dataSetup": {
+      "label": "Preparazione dati",
+      "description": "Consente alle esecuzioni su questo ambiente di creare nel database dell'applicazione i dati che le fixture di un test non trovano. Se disattivata, le fixture si limitano a verificare.",
+      "ownerOnly": "Solo un owner può modificarla.",
+      "toastOn": "Preparazione dati attivata",
+      "toastOff": "Preparazione dati disattivata"
+    }
   },
   "testReportPage": {
     "cancel": {
@@ -3313,6 +3346,7 @@
       "comparison_known_difference_deleted": "Differenza nota eliminata",
       "environment_created": "Ambiente creato",
       "environment_deleted": "Ambiente eliminato",
+      "environment_data_setup_changed": "Configurazione dati dell’ambiente modificata",
       "secret_set": "Segreto impostato",
       "secret_deleted": "Segreto eliminato",
       "system_settings_changed": "Impostazione di sistema modificata",

@@ -4,7 +4,9 @@
  */
 import fs from 'fs-extra';
 import { and, asc, eq } from 'drizzle-orm';
+import { createHash } from 'node:crypto';
 import {
+  environments as environmentsTable,
   secrets as secretsTable,
   testPlans,
   testPlanSelectedTests,
@@ -169,12 +171,26 @@ export interface RunVariables {
    * cannot resolve one site's secrets while reusing another site's session.
    */
   environment: { environmentId: number; organizationId: number } | undefined;
+  /**
+   * Whether the environment allows data fixtures to write what they find missing. Read when the
+   * run starts, not frozen with the plan: turning it off stops the next run from writing.
+   */
+  dataSetup: boolean;
+}
+
+/** {{run.id}} and a short {{run.tag}}, to tell this run's rows apart from another's. */
+export function runVariables(executionId: string): Record<string, string> {
+  return {
+    'run.id': executionId,
+    'run.tag': createHash('sha256').update(executionId).digest('hex').slice(0, 8),
+  };
 }
 
 export async function loadVariables(run: PlanRun, inputs: RunInputs): Promise<RunVariables> {
   const { snapshot, organizationId } = inputs;
   const environmentId = snapshot.environmentId;
   const secrets: Record<string, string> = {};
+  let dataSetup = false;
   // The organization's shared test data, as {{data.<set>.<column>}} (shared/test-data.ts).
   const dataVariables: Record<string, string> = snapshot.datasets
     ? snapshot.datasets.variables
@@ -198,6 +214,19 @@ export async function loadVariables(run: PlanRun, inputs: RunInputs): Promise<Ru
           ),
         ),
     );
+    const [settings] = await withTenantTransaction((tx) =>
+      tx
+        .select({ dataSetup: environmentsTable.dataSetup })
+        .from(environmentsTable)
+        .where(
+          and(
+            eq(environmentsTable.id, environment.environmentId),
+            eq(environmentsTable.organizationId, organizationId),
+          ),
+        )
+        .limit(1),
+    );
+    dataSetup = settings?.dataSetup === true;
     for (const secret of environmentSecrets) {
       try {
         secrets[secret.keyName] = await decryptSecret(
@@ -229,6 +258,7 @@ export async function loadVariables(run: PlanRun, inputs: RunInputs): Promise<Ru
     // what a process env var happened to hold.
     forPass: (captured) => ({
       ...defaultVariables(),
+      ...runVariables(run.executionId),
       ...dataVariables,
       ...secrets,
       // A comparison side that names its address runs there, whatever the environment says.
@@ -238,5 +268,6 @@ export async function loadVariables(run: PlanRun, inputs: RunInputs): Promise<Ru
       ...captured,
     }),
     environment,
+    dataSetup,
   };
 }

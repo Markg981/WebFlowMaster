@@ -1,0 +1,16 @@
+{
+  "id": "WEB-96",
+  "area": "WEB",
+  "title": "Data fixture: il test prepara i propri dati su un database vuoto, solo se l'ambiente lo consente",
+  "priority": "P1",
+  "actor": "owner.a",
+  "preconditions": "Database applicativo di prova con una tabella customers(id serial, email text unique) vuota; ambiente QA con db.url (e db.expect = nome del database) che punta a quel database; preparazione dati disattivata sull'ambiente.",
+  "steps": [
+    "Nel builder creare un test web con una data fixture: alias customer, parametro email = qa@shop.test, verifica SELECT id FROM customers WHERE email = {{params.email}}, script INSERT INTO customers (email) VALUES ({{params.email}}), output id; uno step che digita {{fx.customer.id}}. Salvare ed eseguire sull'ambiente QA.",
+    "Come owner, in Impostazioni > Ambienti > QA attivare Preparazione dati ed eseguire di nuovo il test.",
+    "Eseguire il test una terza volta.",
+    "Impostare db.expect a un altro nome di database ed eseguire.",
+    "Accedere come editor e aprire Impostazioni > Ambienti > QA."
+  ],
+  "expected": "1: il test non parte, lo step 'Data fixture: …' dice che l'ambiente non consente la preparazione dati, la tabella resta vuota. 2: la fixture risulta Created, la riga esiste e lo step digita il suo id. 3: la fixture risulta Already there, nessuna seconda riga. 4: nessuna scrittura, il motivo nomina il database atteso. 5: l'interruttore è visibile ma disattivato, con la nota che solo un owner può modificarlo; il registro di audit ha una voce environment.data_setup_changed."
+}

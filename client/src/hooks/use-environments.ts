@@ -15,6 +15,8 @@ export interface EnvironmentSummary {
   description: string | null;
   /** When a browser session was last captured for it, if ever. */
   loginStateCapturedAt: string | null;
+  /** Whether runs on it may write the data a test's fixtures find missing. Owner-only to change. */
+  dataSetup?: boolean;
 }
 
 /** The value the select uses for "resolve against the defaults only". */
