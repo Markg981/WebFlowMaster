@@ -231,7 +231,9 @@ app.use(express.urlencoded({ extended: false }));
     await import('./runtime/inline-plan-runs');
   const stopInlinePlanWorker =
     process.env.NODE_ENV !== 'test' && inlinePlanRunsEnabled()
-      ? startInlinePlanWorker()
+      ? startInlinePlanWorker(
+          async () => (await import('./execution/test-execution-service')).processTestPlanJob,
+        )
       : async () => {};
 
   // Publishes the jobs of runs whose request stopped between creating the run and handing it to

@@ -66,15 +66,21 @@ export async function processInlineJob(
   }
 }
 
-/** Starts the consumer; returns the function that stops it (waits for the run in hand). */
-export function startInlinePlanWorker(): () => Promise<void> {
+/**
+ * Starts the consumer; returns the function that stops it (waits for the run in hand).
+ * The plan processor comes from the caller: execution sits above runtime in
+ * scripts/server-domains.mjs, so this module must not import it.
+ */
+export function startInlinePlanWorker(
+  loadProcessPlan: () => Promise<InlineJobDeps['processPlan']>,
+): () => Promise<void> {
   const concurrency = Math.max(1, Number(process.env.WORKER_CONCURRENCY) || 1);
   const worker = new Worker(
     TEST_EXECUTION_QUEUE_NAME,
     async (job: Job, token?: string) => {
-      const { processTestPlanJob } = await import('../execution/test-execution-service');
+      const processPlan = await loadProcessPlan();
       logger.info(`Inline worker processing job ${job.id} of type ${job.name}`);
-      await processInlineJob(job, token, { processPlan: processTestPlanJob });
+      await processInlineJob(job, token, { processPlan });
     },
     { connection, concurrency },
   );
