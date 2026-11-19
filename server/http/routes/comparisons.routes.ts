@@ -106,6 +106,7 @@ function view(row: ComparisonRun, planName?: string | null) {
       executionId: row.candidateExecutionId,
     },
     recordedUrl: row.recordedUrl,
+    candidateDelaySeconds: row.candidateDelaySeconds,
     failureCode: row.failureCode,
     failureMessage: row.failureMessage,
     requestedByUserId: row.requestedByUserId,

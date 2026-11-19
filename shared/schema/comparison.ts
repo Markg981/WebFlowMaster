@@ -57,6 +57,8 @@ export const comparisonRuns = pgTable(
       onDelete: 'set null',
     }),
     mode: text('mode').$type<ComparisonMode>().notNull().default('sequential'),
+    /** Sequential mode: seconds the candidate waits after the baseline ended (migration 0114). */
+    candidateDelaySeconds: integer('candidate_delay_seconds').notNull().default(0),
     /** ComparisonPolicy, read through `comparisonPolicyOf`. */
     policy: jsonb('policy').$type<Record<string, unknown>>().notNull().default({}),
     status: text('status').$type<ComparisonStatus>().notNull().default('queued'),

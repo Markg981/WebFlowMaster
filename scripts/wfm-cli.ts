@@ -68,6 +68,10 @@ export interface CliOptions {
   candidateUrl?: string;
   recordedUrl?: string;
   compareMode?: 'sequential' | 'parallel';
+  /** `wfm compare`: seconds the candidate waits after the baseline ended (sequential). */
+  candidateDelaySeconds?: number;
+  /** `wfm compare`: a JSON file with the comparison policy (tolerances and switches). */
+  policyPath?: string;
   comparisonName?: string;
   failOn?: string[];
 }
@@ -100,7 +104,8 @@ Usage:
   wfm compare --plan <planId> [--baseline <environmentId>] [--candidate <environmentId>]
               [--baseline-url <url>] [--candidate-url <url>] [--recorded-url <url>]
               [--wait] [--fail-on different,outcome_mismatch] [--mode sequential|parallel]
-              [--name <name>] [--html <file>] [--pdf <file>]
+              [--candidate-delay <seconds>] [--policy <file>] [--name <name>]
+              [--html <file>] [--pdf <file>]
   wfm tests export [--project <id|none>] [--format yaml|json|gherkin] [--out <file>]
   wfm tests import <file> [--project <id>] [--dry-run]
 
@@ -138,6 +143,10 @@ Options:
   --candidate-url <url>  compare: where the version under judgement answers
   --recorded-url <url>   compare: the address the tests were recorded on, replaced on both sides
   --mode <mode>          compare: sequential (default) or parallel
+  --candidate-delay <s>  compare: seconds the candidate waits after the baseline has ended, for a
+                         system that keeps working after a run (sequential only, up to 7200)
+  --policy <file>        compare: a JSON file with the comparison policy, such as
+                         {"performance":{"mode":"off"}}; what it leaves out keeps its default
   --name <name>          compare: a name for the comparison, such as the migration
   --fail-on <verdicts>   compare: the test verdicts that fail the step, comma separated, from
                          different, outcome_mismatch, both_failed, not_comparable, equivalent
@@ -291,6 +300,12 @@ export function parseArgs(
       case '--mode':
         options.compareMode = value() as CliOptions['compareMode'];
         break;
+      case '--candidate-delay':
+        options.candidateDelaySeconds = Number(value());
+        break;
+      case '--policy':
+        options.policyPath = value();
+        break;
       case '--name':
         options.comparisonName = value();
         break;
@@ -436,6 +451,15 @@ function compareOptions(options: CliOptions, positional: string[]): CliOptions |
     options.compareMode !== 'parallel'
   )
     return { error: '--mode is sequential or parallel.' };
+  if (options.candidateDelaySeconds !== undefined) {
+    const delay = options.candidateDelaySeconds;
+    if (!Number.isInteger(delay) || delay < 0 || delay > 7200)
+      return { error: '--candidate-delay takes whole seconds, from 0 to 7200.' };
+    if (delay > 0 && options.compareMode === 'parallel')
+      return { error: '--candidate-delay needs the sequential mode.' };
+  }
+  if (options.policyPath !== undefined && !options.policyPath.trim())
+    return { error: '--policy needs a file.' };
   if (options.failOn) {
     if (!options.failOn.length) return { error: '--fail-on needs at least one verdict.' };
     const unknown = options.failOn.filter(
@@ -824,6 +848,20 @@ export function comparisonExitCode(comparison: ComparisonRecord, failOn: string[
 
 /** `wfm compare`: start a comparison and, with --wait, turn its verdict into the exit code. */
 async function runCompare(options: CliOptions, io: CliIo, call: Call): Promise<number> {
+  let policy: unknown;
+  if (options.policyPath) {
+    try {
+      if (!io.readFile) throw new Error('This build cannot read files.');
+      policy = JSON.parse(await io.readFile(options.policyPath));
+    } catch (e) {
+      io.error(`Could not read the policy in ${options.policyPath}: ${(e as Error).message}`);
+      return EXIT_TOOL_ERROR;
+    }
+    if (!policy || typeof policy !== 'object' || Array.isArray(policy)) {
+      io.error(`The policy in ${options.policyPath} must be a JSON object.`);
+      return EXIT_TOOL_ERROR;
+    }
+  }
   const response = await call(`/api/v1/plans/${encodeURIComponent(options.planId!)}/comparisons`, {
     method: 'POST',
     ...(options.idempotencyKey ? { headers: { 'Idempotency-Key': options.idempotencyKey } } : {}),
@@ -834,6 +872,10 @@ async function runCompare(options: CliOptions, io: CliIo, call: Call): Promise<n
       ...(options.candidateUrl ? { candidateUrl: options.candidateUrl.trim() } : {}),
       ...(options.recordedUrl ? { recordedUrl: options.recordedUrl.trim() } : {}),
       ...(options.compareMode ? { mode: options.compareMode } : {}),
+      ...(options.candidateDelaySeconds
+        ? { candidateDelaySeconds: options.candidateDelaySeconds }
+        : {}),
+      ...(policy ? { policy } : {}),
       ...(options.comparisonName ? { name: options.comparisonName } : {}),
     }),
   });

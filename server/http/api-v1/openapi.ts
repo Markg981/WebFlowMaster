@@ -149,6 +149,10 @@ export const openApiDocument = {
           planName: { type: ['string', 'null'] },
           name: { type: ['string', 'null'] },
           mode: { type: 'string', enum: [...COMPARISON_MODES] },
+          candidateDelaySeconds: {
+            type: 'integer',
+            description: 'Seconds the candidate waits after the baseline has ended (sequential).',
+          },
           status: { type: 'string', enum: [...COMPARISON_STATUSES] },
           verdict: {
             type: ['string', 'null'],
@@ -532,6 +536,14 @@ export const openApiDocument = {
                       'The address the tests were recorded on, when neither side: replaced on both. Needs both URLs.',
                   },
                   mode: { type: 'string', enum: [...COMPARISON_MODES], default: 'sequential' },
+                  candidateDelaySeconds: {
+                    type: 'integer',
+                    minimum: 0,
+                    maximum: 7200,
+                    default: 0,
+                    description:
+                      'Sequential mode only: seconds the candidate waits after the baseline has ended, for a system that keeps working after a run.',
+                  },
                   name: { type: 'string', maxLength: 200 },
                   policy: {
                     type: 'object',

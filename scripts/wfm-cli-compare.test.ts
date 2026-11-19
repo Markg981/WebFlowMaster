@@ -109,10 +109,18 @@ describe('parsing wfm compare', () => {
       wait: true,
     });
     expect(parsed([...base, '--pdf', 'parity.pdf'])).toMatchObject({ wait: true });
+    expect(parsed([...base, '--candidate-delay', '600', '--policy', 'aa.json'])).toMatchObject({
+      candidateDelaySeconds: 600,
+      policyPath: 'aa.json',
+    });
   });
 
   it('refuses what it cannot carry out', () => {
     for (const argv of [
+      [...base, '--candidate-delay', '-5'],
+      [...base, '--candidate-delay', '7201'],
+      [...base, '--candidate-delay', 'soon'],
+      [...base, '--mode', 'parallel', '--candidate-delay', '60'],
       ['compare', '--baseline', '1', '--candidate', '2'],
       ['compare', '--plan', 'p', '--baseline', '1'],
       ['compare', '--plan', 'p', '--baseline', '1', '--candidate', '1'],
@@ -270,6 +278,22 @@ describe('running wfm compare', () => {
       baselineUrl: 'https://old.test',
       candidateUrl: 'https://new.test',
     });
+  });
+
+  it('sends the candidate delay and the policy read from --policy, and refuses a policy that is not an object', async () => {
+    const fetchImpl = vi.fn().mockResolvedValue(jsonResponse(comparison('running'), 202));
+    const context = { ...io(fetchImpl), readFile: async () => '{"performance":{"mode":"off"}}' };
+    await runCli(options({ candidateDelaySeconds: 600, policyPath: 'aa.json' }), context);
+    expect(JSON.parse(fetchImpl.mock.calls[0][1].body)).toEqual({
+      baselineEnvironmentId: 1,
+      candidateEnvironmentId: 2,
+      candidateDelaySeconds: 600,
+      policy: { performance: { mode: 'off' } },
+    });
+
+    const refused = { ...io(fetchImpl), readFile: async () => '[1]' };
+    expect(await runCli(options({ policyPath: 'aa.json' }), refused)).toBe(EXIT_TOOL_ERROR);
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
   });
 
   it('waits for the verdict, writes the parity report whatever it is, and fails on a regression', async () => {
