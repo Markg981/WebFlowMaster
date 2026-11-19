@@ -486,7 +486,7 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 
 ## sessions {#sessions}
 
-`sessions` — `shared/schema/identity.ts:904`
+`sessions` — `shared/schema/identity.ts:905`
 
 | TS property | SQL column | Declaration                     |
 | ----------- | ---------- | ------------------------------- |

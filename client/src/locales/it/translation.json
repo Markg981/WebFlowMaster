@@ -3415,6 +3415,7 @@
       "testcase_hub_waves_synced": "Wave dell'hub QA sincronizzate",
       "testcase_hub_waves_imported": "Wave dell'hub QA importate come esecuzioni",
       "testcase_hub_wave_session_created": "Sessione creata da una wave dell'hub QA",
+      "testcase_hub_modules_imported": "Moduli dell'hub QA importati",
       "browser_grid_created": "Browser grid aggiunto",
       "browser_grid_updated": "Browser grid modificato",
       "browser_grid_deleted": "Browser grid rimosso",
