@@ -46,6 +46,8 @@ export const JSONB_PAYLOADS: Record<string, JsonbStrategy> = {
   'comparison_results.differences': 'migration',
   'comparison_runs.policy': 'migration',
   'comparison_runs.summary': 'migration',
+  // A library fixture's version (migration 0117): frozen once written, like a test version.
+  'data_fixture_versions.definition': 'snapshot',
   'custom_actions.parameters': 'migration',
   'dashboards.widgets': 'migration',
   'detected_elements.attributes': 'opaque',

@@ -812,6 +812,10 @@ export const AUDIT_ACTIONS = {
   ENVIRONMENT_DELETED: 'environment.deleted',
   // Whether runs on it may write the data a fixture finds missing (server/runtime/data-setup).
   ENVIRONMENT_DATA_SETUP_CHANGED: 'environment.data_setup_changed',
+  // The project's data fixture library: a fixture added, saved as a new version, removed.
+  DATA_FIXTURE_CREATED: 'data_fixture.created',
+  DATA_FIXTURE_UPDATED: 'data_fixture.updated',
+  DATA_FIXTURE_DELETED: 'data_fixture.deleted',
   SECRET_SET: 'secret.set',
   SECRET_DELETED: 'secret.deleted',
   SYSTEM_SETTINGS_CHANGED: 'system_settings.changed',

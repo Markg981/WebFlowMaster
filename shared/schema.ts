@@ -8,6 +8,7 @@ export * from './schema/authoring';
 export * from './schema/api-testing';
 export * from './schema/execution';
 export * from './schema/comparison';
+export * from './schema/data-fixtures';
 export * from './schema/environments';
 export * from './schema/integrations';
 export * from './schema/relations';

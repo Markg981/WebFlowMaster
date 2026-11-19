@@ -815,67 +815,179 @@ const sqlScript = (max: number) =>
 export const DataFixtureParamSchema = z.object({
   name: z.string().regex(/^[A-Za-z][\w]*$/, 'A parameter name is letters, digits and _'),
   type: z.enum(DATA_FIXTURE_PARAM_TYPES).default('string'),
-  /** The value, which may itself use {{variables}} and generators such as {{$uuid}}. */
+  /**
+   * The value, which may itself use {{variables}} and generators such as {{$uuid}}. In a library
+   * fixture it is the default, which a test or a fixture depending on this one may replace.
+   */
   value: z.string().max(2000).default(''),
 });
 export type DataFixtureParam = z.infer<typeof DataFixtureParamSchema>;
+
+const fixtureAlias = z
+  .string()
+  .regex(/^[A-Za-z][\w]*$/, 'An alias is letters, digits and _, starting with a letter');
+
+/** What a fixture does, in a test or in the library: the database, its values and its SQL. */
+const fixtureBody = {
+  /** The database: db.<connection>.url (and .setup.url); absent for db.url. */
+  connection: z
+    .string()
+    .regex(/^[A-Za-z][\w-]*$/)
+    .optional()
+    .nullable(),
+  params: z.array(DataFixtureParamSchema).max(30).default([]),
+  check: sqlScript(20_000),
+  apply: sqlScript(200_000),
+  outputs: z
+    .array(z.string().regex(/^[\w]+$/, 'An output is a column name'))
+    .max(30)
+    .default([]),
+  timeoutMs: z.number().int().min(1000).max(DATA_FIXTURE_MAX_TIMEOUT_MS).optional().nullable(),
+};
+
+/** Parameters declared once, and every {{params.x}} of the SQL one of them. */
+function checkFixtureParams(
+  fixture: { params: DataFixtureParam[]; check: string; apply: string },
+  ctx: z.RefinementCtx,
+) {
+  const names = fixture.params.map((p) => p.name);
+  const duplicate = names.find((name, i) => names.indexOf(name) !== i);
+  if (duplicate)
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['params'],
+      message: `The parameter "${duplicate}" is declared twice`,
+    });
+  for (const [field, sql] of [
+    ['check', fixture.check],
+    ['apply', fixture.apply],
+  ] as const) {
+    for (const name of placeholderNames(sql)) {
+      const param = /^params\.(\w+)$/.exec(name);
+      if (param && !names.includes(param[1]))
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: [field],
+          message: `{{${name}}} names a parameter this fixture does not declare`,
+        });
+    }
+  }
+}
 
 export const DataFixtureSchema = z
   .object({
     id: z.string().min(1).max(100),
     name: z.string().trim().min(1).max(200),
     /** The name its outputs go under: {{fx.<alias>.<column>}}. */
-    alias: z
-      .string()
-      .regex(/^[A-Za-z][\w]*$/, 'An alias is letters, digits and _, starting with a letter'),
-    /** The database: db.<connection>.url (and .setup.url); absent for db.url. */
-    connection: z
-      .string()
-      .regex(/^[A-Za-z][\w-]*$/)
-      .optional()
-      .nullable(),
-    params: z.array(DataFixtureParamSchema).max(30).default([]),
-    check: sqlScript(20_000),
-    apply: sqlScript(200_000),
-    outputs: z
-      .array(z.string().regex(/^[\w]+$/, 'An output is a column name'))
-      .max(30)
-      .default([]),
-    timeoutMs: z.number().int().min(1000).max(DATA_FIXTURE_MAX_TIMEOUT_MS).optional().nullable(),
+    alias: fixtureAlias,
+    ...fixtureBody,
+    /**
+     * Set when the fixture was expanded from the library at enqueue
+     * (server/authoring/fixture-graph.ts): which fixture and version it is, for the report.
+     */
+    source: z
+      .object({ fixtureId: z.number().int(), key: z.string(), version: z.number().int() })
+      .optional(),
+  })
+  .superRefine(checkFixtureParams);
+export type DataFixture = z.infer<typeof DataFixtureSchema>;
+
+/** A slug that names a fixture in its project's library: lowercase letters, digits, - and _. */
+export const DATA_FIXTURE_KEY_PATTERN = /^[a-z0-9][a-z0-9_-]{0,79}$/;
+
+/**
+ * A library fixture this one needs first. Its outputs are {{fx.<as>.<column>}} in this
+ * fixture's SQL; `params` replace its defaults, and may use this fixture's own {{params.x}}.
+ */
+export const DataFixtureDependencySchema = z.object({
+  fixture: z
+    .string()
+    .regex(DATA_FIXTURE_KEY_PATTERN, 'A fixture key is lowercase letters, digits, - and _'),
+  as: fixtureAlias,
+  params: z.record(z.string(), z.string().max(2000)).default({}),
+});
+export type DataFixtureDependency = z.infer<typeof DataFixtureDependencySchema>;
+
+/**
+ * A version of a library fixture (data_fixture_versions.definition): what a test's fixture is,
+ * without the test's id and alias, plus the fixtures it needs first. Frozen once written.
+ */
+export const LibraryFixtureDefinitionSchema = z
+  .object({
+    ...fixtureBody,
+    dependsOn: z.array(DataFixtureDependencySchema).max(10).default([]),
   })
   .superRefine((fixture, ctx) => {
-    const names = fixture.params.map((p) => p.name);
-    const duplicate = names.find((name, i) => names.indexOf(name) !== i);
-    if (duplicate)
+    checkFixtureParams(fixture, ctx);
+    const aliases = fixture.dependsOn.map((d) => d.as);
+    const twice = aliases.find((alias, i) => aliases.indexOf(alias) !== i);
+    if (twice)
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        path: ['params'],
-        message: `The parameter "${duplicate}" is declared twice`,
+        path: ['dependsOn'],
+        message: `Two dependencies are named "${twice}"`,
       });
     for (const [field, sql] of [
       ['check', fixture.check],
       ['apply', fixture.apply],
-    ] as const) {
+    ] as const)
       for (const name of placeholderNames(sql)) {
-        const param = /^params\.(\w+)$/.exec(name);
-        if (param && !names.includes(param[1]))
+        const fx = /^fx\.(\w+)\./.exec(name);
+        if (fx && !aliases.includes(fx[1]))
           ctx.addIssue({
             code: z.ZodIssueCode.custom,
             path: [field],
-            message: `{{${name}}} names a parameter this fixture does not declare`,
+            message: `{{${name}}} reads "${fx[1]}", which is not one of this fixture's dependencies`,
           });
       }
-    }
   });
-export type DataFixture = z.infer<typeof DataFixtureSchema>;
+export type LibraryFixtureDefinition = z.infer<typeof LibraryFixtureDefinitionSchema>;
+
+/**
+ * A test's use of a library fixture. Expanded, with its dependencies, into plain fixtures when
+ * the run is queued, so a run executes what the library held then even if the fixture changes
+ * after. `version: 'latest'` follows the library; a number pins one version.
+ */
+export const DataFixtureRefSchema = z
+  .object({
+    kind: z.literal('ref'),
+    id: z.string().min(1).max(100),
+    alias: fixtureAlias,
+    fixtureId: z.number().int().positive(),
+    version: z.union([z.literal('latest'), z.number().int().positive()]).default('latest'),
+    /** Values that replace the fixture's defaults, by parameter name. */
+    params: z.record(z.string(), z.string().max(2000)).default({}),
+  })
+  .strict();
+export type DataFixtureRef = z.infer<typeof DataFixtureRefSchema>;
+
+/** One entry of a test's fixtures: written in the test, or taken from the library. */
+export type TestDataFixture = DataFixture | DataFixtureRef;
+
+export function isDataFixtureRef(value: unknown): value is DataFixtureRef {
+  return (
+    typeof value === 'object' && value !== null && (value as { kind?: unknown }).kind === 'ref'
+  );
+}
+
+/** Either shape, each validated by its own schema so the messages name the real problem. */
+const TestDataFixtureSchema = z.unknown().transform((value, ctx): TestDataFixture => {
+  const parsed = isDataFixtureRef(value)
+    ? DataFixtureRefSchema.safeParse(value)
+    : DataFixtureSchema.safeParse(value);
+  if (parsed.success) return parsed.data;
+  for (const issue of parsed.error.issues) ctx.addIssue(issue as z.IssueData);
+  return z.NEVER;
+});
 
 /** The fixtures of a test: unique ids and aliases, a fixture's outputs read only after it. */
 export const DataFixturesSchema = z
-  .array(DataFixtureSchema)
+  .array(TestDataFixtureSchema)
   .max(30)
   .superRefine((fixtures, ctx) => {
     const seen = { id: new Set<string>(), alias: new Set<string>() };
     fixtures.forEach((fixture, index) => {
+      if (!fixture) return;
       for (const key of ['id', 'alias'] as const) {
         if (seen[key].has(fixture[key]))
           ctx.addIssue({
@@ -885,7 +997,8 @@ export const DataFixturesSchema = z
           });
         seen[key].add(fixture[key]);
       }
-      const earlier = new Set(fixtures.slice(0, index).map((f) => f.alias));
+      if (isDataFixtureRef(fixture)) return;
+      const earlier = new Set(fixtures.slice(0, index).map((f) => f?.alias));
       for (const sql of [fixture.check, fixture.apply])
         for (const name of placeholderNames(sql)) {
           const fx = /^fx\.(\w+)\./.exec(name);
