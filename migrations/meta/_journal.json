@@ -806,6 +806,13 @@
       "when": 1792400000038,
       "tag": "0114_comparison_candidate_delay",
       "breakpoints": true
+    },
+    {
+      "idx": 115,
+      "version": "7",
+      "when": 1792400000039,
+      "tag": "0115_data_fixtures",
+      "breakpoints": true
     }
   ]
 }

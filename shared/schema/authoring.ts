@@ -22,6 +22,7 @@ import type { MobilePlatform, MobileStep, MobileDeviceTarget } from '../mobile';
 import type { LoadDataMode, LoadStage, LoadStep, LoadThresholds } from '../load-test';
 import { BddTestSchema, type BddTest } from '../bdd';
 import { forbiddenNavigationScheme } from '../browser-navigation';
+import { placeholderNames, placeholderProblems } from '../sql-template';
 import type { HealingOrigin, HealingProposalStatus, HealingTargetKind } from '../healing';
 import { apiTests } from './api-testing';
 import { browserGrids } from './environments';
@@ -50,6 +51,9 @@ export const tests = pgTable(
     // API calls after the test, whatever its outcome, that remove what it created (migration 0065,
     // server/runtime/cleanup-runner.ts). Nullable: most tests have none. See CleanupSchema.
     cleanups: jsonb('cleanups'),
+    // The data the test needs in the application's database, checked and created by script
+    // before it runs (migration 0115, server/runtime/data-setup). Nullable. See DataFixtureSchema.
+    dataFixtures: jsonb('data_fixtures'),
     /**
      * Rows of input this test runs over, one run each.
      *
@@ -465,6 +469,7 @@ export const testVersions = pgTable(
     elements: jsonb('elements').notNull(),
     preconditions: jsonb('preconditions'),
     cleanups: jsonb('cleanups'),
+    dataFixtures: jsonb('data_fixtures'),
     dataset: jsonb('dataset'),
     /** What changed since the version before, worked out when the row is written. */
     snapshot: jsonb('snapshot').$type<Record<string, unknown>>(),
@@ -779,6 +784,121 @@ export type Precondition = z.infer<typeof PreconditionSchema>;
 export const CleanupSchema = PreconditionSchema.omit({ check: true });
 export type Cleanup = z.infer<typeof CleanupSchema>;
 
+/**
+ * A data fixture: a piece of data a test needs in the application's database, stated as a query
+ * that finds it and a script that creates it (server/runtime/data-setup/fixture-runner.ts).
+ *
+ * Before the test, the runner asks `check`. When it finds a row, the data is there and nothing
+ * is written. When it finds none, and the environment allows data setup, `apply` runs in a
+ * transaction and `check` is asked again: a script that ran without creating what `check` looks
+ * for fails the fixture rather than letting the test start from a state nobody intended. The
+ * columns named in `outputs`, read from the row `check` found, become {{fx.<alias>.<column>}}
+ * for the fixtures after it and for the test.
+ *
+ * Every {{placeholder}} in the SQL is sent as a parameter, never written into the text
+ * (shared/sql-template.ts), so a value cannot change what a statement does.
+ */
+export const DATA_FIXTURE_PARAM_TYPES = ['string', 'int', 'decimal', 'bool', 'date'] as const;
+export const DATA_FIXTURE_MAX_TIMEOUT_MS = 300_000;
+
+const sqlScript = (max: number) =>
+  z
+    .string()
+    .trim()
+    .min(1)
+    .max(max)
+    .superRefine((sql, ctx) => {
+      for (const problem of placeholderProblems(sql))
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: problem });
+    });
+
+export const DataFixtureParamSchema = z.object({
+  name: z.string().regex(/^[A-Za-z][\w]*$/, 'A parameter name is letters, digits and _'),
+  type: z.enum(DATA_FIXTURE_PARAM_TYPES).default('string'),
+  /** The value, which may itself use {{variables}} and generators such as {{$uuid}}. */
+  value: z.string().max(2000).default(''),
+});
+export type DataFixtureParam = z.infer<typeof DataFixtureParamSchema>;
+
+export const DataFixtureSchema = z
+  .object({
+    id: z.string().min(1).max(100),
+    name: z.string().trim().min(1).max(200),
+    /** The name its outputs go under: {{fx.<alias>.<column>}}. */
+    alias: z
+      .string()
+      .regex(/^[A-Za-z][\w]*$/, 'An alias is letters, digits and _, starting with a letter'),
+    /** The database: db.<connection>.url (and .setup.url); absent for db.url. */
+    connection: z
+      .string()
+      .regex(/^[A-Za-z][\w-]*$/)
+      .optional()
+      .nullable(),
+    params: z.array(DataFixtureParamSchema).max(30).default([]),
+    check: sqlScript(20_000),
+    apply: sqlScript(200_000),
+    outputs: z
+      .array(z.string().regex(/^[\w]+$/, 'An output is a column name'))
+      .max(30)
+      .default([]),
+    timeoutMs: z.number().int().min(1000).max(DATA_FIXTURE_MAX_TIMEOUT_MS).optional().nullable(),
+  })
+  .superRefine((fixture, ctx) => {
+    const names = fixture.params.map((p) => p.name);
+    const duplicate = names.find((name, i) => names.indexOf(name) !== i);
+    if (duplicate)
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['params'],
+        message: `The parameter "${duplicate}" is declared twice`,
+      });
+    for (const [field, sql] of [
+      ['check', fixture.check],
+      ['apply', fixture.apply],
+    ] as const) {
+      for (const name of placeholderNames(sql)) {
+        const param = /^params\.(\w+)$/.exec(name);
+        if (param && !names.includes(param[1]))
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: [field],
+            message: `{{${name}}} names a parameter this fixture does not declare`,
+          });
+      }
+    }
+  });
+export type DataFixture = z.infer<typeof DataFixtureSchema>;
+
+/** The fixtures of a test: unique ids and aliases, a fixture's outputs read only after it. */
+export const DataFixturesSchema = z
+  .array(DataFixtureSchema)
+  .max(30)
+  .superRefine((fixtures, ctx) => {
+    const seen = { id: new Set<string>(), alias: new Set<string>() };
+    fixtures.forEach((fixture, index) => {
+      for (const key of ['id', 'alias'] as const) {
+        if (seen[key].has(fixture[key]))
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: [index, key],
+            message: `Two data fixtures have the ${key} "${fixture[key]}"`,
+          });
+        seen[key].add(fixture[key]);
+      }
+      const earlier = new Set(fixtures.slice(0, index).map((f) => f.alias));
+      for (const sql of [fixture.check, fixture.apply])
+        for (const name of placeholderNames(sql)) {
+          const fx = /^fx\.(\w+)\./.exec(name);
+          if (fx && !earlier.has(fx[1]))
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              path: [index],
+              message: `{{${name}}} reads the fixture "${fx[1]}", which does not run before this one`,
+            });
+        }
+    });
+  });
+
 export const insertTestSchema = createInsertSchema(tests, {
   // The page the test opens first; a {{variable}} is checked when the run resolves it.
   url: z.string().refine((url) => !forbiddenNavigationScheme(url), {
@@ -792,6 +912,7 @@ export const insertTestSchema = createInsertSchema(tests, {
   component: z.string().optional().nullable(),
   preconditions: z.array(PreconditionSchema).optional().nullable(),
   cleanups: z.array(CleanupSchema).max(50).optional().nullable(),
+  dataFixtures: DataFixturesSchema.optional().nullable(),
   // Rows of input, each key a {{variable}} for that run. Typed rather than raw jsonb so a
   // malformed dataset is refused at save time instead of halfway through a scheduled run.
   dataset: z
