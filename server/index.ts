@@ -225,6 +225,15 @@ app.use(express.urlencoded({ extended: false }));
   const { startRunRecovery } = await import('./execution/run-recovery');
   const stopRunRecovery = process.env.NODE_ENV === 'test' ? () => {} : startRunRecovery();
 
+  // Opt-in (RUNS_INLINE=true): this process also takes the plan runs, for a local setup on PGlite
+  // where a second (worker) process cannot open the database. See server/runtime/inline-plan-runs.ts.
+  const { inlinePlanRunsEnabled, startInlinePlanWorker } =
+    await import('./runtime/inline-plan-runs');
+  const stopInlinePlanWorker =
+    process.env.NODE_ENV !== 'test' && inlinePlanRunsEnabled()
+      ? startInlinePlanWorker()
+      : async () => {};
+
   // Publishes the jobs of runs whose request stopped between creating the run and handing it to
   // the queue — see server/execution/execution-outbox.ts. Here for the same reason as above.
   const { startOutboxDispatcher } = await import('./execution/execution-outbox');
@@ -321,6 +330,7 @@ app.use(express.urlencoded({ extended: false }));
         stopDataRetention();
         stopBillingSweep();
         stopComparisonSweep();
+        await stopInlinePlanWorker();
         const { closeBrowserTasks } = await import('./web/browser-tasks');
         await closeBrowserTasks();
         await redisConnection.quit();
