@@ -276,4 +276,68 @@ describe('against a real Postgres', () => {
     expect(refused.reason).toBe('the library fixture 1 has no version 1');
     expect(await count('customers')).toBe(0);
   });
+
+  it('check mode only reads, and stops at the first fixture whose data is missing', async () => {
+    const result = await runDataFixtures(
+      [
+        fixture(),
+        fixture({
+          id: 'fx-order',
+          name: 'An open order',
+          alias: 'order',
+          params: [{ name: 'total', type: 'decimal', value: '42.50' }],
+          check: 'SELECT id FROM orders WHERE customer_id = {{fx.customer.id}}',
+          apply:
+            'INSERT INTO orders (customer_id, total) VALUES ({{fx.customer.id}}, {{params.total}})',
+        }),
+      ],
+      vars,
+      {
+        dataSetup: true,
+        vet,
+        mode: 'check',
+      },
+    );
+    expect(result).toMatchObject({ ok: false, failedAt: 'Customer Ann' });
+    expect(result.steps.map((s) => s.status)).toEqual(['missing']);
+    expect(fixtureReportSteps(result)[0]).toMatchObject({ status: 'failed' });
+    expect(await count('customers')).toBe(0);
+  }, 30_000);
+
+  it('dry mode runs the whole chain in one transaction and rolls it back', async () => {
+    const result = await runDataFixtures(
+      [
+        fixture(),
+        fixture({
+          id: 'fx-order',
+          name: 'An open order',
+          alias: 'order',
+          params: [{ name: 'total', type: 'decimal', value: '42.50' }],
+          check: 'SELECT id FROM orders WHERE customer_id = {{fx.customer.id}}',
+          apply:
+            'INSERT INTO orders (customer_id, total) VALUES ({{fx.customer.id}}, {{params.total}})',
+        }),
+      ],
+      vars,
+      {
+        dataSetup: true,
+        vet,
+        mode: 'dry',
+      },
+    );
+    expect(result.ok).toBe(true);
+    expect(result.steps.map((s) => s.status)).toEqual(['applied', 'applied']);
+    expect(result.steps[1].detail).toMatch(/rolled back/);
+    expect(await count('customers')).toBe(0);
+    expect(await count('orders')).toBe(0);
+  }, 30_000);
+
+  it('dry mode needs data setup, as a real run does', async () => {
+    const result = await runDataFixtures([fixture()], vars, {
+      dataSetup: false,
+      vet,
+      mode: 'dry',
+    });
+    expect(result.reason).toMatch(/does not allow data setup/);
+  }, 30_000);
 });
