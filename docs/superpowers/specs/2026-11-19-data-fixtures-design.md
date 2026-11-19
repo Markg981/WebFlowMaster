@@ -13,7 +13,7 @@ fails for reasons that have nothing to do with the application.
 What WFM has today:
 
 - **Preconditions** (`tests.preconditions`, `server/runtime/precondition-runner.ts`) already
-  follow the right pattern, *check → apply if missing*, but only as HTTP calls. The runner says
+  follow the right pattern, _check → apply if missing_, but only as HTTP calls. The runner says
   "never raw DB".
 - **`queryDatabase`** (`server/runtime/database-step.ts`) speaks pg, MySQL and SQL Server, with
   egress vetting and redaction, but only as a step inside the test, only from the server or
@@ -57,19 +57,19 @@ synthetic data generation at volume.
 
 Organization + project scoped, versioned (`data_fixtures`, `data_fixture_versions`).
 
-| Field        | Meaning                                                                                      |
-| ------------ | -------------------------------------------------------------------------------------------- |
-| `key`        | Stable slug, unique per project (`customer-with-contract`). Used in variables and deps.      |
-| `kind`       | `sql` (this design) or `http` (today's precondition, so one library covers both).            |
-| `connection` | Connection name: resolves `db.<name>.setup.url`, else `db.<name>.url`. Default `default`.    |
-| `params`     | Typed inputs `{name, type: string/int/decimal/bool/date, required, default}`.                 |
-| `check`      | Read-only query. Satisfied when it returns ≥ 1 row (or `satisfiedWhen: "{{value}} == 1"`).    |
-| `apply`      | Script that creates the state. May contain several statements and SQL Server `GO` batches.  |
-| `outputs`    | Columns of the final `check` row exposed as `{{fx.<alias>.<column>}}` (e.g. `customerId`).  |
+| Field        | Meaning                                                                                    |
+| ------------ | ------------------------------------------------------------------------------------------ |
+| `key`        | Stable slug, unique per project (`customer-with-contract`). Used in variables and deps.    |
+| `kind`       | `sql` (this design) or `http` (today's precondition, so one library covers both).          |
+| `connection` | Connection name: resolves `db.<name>.setup.url`, else `db.<name>.url`. Default `default`.  |
+| `params`     | Typed inputs `{name, type: string/int/decimal/bool/date, required, default}`.              |
+| `check`      | Read-only query. Satisfied when it returns ≥ 1 row (or `satisfiedWhen: "{{value}} == 1"`). |
+| `apply`      | Script that creates the state. May contain several statements and SQL Server `GO` batches. |
+| `outputs`    | Columns of the final `check` row exposed as `{{fx.<alias>.<column>}}` (e.g. `customerId`). |
 | `teardown`   | Optional script that removes what `apply` created; receives params and outputs.            |
-| `dependsOn`  | Other fixtures with param mapping (`customer: { code: "{{params.customerCode}}" }`).         |
-| `timeoutMs`  | Per fixture, default 30 s, max 5 min.                                                        |
-| `tags`       | For search and hub mapping.                                                                  |
+| `dependsOn`  | Other fixtures with param mapping (`customer: { code: "{{params.customerCode}}" }`).       |
+| `timeoutMs`  | Per fixture, default 30 s, max 5 min.                                                      |
+| `tags`       | For search and hub mapping.                                                                |
 
 Example (SQL Server, DMO):
 
@@ -77,10 +77,10 @@ Example (SQL Server, DMO):
 key: customer-with-contract
 connection: dmo
 params:
-  - { name: customerCode, type: string, default: "WFM-{{run.tag}}" }
-  - { name: contractType, type: string, default: "STD" }
+  - { name: customerCode, type: string, default: 'WFM-{{run.tag}}' }
+  - { name: contractType, type: string, default: 'STD' }
 dependsOn:
-  - { fixture: customer, as: customer, params: { code: "{{params.customerCode}}" } }
+  - { fixture: customer, as: customer, params: { code: '{{params.customerCode}}' } }
 check: |
   SELECT c.ContractId AS contractId
   FROM dbo.Contract c
@@ -102,8 +102,15 @@ placeholder in an identifier position (table, column) is rejected at save time.
 unchanged):
 
 ```json
-{ "kind": "fixture", "fixtureId": "…", "version": "latest", "as": "contract",
-  "params": { "contractType": "PREMIUM" }, "scope": "test", "teardown": "onSuccess" }
+{
+  "kind": "fixture",
+  "fixtureId": "…",
+  "version": "latest",
+  "as": "contract",
+  "params": { "contractType": "PREMIUM" },
+  "scope": "test",
+  "teardown": "onSuccess"
+}
 ```
 
 - `scope`: `test` (once per test, default), `row` (once per dataset row), `plan` (once per
@@ -122,11 +129,11 @@ before any `apply`. A mismatch stops the run before writing anything.
 
 ### Where it plugs in
 
-| Scope  | Point                                                                                     |
-| ------ | ----------------------------------------------------------------------------------------- |
+| Scope  | Point                                                                                                                                                                |
+| ------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `plan` | New phase `setupFixtures` in `plan-run/pipeline.ts` between `freezeDefinitions` and `executeLanes`; `teardownFixtures` after `executeLanes`, also on cancel/failure. |
-| `test` | `run-test.ts`, where HTTP preconditions run today (same policy, same `withCleanup`).      |
-| `row`  | Same place, inside the dataset row loop.                                                  |
+| `test` | `run-test.ts`, where HTTP preconditions run today (same policy, same `withCleanup`).                                                                                 |
+| `row`  | Same place, inside the dataset row loop.                                                                                                                             |
 
 Builder runs (`adhoc-runner.ts`) and BDD (`bdd-execution.ts`) use the same resolver, so a test
 behaves the same in the editor and in a plan.
@@ -186,13 +193,13 @@ steps are only in the logs and not in `detailedLog`.
 
 ## Authoring
 
-- **Library page** (*Test data → Fixtures*): SQL editor with dialect highlighting, params table,
+- **Library page** (_Test data → Fixtures_): SQL editor with dialect highlighting, params table,
   dependencies, outputs, version history.
 - **Try it** on a chosen environment:
-  - *Check only*: read-only, shows satisfied / missing and the outputs.
-  - *Dry apply*: check → apply → verify inside a transaction that is always rolled back; shows
+  - _Check only_: read-only, shows satisfied / missing and the outputs.
+  - _Dry apply_: check → apply → verify inside a transaction that is always rolled back; shows
     what would happen with no side effects.
-- **Test builder**: the preconditions panel gets *Add data fixture* next to *Add API call*,
+- **Test builder**: the preconditions panel gets _Add data fixture_ next to _Add API call_,
   with params form and a resolved-graph preview. Strings translated (fixes the current
   hard-coded English).
 - **Hub**: when importing a case with precondition text, suggest matching fixtures by tags
@@ -200,15 +207,15 @@ steps are only in the logs and not in `detailedLog`.
 
 ## Security
 
-| Risk                            | Control                                                                          |
-| ------------------------------- | -------------------------------------------------------------------------------- |
-| Writing to the wrong database   | `dataSetup` off by default per environment; identity guard before `apply`.        |
-| SQL injection through variables | Every `{{…}}` is a bound parameter; identifier placeholders rejected at save.     |
-| Over-privileged credential      | Separate `db.<name>.setup.url` (write) from `db.<name>.url` (read for checks).   |
-| Network reach                   | `vetDatabaseTarget` on the server; agent runs only for its own pool.             |
-| Secret leakage                  | Existing `redactUrl` / `redactMessage`; outputs limited to declared columns.       |
-| Unreviewed script changes       | Versioned fixtures, audit on create/update/delete/enable, frozen per run.        |
-| Runaway scripts                 | Per-fixture timeout, row cap on outputs, single transaction per apply.           |
+| Risk                            | Control                                                                        |
+| ------------------------------- | ------------------------------------------------------------------------------ |
+| Writing to the wrong database   | `dataSetup` off by default per environment; identity guard before `apply`.     |
+| SQL injection through variables | Every `{{…}}` is a bound parameter; identifier placeholders rejected at save.  |
+| Over-privileged credential      | Separate `db.<name>.setup.url` (write) from `db.<name>.url` (read for checks). |
+| Network reach                   | `vetDatabaseTarget` on the server; agent runs only for its own pool.           |
+| Secret leakage                  | Existing `redactUrl` / `redactMessage`; outputs limited to declared columns.   |
+| Unreviewed script changes       | Versioned fixtures, audit on create/update/delete/enable, frozen per run.      |
+| Runaway scripts                 | Per-fixture timeout, row cap on outputs, single transaction per apply.         |
 
 RBAC: editors create and change fixtures; enabling `dataSetup` on an environment requires
 owner. Audit actions: `DATA_FIXTURE_CREATED/UPDATED/DELETED`, `ENVIRONMENT_DATA_SETUP_CHANGED`.
@@ -218,16 +225,34 @@ owner. Audit actions: `DATA_FIXTURE_CREATED/UPDATED/DELETED`, `ENVIRONMENT_DATA_
 - **Steps inside the test** (today's `queryDatabase`): not idempotent, not reusable, not
   verified, mixes setup with what is being tested. Kept for assertions on data.
 - **Restore a baseline database before every run** (snapshot, backup, template DB): the
-  strongest isolation, but slow, needs DBA rights and does not express *which* data a test
+  strongest isolation, but slow, needs DBA rights and does not express _which_ data a test
   needs. Offered later as an optional environment-level reset that fixtures then build on.
 - **Transaction rolled back around the test**: impossible, the application under test uses
   its own connections.
 - **API-only setup**: preferred when the application exposes an API (business rules apply),
   which is why the library also holds `http` fixtures. SQL is for what the API does not offer.
 
-## Decisions to confirm
+## Decisions (confirmed 2026-11-19)
 
-1. Fixture scope: project (proposed) or organization like shared data sets.
-2. `apply` as free SQL (proposed, with guardrails) or only parameterised templates.
-3. Agent execution (`db.exec`) in the first release, given the DMO local use case (proposed: yes,
-   release 3, before teardown).
+1. Fixture scope: project. The library (release 2) is per project.
+2. `apply` is free SQL with guardrails: bound values only, placeholders refused inside quotes,
+   dollar bodies and identifier positions, one transaction, re-check before commit.
+3. Agent execution (`db.exec`) comes in release 3, before teardown.
+
+## Release 1 as built
+
+- Fixtures live in their own `data_fixtures` column on `tests` and `test_versions`
+  (migration 0115), not inside the preconditions, so the existing preconditions keep their shape
+  and the executable fingerprint of older versions does not change (the field enters the
+  fingerprint only when set).
+- `check` is satisfied by one row or more. `satisfiedWhen` is left out: a `WHERE` clause expresses
+  the same and keeps one rule.
+- Row scope (a fixture per dataset row) moves to release 4. Fixtures read environment and test
+  variables, `run.id` and `run.tag`, never row values.
+- Connection: `db[.<name>].setup.url`, else `db[.<name>].url`. Identity guard: `db[.<name>].expect`
+  as `DATABASE` or `DATABASE@SERVER`, case-insensitive.
+- The `environments.data_setup` flag is read at run start, not frozen in the run snapshot, so
+  turning it off takes effect for the next run. It is changed by `PUT
+/api/environments/:id/data-setup`: owner, session only, audited.
+- Runs: UI runner, ad-hoc preview and BDD runs (once before the rows), from the server. Debug
+  sessions do not run fixtures. The Playwright export reports them as unsupported.

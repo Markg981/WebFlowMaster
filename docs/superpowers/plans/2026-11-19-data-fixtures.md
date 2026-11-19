@@ -48,7 +48,7 @@ server/worker, with check → apply → verify, and show up in the report.
    - New `{{run.id}}` and `{{run.tag}}` in `server/runtime/variables.ts`.
 5. **Report**: step type `fixture` (and HTTP precondition steps) written into the report and
    `detailedLog`; report UI shows status, durations, outputs.
-6. **Docs and collaudo**: guide section *Data fixtures* (EN + IT), update
+6. **Docs and collaudo**: guide section _Data fixtures_ (EN + IT), update
    `docs/en/security/hardening.md` (database egress, stale since audit A-01); collaudo cases:
    fixture applied on an empty database, satisfied on a populated one, verify failure,
    `dataSetup` disabled, identity guard mismatch.
@@ -68,9 +68,9 @@ them.
    `(version, params hash)`, topological order, cycle detection (also at save).
 4. Freeze resolved fixture versions into the execution definition
    (`executable-definition.ts`, `plan-run/definitions.ts`, `test-versions.ts`).
-5. Client: *Test data → Fixtures* page (editor, params, deps, outputs, history) and *Add data
-   fixture* in the builder panel with graph preview; translate the precondition panel.
-6. **Try it**: *Check only* and *Dry apply* (always rolled back) against a chosen environment.
+5. Client: _Test data → Fixtures_ page (editor, params, deps, outputs, history) and _Add data
+   fixture_ in the builder panel with graph preview; translate the precondition panel.
+6. **Try it**: _Check only_ and _Dry apply_ (always rolled back) against a chosen environment.
 7. Docs + collaudo: library CRUD, dependency chain on an empty database, cycle rejected,
    dry apply leaves no data.
 
@@ -112,3 +112,8 @@ DMO local scenario works end to end.
   rerun.
 - Two parallel runs on the same database do not collide (`run.tag`).
 - No write happens when `dataSetup` is disabled or the identity guard fails.
+
+Release 1 recorded: fixture runner tests on a real Postgres (PGlite) cover the empty and the
+populated database, a rerun without duplicates, the disabled environment and the identity guard
+(no write in both), rollback on a failing statement and a script that does not create the data.
+See the design's "Release 1 as built" for the adjustments.
