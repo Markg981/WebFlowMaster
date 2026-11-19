@@ -177,8 +177,11 @@ router.put(
       // Under RLS another organization's environment is not there: 404, not a leak.
       if (!updated) return res.status(404).json({ error: 'Environment not found' });
       res.json({ id, dataSetup: updated.dataSetup });
-    } catch (error: any) {
-      logger.error({ message: 'Error changing data setup', error: error.message });
+    } catch (error) {
+      logger.error({
+        message: 'Error changing data setup',
+        error: error instanceof Error ? error.message : String(error),
+      });
       res.status(500).json({ error: 'Failed to change data setup' });
     }
   },
