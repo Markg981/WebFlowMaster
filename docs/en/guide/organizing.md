@@ -257,6 +257,18 @@ is a name already taken by another test. The imported tests are ordinary manual 
 in plans, or open one in the builder and automate it. Viewers see the catalog but cannot import.
 Removing the hub drops the catalog; the imported tests stay in the library, no longer tied to it.
 
+To bring in whole modules, with no limit on the number of cases, use **Import modules…**. The
+dialog lists each module of the catalog with its active cases, how many are already in the library
+and how many an import would take up; tick the modules (or **Select all**), choose the project
+and the step variant, and **Import N cases**. Each module goes into its own static suite,
+`QA hub · <module>` (the same suite the QA waves use), made on the first import. Only the active
+cases not imported yet are taken by default: tick **Include deprecated cases** for those too, and
+**Also update the tests whose case changed in the hub** to rewrite the tests whose case changed
+since they were imported. Importing a module again takes up only what is missing, so it is safe to
+repeat after every catalog refresh. The import runs as a background job: a bar shows the module
+being imported and can **Stop** it (what was imported so far stays), and a notice at the end says
+how many tests were created, updated and skipped.
+
 ### QA waves {#qa-waves}
 
 The hub also keeps the QA team's **waves**: a test session for a release (Smoke, Beta

@@ -272,6 +272,19 @@ test manuali: eseguiteli nei piani, oppure apritene uno nel builder e automatizz
 vedono il catalogo ma non importano. Rimuovere l'hub elimina il catalogo; i test importati
 restano in libreria, non più legati all'hub.
 
+Per importare moduli interi, senza limite sul numero di casi, usate **Importa moduli…**. La
+finestra elenca ogni modulo del catalogo con i casi attivi, quanti sono già in libreria e quanti
+ne prenderebbe l'importazione; spuntate i moduli (o **Seleziona tutti**), scegliete il progetto e
+la variante dei passi, poi **Importa N casi**. Ogni modulo va nella propria suite statica,
+`QA hub · <modulo>` (la stessa usata dalle wave QA), creata alla prima importazione. Per
+impostazione predefinita si prendono solo i casi attivi non ancora importati: spuntate **Includi i
+casi deprecati** anche per quelli, e **Aggiorna anche i test il cui caso è cambiato nell'hub** per
+riscrivere i test il cui caso è cambiato dopo l'importazione. Importare di nuovo un modulo prende
+solo ciò che manca, quindi si può ripetere dopo ogni aggiornamento del catalogo. L'importazione
+gira come job in background: una barra mostra il modulo in corso e il pulsante **Ferma** la
+interrompe (ciò che è già importato resta), e alla fine un avviso dice quanti test sono stati creati,
+aggiornati e saltati.
+
 ### Wave QA {#qa-waves}
 
 L'hub contiene anche le **wave** del team QA: una sessione di test per una release (Smoke, Beta
