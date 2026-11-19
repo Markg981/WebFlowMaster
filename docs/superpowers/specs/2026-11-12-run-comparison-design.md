@@ -168,13 +168,13 @@ Four action ids added to `ADHOC_ACTION_IDS` in `shared/recording.ts`, with `ACTI
 | `checkpointText`    | required | name                                     | Inner text of every match, whitespace-normalised          |
 | `checkpointTable`   | required | name, optional `rows=<css>; cells=<css>` | Matrix of cell texts; `tr` and `th, td` by default        |
 | `checkpointChart`   | required | name                                     | Chart model read at runtime (below)                       |
-| `checkpointNetwork` | none     | `name \| pattern[, pattern]`             | Requests since the previous network checkpoint that match |
+| `checkpointNetwork` | none     | `name \| pattern[, pattern] \| mask`     | Requests since the previous network checkpoint that match |
 
 `StepOutcome` gains `checkpoint?: CheckpointCapture`; `StepResult` (`server/web/playwright/types.ts`) gains the same field; `test-runner.ts` and `adhoc-runner.ts` copy it where they copy `outcome.download`. A checkpoint step passes when the capture succeeds and fails only when the target is missing or the adapter throws. Outside a comparison the capture is still stored and shown in the run report.
 
 Chart adapters (`server/web/checkpoints/chart-adapters.ts`, evaluated like `executeScript`, through the debugging protocol): in order, an explicit hook `el.__wfmChartModel()` the application may expose; DevExtreme jQuery widgets through `jQuery(el).data('dxChart' | 'dxPieChart' | 'dxPolarChart')`; ECharts through `echarts.getInstanceByDom(el)`. All return one shape: `{ series: [{ name, type, points: [[x, y]] }], axes: [{ name, min, max }], lines: [{ axis, value, label }] }`. The hook is the documented contract for libraries bundled as modules, where no global instance is reachable.
 
-Network journal (`server/web/checkpoints/network-journal.ts`): attached to the page when the test contains a `checkpointNetwork` step. Per finished request it keeps method, path, sorted query parameters, a hash of the request body, status and, only if the policy asks, a hash of the response body. Bodies are never stored, as with the HAR. Entries are sorted, so request order does not matter.
+Network journal (`server/web/checkpoints/network-journal.ts`): attached to the page when the test contains a `checkpointNetwork` step. Per finished request it keeps method, path, sorted query parameters, a hash of the request body, status and, only if the policy asks, a hash of the response body. Bodies are never stored, as with the HAR. Entries are sorted, so request order does not matter. The optional mask (a regular expression, everything after the second `|`; `name | | mask` with no pattern) replaces what it matches in each request body with `<masked>` before the hash: a value the application makes up when the request leaves, such as a time stamped into an export file name, would otherwise make two runs of the same test differ.
 
 ## Comparison engine (`server/reporting/comparison/`, new)
 

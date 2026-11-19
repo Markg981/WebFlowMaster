@@ -1559,7 +1559,7 @@
       "checkpointNetwork": {
         "name": "Point de contrôle réseau",
         "description": "Enregistre sous un nom les requêtes faites par les pages du test depuis le point de contrôle réseau précédent : méthode, chemin, query triée, statut et empreintes des corps, jamais les corps. Sans motif, il garde les appels fetch et XHR. Une comparaison d'exécutions les met en regard du même point de contrôle sur un autre environnement. Ne fait jamais échouer le test sur les requêtes faites.",
-        "valueHint": "le nom du point de contrôle, puis éventuellement | et des motifs d'URL — p. ex. api-commandes | **/api/orders**"
+        "valueHint": "le nom du point de contrôle, puis éventuellement | et des motifs d'URL, puis éventuellement | et une regex masquée dans les corps des requêtes — p. ex. api-commandes | **/api/orders** | \\d{14}"
       },
       "mockRequest": {
         "name": "Simuler une requête",

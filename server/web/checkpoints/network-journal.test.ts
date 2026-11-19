@@ -7,6 +7,7 @@ import type { NetworkCheckpointData, NetworkCheckpointEntry } from '@shared/comp
 import {
   attachNetworkJournal,
   hasNetworkCheckpoint,
+  MASKED,
   networkJournalOf,
   parseNetworkCheckpointValue,
   sortEntries,
@@ -26,6 +27,15 @@ describe('parseNetworkCheckpointValue', () => {
   it('wants a name first', () => {
     expect(parseNetworkCheckpointValue(' | **/api/**')).toHaveProperty('error');
     expect(parseNetworkCheckpointValue('')).toHaveProperty('error');
+  });
+
+  it('reads a mask after the second |, with or without patterns', () => {
+    const withPatterns = parseNetworkCheckpointValue('export | **/api/Export/** | _\\d{14}|x\\d');
+    expect(withPatterns).toMatchObject({ name: 'export', patterns: ['**/api/Export/**'] });
+    expect((withPatterns as { mask: RegExp }).mask.source).toBe('_\\d{14}|x\\d');
+    expect(parseNetworkCheckpointValue('export | | \\d+')).toMatchObject({ patterns: [] });
+    expect(parseNetworkCheckpointValue('export | **/api/** | ')).toHaveProperty('error');
+    expect(parseNetworkCheckpointValue('export | | (')).toHaveProperty('error');
   });
 });
 
@@ -123,6 +133,33 @@ describe('the journal on a browser context', () => {
       expect(entries.map((e) => e.path)).toEqual(['/api/lines', '/logo.png']);
       // An image is not a fetch call: its body is not hashed.
       expect(entries[1].responseBodyHash).toBeUndefined();
+    } finally {
+      await context.close();
+    }
+  }, 60_000);
+
+  it('hashes a request body after the mask, so a stamped time compares equal', async () => {
+    const context = await browser.newContext();
+    try {
+      const journal = attachNetworkJournal(context);
+      const page = await context.newPage();
+      await page.goto(base);
+      const post = (name: string) =>
+        page.evaluate(
+          (body) => fetch('/api/export', { method: 'POST', body }).then((r) => r.text()),
+          `{"file_name":"${name}","rows":[1]}`,
+        );
+      await post('Report_20261119210957');
+      await post('Report_20261119212551');
+      const { entries } = await journal.take(['/api/export'], /\d{14}/g);
+      const masked = sha256(`{"file_name":"Report_${MASKED}","rows":[1]}`);
+      expect(entries.map((e) => e.requestBodyHash)).toEqual([masked, masked]);
+
+      await post('Report_20261119210957');
+      const { entries: unmasked } = await journal.take(['/api/export']);
+      expect(unmasked[0].requestBodyHash).toBe(
+        sha256('{"file_name":"Report_20261119210957","rows":[1]}'),
+      );
     } finally {
       await context.close();
     }
