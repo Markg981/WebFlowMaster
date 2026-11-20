@@ -409,6 +409,9 @@ const runSqlServer = async (
 
 export const runDatabaseQuery: DatabaseRunner = (kind, url, sql, requestedMs, target) => {
   const timeoutMs = boundedDatabaseTimeout(requestedMs);
+  // Spelled out where the timer is made, so the bound is plain to read (and to CodeQL).
+  if (!(timeoutMs <= MAX_DATABASE_TIMEOUT_MS))
+    return Promise.reject(new Error('Invalid database timeout.'));
   const run = kind === 'postgres' ? runPostgres : kind === 'mysql' ? runMysql : runSqlServer;
   // Every driver has its own timeouts, and each covers only part of the way; this covers it all.
   return Promise.race([
