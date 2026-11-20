@@ -71,6 +71,11 @@ import {
 } from '@shared/web-performance';
 import { scanAccessibility } from './accessibility';
 import {
+  NETWORK_IDLE_TIMEOUT_MS,
+  networkActivityOf,
+  waitForQuietNetwork,
+} from './network-activity';
+import {
   allowsSelfSignedCertificate,
   requestVariables,
   substituteVariables,
@@ -936,7 +941,14 @@ const HANDLERS: Record<AdhocActionId, StepHandler> = {
   waitForNetworkIdle: async (rt) => {
     try {
       await rt.page.waitForLoadState('networkidle', { timeout: rt.timeoutMs });
-      return passed;
+      // networkidle is reached once per navigation: after a click it returns at once, so the
+      // calls the click started are waited for here.
+      const activity = networkActivityOf(rt.page.context());
+      if (await waitForQuietNetwork(activity, Date.now() + NETWORK_IDLE_TIMEOUT_MS)) return passed;
+      return failed(
+        `${activity.pending()} request(s) still in flight after ${NETWORK_IDLE_TIMEOUT_MS}ms. ` +
+          'Wait for an element or a text instead.',
+      );
     } catch {
       // Unlike the screenshot helper, which swallows this: here the wait *is* the step, so
       // a page that never settles is the step's result, not a detail to hide.
@@ -1848,6 +1860,9 @@ export async function executeStep(ctx: StepContext, step: ExecutableStep): Promi
 
   const handler = HANDLERS[actionId as AdhocActionId];
   if (!handler) throw new Error(`Unsupported action ID: ${actionId}`);
+
+  // From the first step on, so a later waitForNetworkIdle knows what the earlier ones started.
+  if (typeof page.context === 'function') networkActivityOf(page.context());
 
   // Where this step's selectors resolve: the page, or the iframe chain the element was
   // detected in. page.locator does not cross that boundary, so without this an element
