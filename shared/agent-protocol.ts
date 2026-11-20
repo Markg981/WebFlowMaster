@@ -47,6 +47,7 @@ export const AGENT_DATABASE_LIMITS = {
   maxSqlBytes: 1024 * 1024,
   /** SQL Server's own limit on the parameters of one statement. */
   maxValues: 2100,
+  /** server/runtime/database-step.ts MAX_DATABASE_TIMEOUT_MS: the same bound on the server. */
   maxTimeoutMs: 5 * 60_000,
   /** A session nobody calls for this long is closed; its open transaction rolls back. */
   idleMs: 5 * 60_000,

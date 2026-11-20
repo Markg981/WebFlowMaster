@@ -389,7 +389,7 @@ database.
 
 Caratteri come `@` o `/` nella password si scrivono `%40` e `%2F`. Per un secondo database
 dategli un nome: `db.reporting.url` e il valore `@reporting SELECT …`.
-`db.timeout` cambia il limite di 30 secondi, in secondi. Si tengono al massimo 1000 righe.
+`db.timeout` cambia il limite di 30 secondi, in secondi, fino a 300. Si tengono al massimo 1000 righe.
 
 L'istruzione gira con i permessi dell'utente dell'indirizzo: usate un utente che possa leggere solo
 ciò che i test verificano e scrivere solo ciò che preparano, e mai un database di produzione. La

@@ -90,6 +90,7 @@ import {
   type InboxGet,
 } from '../messaging/email-inbox';
 import {
+  boundedDatabaseTimeout,
   DATABASE_TIMEOUT_MS,
   connectionVariable,
   databaseKind,
@@ -1745,7 +1746,9 @@ const HANDLERS: Record<AdhocActionId, StepHandler> = {
 
     const seconds = Number(rt.vars['db.timeout']);
     const timeoutMs =
-      Number.isFinite(seconds) && seconds > 0 ? seconds * 1000 : DATABASE_TIMEOUT_MS;
+      Number.isFinite(seconds) && seconds > 0
+        ? boundedDatabaseTimeout(seconds * 1000)
+        : DATABASE_TIMEOUT_MS;
     // The previous query's columns are forgotten, so {{db.total}} never answers for a query
     // that had no such column.
     for (const name of (rt.vars['db.columns'] ?? '').split(',').filter(Boolean))

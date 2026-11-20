@@ -370,7 +370,7 @@ refuses fails the step with the database's message.
 
 Characters such as `@` or `/` in the password are written as `%40` and `%2F`. For a second
 database, name it: `db.reporting.url` and the value `@reporting SELECT …`.
-`db.timeout` changes the 30-second limit, in seconds. At most 1000 rows are kept.
+`db.timeout` changes the 30-second limit, in seconds, up to 300. At most 1000 rows are kept.
 
 The statement runs with the rights of the user in the address: use a user that can read only what
 the tests check, and write only what they prepare, and never a production database. The query runs
