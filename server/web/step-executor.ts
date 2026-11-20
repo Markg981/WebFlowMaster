@@ -1421,7 +1421,7 @@ const HANDLERS: Record<AdhocActionId, StepHandler> = {
     const attached = networkJournalOf(context);
     if (!attached) attachNetworkJournal(context);
     const { entries, dropped } = attached
-      ? await attached.take(value.patterns)
+      ? await attached.take(value.patterns, value.mask)
       : { entries: [], dropped: 0 };
     const checkpoint = networkCheckpoint(value.name, entries, dropped);
     const kept = (checkpoint.data as NetworkCheckpointData).entries.length;
@@ -1433,6 +1433,7 @@ const HANDLERS: Record<AdhocActionId, StepHandler> = {
         (value.patterns.length > 0
           ? ` matching ${value.patterns.join(', ')}`
           : ' (fetch and XHR)') +
+        (value.mask ? `, request bodies masked by /${value.mask.source}/` : '') +
         (checkpoint.truncated ? ' (cut).' : '.') +
         (attached ? '' : ' The journal started at this step; nothing before it was recorded.'),
     };

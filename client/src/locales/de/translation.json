@@ -1559,7 +1559,7 @@
       "checkpointNetwork": {
         "name": "Netzwerk-Checkpoint",
         "description": "Hält unter einem Namen die Anfragen fest, die die Seiten des Tests seit dem vorigen Netzwerk-Checkpoint gestellt haben: Methode, Pfad, sortierte Query, Status und die Hashes der Bodys, nie die Bodys selbst. Ohne Muster behält er die Fetch- und XHR-Aufrufe. Ein Laufvergleich stellt sie dem gleichen Checkpoint auf einer anderen Umgebung gegenüber. Lässt den Test nie wegen der Anfragen fehlschlagen.",
-        "valueHint": "der Name des Checkpoints, optional gefolgt von | und URL-Mustern — z. B. bestellungen-api | **/api/orders**"
+        "valueHint": "der Name des Checkpoints, optional gefolgt von | und URL-Mustern, dann optional | und einem Regex, der in Request-Bodys maskiert wird — z. B. bestellungen-api | **/api/orders** | \\d{14}"
       },
       "mockRequest": {
         "name": "Anfrage simulieren",

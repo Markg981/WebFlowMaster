@@ -1559,7 +1559,7 @@
       "checkpointNetwork": {
         "name": "Checkpoint di rete",
         "description": "Registra con un nome le richieste fatte dalle pagine del test dopo il checkpoint di rete precedente: metodo, percorso, query ordinata, stato e hash dei corpi, mai i corpi. Senza pattern tiene le chiamate fetch e XHR. Un confronto di run le mette a fianco dello stesso checkpoint su un altro ambiente. Non fa mai fallire il test per le richieste fatte.",
-        "valueHint": "il nome del checkpoint, poi facoltativi | e pattern di URL — es. api-ordini | **/api/orders**"
+        "valueHint": "il nome del checkpoint, poi facoltativi | e pattern di URL, poi facoltativi | e una regex mascherata nei body delle richieste — es. api-ordini | **/api/orders** | \\d{14}"
       },
       "mockRequest": {
         "name": "Simula richiesta",

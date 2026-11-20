@@ -9,7 +9,8 @@ import { urlPatternMatcher } from '@shared/patterns';
  *
  * Attached to the browser context by the runner when the test has a network checkpoint, so it
  * sees every tab and every request from the first navigation on. Each checkpoint takes the
- * requests finished since the previous one. As with the HAR, no body is kept: only its sha-256.
+ * requests finished since the previous one. As with the HAR, no body goes into the checkpoint:
+ * only its sha-256, taken after the checkpoint's mask, if it has one.
  *
  * Only what is the same on two environments is kept: the path and the query, not the host, so a
  * comparison of staging against production pairs the same call.
@@ -26,7 +27,12 @@ interface Recorded {
   url: string;
   resourceType: string;
   entry: NetworkCheckpointEntry;
+  /** The request body, kept until the checkpoint so its mask can apply before the hash. */
+  body: Buffer | null;
 }
+
+/** What replaces each part of a request body a checkpoint's mask matches. */
+export const MASKED = '<masked>';
 
 const sha256 = (data: Buffer | string) => createHash('sha256').update(data).digest('hex');
 
@@ -54,7 +60,15 @@ async function describeRequest(request: Request, failed: boolean): Promise<Recor
         entry.responseBodyHash = sha256(responseBody);
     }
   }
-  return { url: request.url(), resourceType: type, entry };
+  const kept = body && body.length > 0 && body.length <= MAX_HASHED_RESPONSE_BYTES ? body : null;
+  return { url: request.url(), resourceType: type, entry, body: kept };
+}
+
+/** The entry with its request body hashed after the mask: a body too large to keep is not. */
+function maskedEntry(recorded: Recorded, mask: RegExp | undefined): NetworkCheckpointEntry {
+  if (!mask || !recorded.body) return recorded.entry;
+  const masked = recorded.body.toString('utf8').replace(mask, MASKED);
+  return { ...recorded.entry, requestBodyHash: sha256(masked) };
 }
 
 const entryKey = (e: NetworkCheckpointEntry) =>
@@ -120,9 +134,13 @@ export class NetworkJournal {
    * The requests finished since the previous checkpoint that match one of the patterns, sorted;
    * with no pattern, the page's fetch and XHR calls. A request still open waits up to SETTLE_MS
    * (a long poll never ends); one still open then goes to the next checkpoint. The journal starts
-   * over after each take.
+   * over after each take. A mask replaces what it matches in each request body before the hash,
+   * so a value the application makes up on the spot (a time in a file name) compares equal.
    */
-  async take(patterns: readonly string[]): Promise<{
+  async take(
+    patterns: readonly string[],
+    mask?: RegExp,
+  ): Promise<{
     entries: NetworkCheckpointEntry[];
     /** Requests the journal could not hold since the previous checkpoint. */
     dropped: number;
@@ -146,7 +164,7 @@ export class NetworkJournal {
         ? r.resourceType === 'fetch' || r.resourceType === 'xhr'
         : matchers.some((matches) => matches(r.url)),
     );
-    return { entries: sortEntries(wanted.map((r) => r.entry)), dropped };
+    return { entries: sortEntries(wanted.map((r) => maskedEntry(r, mask))), dropped };
   }
 }
 
@@ -174,20 +192,29 @@ export function networkJournalOf(context: BrowserContext): NetworkJournal | unde
   return journals.get(context);
 }
 
-/** The value of a `checkpointNetwork` step: `name`, or `name | pattern[, pattern]`. */
+/**
+ * The value of a `checkpointNetwork` step: `name`, `name | pattern[, pattern]` or
+ * `name | pattern[, pattern] | mask`. The mask is a regular expression, everything after the
+ * second `|` (it may hold a `|` of its own); with no pattern, `name | | mask`.
+ */
 export function parseNetworkCheckpointValue(
   raw: string,
-): { name: string; patterns: string[] } | { error: string } {
+): { name: string; patterns: string[]; mask?: RegExp } | { error: string } {
   const at = raw.indexOf('|');
   const name = (at < 0 ? raw : raw.slice(0, at)).trim();
   if (name === '') return { error: 'the name of the checkpoint comes first' };
-  const patterns =
-    at < 0
-      ? []
-      : raw
-          .slice(at + 1)
-          .split(',')
-          .map((p) => p.trim())
-          .filter((p) => p !== '');
-  return { name, patterns };
+  const rest = at < 0 ? '' : raw.slice(at + 1);
+  const maskAt = rest.indexOf('|');
+  const patterns = (maskAt < 0 ? rest : rest.slice(0, maskAt))
+    .split(',')
+    .map((p) => p.trim())
+    .filter((p) => p !== '');
+  if (maskAt < 0) return { name, patterns };
+  const source = rest.slice(maskAt + 1).trim();
+  if (source === '') return { error: 'the mask after the second | is empty' };
+  try {
+    return { name, patterns, mask: new RegExp(source, 'g') };
+  } catch (err) {
+    return { error: `the mask is not a regular expression (${(err as Error).message})` };
+  }
 }

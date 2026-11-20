@@ -1559,7 +1559,7 @@
       "checkpointNetwork": {
         "name": "Checkpoint network",
         "description": "Records under a name the requests the test's pages made since the previous network checkpoint: method, path, sorted query, status and the hashes of the bodies, never the bodies. With no pattern it keeps the fetch and XHR calls. A run comparison sets them against the same checkpoint on another environment. It never fails the test on what the requests were.",
-        "valueHint": "the checkpoint name, then optionally | and URL patterns — e.g. orders-api | **/api/orders**"
+        "valueHint": "the checkpoint name, then optionally | and URL patterns, then optionally | and a regex masked in request bodies — e.g. orders-api | **/api/orders** | \\d{14}"
       },
       "mockRequest": {
         "name": "Mock request",
