@@ -393,8 +393,9 @@ dategli un nome: `db.reporting.url` e il valore `@reporting SELECT …`.
 
 L'istruzione gira con i permessi dell'utente dell'indirizzo: usate un utente che possa leggere solo
 ciò che i test verificano e scrivere solo ciò che preparano, e mai un database di produzione. La
-query parte dal runner di WebFlowMaster, non dal browser — anche su un agente locale — quindi il
-runner deve raggiungere il database. I valori entrano nell'SQL così come sono: mettete il testo tra
+query parte dal runner di WebFlowMaster, non dal browser, quindi il runner deve raggiungere il
+database; per un piano su un pool locale il runner è un agente del pool
+([database nella rete privata](../integrations/local-agents#databases)). I valori entrano nell'SQL così come sono: mettete il testo tra
 apici (`'{{email}}'`) e usate variabili i cui valori sono sotto il controllo del test.
 
 ## Posizione e download {#posizione-e-download}
@@ -538,8 +539,9 @@ nulla, l'esecuzione si ferma senza scrivere.
 ha, altrimenti con `db.url`. Così l'utente che può scrivere i dati di test resta distinto da quello
 con cui leggono gli step. Se `db.expect` (o `db.<nome>.expect`) contiene il nome del database, o
 `DATABASE@SERVER`, e l'indirizzo raggiunge un altro database, non si scrive nulla. L'SQL gira dal
-server WebFlowMaster, che deve raggiungere il database, anche quando il browser gira su un agent
-locale.
+server WebFlowMaster, che deve raggiungere il database; per un piano su un pool locale gira su un
+agente del pool, dalla sua rete
+([database nella rete privata](../integrations/local-agents#databases)).
 
 Un'esecuzione con una fixture fallita viene riportata come bloccata, come per una precondizione
 fallita. Il report mostra uno step **Data fixture** per ognuna: già presente, creata, oppure il
@@ -587,7 +589,7 @@ versione della libreria, per esempio `customer v2`.
 richiamata non si può eliminare; il messaggio dice chi la richiama.
 
 **Prova.** Nell'editor, **Prova** esegue la fixture e le sue dipendenze sul database di un ambiente,
-dal server, senza eseguire un test:
+dal server (anche per un piano che gira su un pool locale), senza eseguire un test:
 
 - **Solo verifica** esegue le verifiche e non scrive nulla. Riporta ogni fixture come trovata o
   mancante.

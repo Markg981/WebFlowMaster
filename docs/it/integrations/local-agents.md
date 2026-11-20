@@ -53,6 +53,28 @@ nativi precedenti mantengono unary/WebSocket legacy, ma non ricevono ticket avan
 Le identità TLS provengono dall’ambiente dell’organizzazione del test; i campi risolti viaggiano
 solo nella sessione nativa autenticata, mentre ticket e registro contengono nomi di capability.
 
+## Database nella rete privata {#databases}
+
+Le [data fixture](../guide/web-tests#data-fixtures) e gli step
+[Query database](../guide/web-tests#database) di un piano su un pool locale eseguono il loro SQL su
+un agente del pool, dalla rete dell'agente, come già i suoi browser. Un database che solo l'agente
+raggiunge, come il database di un'applicazione sulla macchina di uno sviluppatore o dietro il
+firewall aziendale, viene preparato e verificato senza aprirlo al server.
+
+- L'indirizzo, password compresa, viaggia nella sessione autenticata per ogni fixture o istruzione e
+  non viene mai salvato sull'agente. Dagli errori che tornano la password viene tolta.
+- La policy di uscita verso i database del server non si applica: decide la rete dell'agente.
+  Date all'utente del database solo i permessi che servono ai test.
+- Le sessioni database non usano i posti browser dell'agente (`WFM_AGENT_MAX_SESSIONS`): un agente
+  ne presta fino a 8 alla volta, così una fixture non aspetta dietro il browser del test che
+  prepara. Una sessione si chiude dopo 5 minuti di inattività o 30 minuti in tutto, e una
+  transazione aperta viene annullata con lei, come quando il run si ferma.
+- L'agente deve avere il driver del database: l'immagine Docker li ha tutti e tre; con Node, i
+  pacchetti `pg`, `mysql2` e `mssql` del comando seguente. Un agente senza driver dice quale
+  pacchetto installare.
+- Un agente precedente a questa release non esegue script database: la fixture fallisce e chiede di
+  aggiornare gli agenti del pool. **Prova** nell'editor delle fixture gira comunque dal server.
+
 ## Configurazione
 
 ### 1. Crea l'agente (owner)

@@ -287,3 +287,27 @@ version: 'latest' | n, params }`, in the same `data_fixtures` column: no new col
   undone by a dry run; the guide says so.
 - Not done: `scope` on references (with row scope, release 4); bundle export carries references
   only, so they dangle once imported into another organization.
+
+## Release 3 as built
+
+- No `db.exec` feature flag: a relay session gets a new `apiProtocol: 'database'`, next to `grpc`
+  and `websocket`. An agent advertises it in its hello; a pool whose agents do not is refused by
+  the relay with "Update the agents", and the fixture fails with that reason. A database ticket
+  carrying `apiFeatures` is malformed.
+- The session is interactive, not a single batch: calls `open`, `query`, `begin`, `commit`,
+  `rollback`, `lock`, `identity`, `close` over one WebSocket, replies matched by id, so the
+  release 1 engine (`runDataFixtures`) runs unchanged on a remote `SqlSession`. The
+  `queryDatabase` step uses a one-shot `run` call (`runDatabaseQuery` on the agent).
+- Values cross the relay tagged (`$wfm`: `date`, `bytes`, `bigint`, and `object` for a JSON
+  column that has the tag as a key), so outputs and `cellText` read the same as on the server.
+- Limits (`AGENT_DATABASE_LIMITS`): 8 sessions per agent counted apart from browsers, 1 MB of SQL,
+  2100 values, 5 minutes per call, 5 minutes idle, 30 minutes per session. The agent validates
+  every call; a session that ends rolls back its open transaction.
+- `DataRunner { where, vet, openSession, query }`: `localDataRunner` on the server,
+  `agentDataRunner` from `AgentHttp.data` for a plan on a pool (and for BDD on a pool). On an
+  agent `vet` does not apply the server's egress policy: the agent's network decides.
+- The URL with its password is sent per session and never stored on the agent; agent errors are
+  redacted with it before they leave. A missing driver names the package to install; the Node
+  agent install command now includes `pg`, `mysql2` and `mssql` (the Docker image already had them).
+- Not done: Try it stays on the server, also for a project whose plans run on a pool; the mobile
+  runner keeps running its SQL from the server.
