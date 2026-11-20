@@ -3,6 +3,7 @@
  * browser and language.
  */
 import { playwrightService } from '../web/playwright-service';
+import type { DataRunner } from '../runtime/data-setup/data-runner';
 import type { Test, ApiTest, Precondition, Cleanup } from '@shared/schema';
 import { runPreconditions } from '../runtime/precondition-runner';
 import { cleanupReportStep, runCleanups } from '../runtime/cleanup-runner';
@@ -105,6 +106,11 @@ export interface RunTestOptions {
    * runner. For a plan on an agent pool, the agent (server/runtime/agents/agent-fetch.ts).
    */
   http?: typeof fetch;
+  /**
+   * Where the data fixtures and queryDatabase steps reach the database. Absent: this runner. For
+   * a plan on an agent pool, the agent (server/runtime/agents/agent-database.ts).
+   */
+  data?: DataRunner;
   /** The language the browser starts in (shared/locales.ts). Absent: the browser's default. */
   locale?: string;
   /**
@@ -287,6 +293,9 @@ export async function runTest(
         const fx = await runDataFixtures(fixtures, vars, {
           dataSetup: options?.dataSetup === true,
           signal: options?.signal,
+          ...(options?.data
+            ? { openSession: options.data.openSession, vet: options.data.vet }
+            : {}),
           expand: expandFromLibrary((uiTest as { projectId?: number | null }).projectId),
         });
         setupSteps.push(...(fixtureReportSteps(fx) as StepResult[]));
@@ -355,6 +364,7 @@ export async function runTest(
           runtime: options?.runtime,
           signal: options?.signal,
           locale: options?.locale,
+          data: options?.data,
           onVariables: (set) => variableSets.push(set),
           dependencies: options?.dependencies,
           attempt: options?.attempt,

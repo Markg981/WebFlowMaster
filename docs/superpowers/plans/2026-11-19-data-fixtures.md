@@ -94,6 +94,11 @@ DMO local scenario works end to end.
 4. Docs (`docs/*/integrations/local-agents.md`) + collaudo: DMO NCC test on an empty local DMO
    database through the `dmo-local` pool.
 
+Status: done in PR (feat/data-fixtures-r3). Differences from the list above: a relay
+`apiProtocol: 'database'` instead of a feature flag; an interactive session (open, query, begin,
+commit, rollback, lock, identity, close) instead of one `db.exec` batch; Try it stays on the
+server. Collaudo WEB-98. See "Release 3 as built" in the design.
+
 ## Release 4: teardown, ledger, plan scope (about 5 days)
 
 1. Migration `0117_fixture_ledger` + RLS.

@@ -90,6 +90,7 @@ import {
   type InboxGet,
 } from '../messaging/email-inbox';
 import {
+  boundedDatabaseTimeout,
   DATABASE_TIMEOUT_MS,
   connectionVariable,
   databaseKind,
@@ -97,7 +98,9 @@ import {
   redactMessage,
   resultVariables,
   runDatabaseQuery,
+  type DatabaseKind,
   type DatabaseRunner,
+  type DatabaseTarget,
   vetDatabaseTarget,
 } from '../runtime/database-step';
 import { findUnresolvedVariables } from '../runtime/variables';
@@ -138,6 +141,11 @@ export interface StepContext {
   startedAt?: number;
   /** Runs a `queryDatabase` statement. The real drivers when omitted. */
   database?: DatabaseRunner;
+  /**
+   * The egress check before a `queryDatabase` connection. The server's policy when omitted; for a
+   * statement an agent runs, its network decides (server/runtime/data-setup/data-runner.ts).
+   */
+  vetDatabase?: (kind: DatabaseKind, url: string) => Promise<DatabaseTarget>;
   /** Where an `auditLighthouse` step keeps its HTML report; none in the builder's preview. */
   artifactDir?: string;
   /** Waits for a text message in the organization's SMS inbox. The real inbox when omitted. */
@@ -350,6 +358,8 @@ interface StepRuntime {
   inboxGet: InboxGet;
   /** See StepContext.database. */
   database: DatabaseRunner;
+  /** See StepContext.vetDatabase. */
+  vetDatabase?: (kind: DatabaseKind, url: string) => Promise<DatabaseTarget>;
   /** The browser's own measurements of the page (server/web/web-performance.ts). */
   measurePerformance: () => Promise<{
     url: string;
@@ -1736,7 +1746,9 @@ const HANDLERS: Record<AdhocActionId, StepHandler> = {
 
     const seconds = Number(rt.vars['db.timeout']);
     const timeoutMs =
-      Number.isFinite(seconds) && seconds > 0 ? seconds * 1000 : DATABASE_TIMEOUT_MS;
+      Number.isFinite(seconds) && seconds > 0
+        ? boundedDatabaseTimeout(seconds * 1000)
+        : DATABASE_TIMEOUT_MS;
     // The previous query's columns are forgotten, so {{db.total}} never answers for a query
     // that had no such column.
     for (const name of (rt.vars['db.columns'] ?? '').split(',').filter(Boolean))
@@ -1747,7 +1759,7 @@ const HANDLERS: Record<AdhocActionId, StepHandler> = {
     // Same egress policy as HTTP, before any driver exists; the driver gets the verified address.
     let target;
     try {
-      target = await vetDatabaseTarget(kind, url);
+      target = await (rt.vetDatabase ?? vetDatabaseTarget)(kind, url);
     } catch (error: any) {
       return failed(String(error?.message ?? error));
     }
@@ -1919,6 +1931,7 @@ export async function executeStep(ctx: StepContext, step: ExecutableStep): Promi
       return { status: response.status(), json: () => response.json() };
     },
     database: ctx.database ?? runDatabaseQuery,
+    vetDatabase: ctx.vetDatabase,
     measurePerformance: ctx.measurePerformance ?? (() => measurePagePerformance(page)),
     runLighthouse:
       ctx.runLighthouse ??

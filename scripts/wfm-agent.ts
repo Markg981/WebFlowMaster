@@ -28,9 +28,12 @@ import { createRequire } from 'node:module';
 import WebSocket from 'ws';
 import type { BrowserServer } from 'playwright';
 import { serveApiSession } from './agent-api-session';
+import { serveDatabaseSession } from './agent-database-session';
+import type { SqlSessionFactory } from '../server/runtime/data-setup/sql-session';
+import type { DatabaseRunner } from '../server/runtime/database-step';
 import { loadBddProfiles, publicBddProfiles, type OperatorBddProfile } from './bdd-profiles';
 import { serveBddSession } from './agent-bdd-session';
-import type { AgentApiProtocol } from '../shared/agent-protocol';
+import type { AgentNetworkProtocol } from '../shared/agent-protocol';
 
 export const AGENT_VERSION = '1.0.0-rc.1';
 /** Kept in step with shared/agents.ts, written out because this script is shipped on its own. */
@@ -48,6 +51,8 @@ export interface AgentOptions {
   log?: (line: string) => void;
   /** Called when the server refuses the token or the version; the process exits on it. */
   onFatal?: (reason: string) => void;
+  /** Stand-ins for the database drivers, for tests. */
+  database?: { open?: SqlSessionFactory; run?: DatabaseRunner };
 }
 
 export interface RunningAgent {
@@ -89,7 +94,7 @@ export function runAgent(options: AgentOptions): RunningAgent {
   };
   const sessions = new Map<
     string,
-    { server?: BrowserServer; sockets: WebSocket[]; bdd?: boolean }
+    { server?: BrowserServer; sockets: WebSocket[]; bdd?: boolean; database?: boolean }
   >();
   let control: WebSocket | null = null;
   let stopping = false;
@@ -174,7 +179,7 @@ export function runAgent(options: AgentOptions): RunningAgent {
 
   function lendApi(
     sessionId: string,
-    protocol: AgentApiProtocol,
+    protocol: AgentNetworkProtocol,
     apiFeatures: import('../shared/agent-protocol').AgentApiFeature[] = [],
   ) {
     const remote = new WebSocket(`${base}${PATHS.session}${sessionId}`, {
@@ -191,6 +196,25 @@ export function runAgent(options: AgentOptions): RunningAgent {
         finishTrace(sessionId);
       },
       apiFeatures,
+    );
+  }
+
+  /** A session on the application's database, for data fixtures and queryDatabase steps. */
+  function lendDatabase(sessionId: string) {
+    const remote = new WebSocket(`${base}${PATHS.session}${sessionId}`, {
+      headers,
+      maxPayload: AGENT_API_MAX_PAYLOAD,
+    });
+    sessions.set(sessionId, { sockets: [remote], database: true });
+    remote.once('error', () => finishTrace(sessionId, true));
+    serveDatabaseSession(
+      remote,
+      () => {
+        sessions.delete(sessionId);
+        finishTrace(sessionId);
+      },
+      options.database?.open,
+      options.database?.run,
     );
   }
 
@@ -218,7 +242,7 @@ export function runAgent(options: AgentOptions): RunningAgent {
           hostname: os.hostname(),
           browsers: options.browsers ?? (await installedBrowsers()),
           maxSessions: options.maxSessions,
-          apiProtocols: ['grpc', 'websocket'],
+          apiProtocols: ['grpc', 'websocket', 'database'],
           apiProtocolFeatures: ['native-protocol-v2'],
           bddProfiles: publicBddProfiles(options.bddProfiles ?? []),
         }),
@@ -257,7 +281,9 @@ export function runAgent(options: AgentOptions): RunningAgent {
                 profile.id === message.bddProfile.id &&
                 profile.revision === message.bddProfile.revision,
             );
-            if (!hasProfile || sessions.size >= options.maxSessions) {
+            // Database sessions are counted apart, by the relay (shared/agent-protocol.ts).
+            const lent = [...sessions.values()].filter((s) => !s.database).length;
+            if (!hasProfile || lent >= options.maxSessions) {
               ws.send(
                 JSON.stringify({
                   type: 'open_failed',
@@ -280,7 +306,8 @@ export function runAgent(options: AgentOptions): RunningAgent {
               sessions.delete(message.sessionId);
               finishTrace(message.sessionId);
             });
-          } else if (message.apiProtocol === 'grpc' || message.apiProtocol === 'websocket')
+          } else if (message.apiProtocol === 'database') lendDatabase(message.sessionId);
+          else if (message.apiProtocol === 'grpc' || message.apiProtocol === 'websocket')
             lendApi(message.sessionId, message.apiProtocol, message.apiFeatures);
           else
             void lend(

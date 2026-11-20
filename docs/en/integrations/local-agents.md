@@ -53,6 +53,28 @@ agents can still serve legacy unary/WebSocket calls, but cannot receive an advan
 TLS identities come from the test's organization environment; resolved fields travel only
 inside the authenticated native session, while tickets and directory records contain feature names.
 
+## Databases inside the private network {#databases}
+
+The [data fixtures](../guide/web-tests#data-fixtures) and the
+[Query database](../guide/web-tests#database) steps of a plan on a local pool run their SQL on an
+agent of the pool, from the agent's network, as its browsers do. A database that only the agent can
+reach, such as an application's database on a developer's machine or behind the company firewall,
+is prepared and checked without opening it to the server.
+
+- The address, password included, travels in the authenticated session for each fixture or
+  statement and is never stored on the agent. Errors coming back are cleared of the password.
+- The server's database egress policy is not applied: the agent's network decides what it reaches.
+  Give the agent's database user only the rights the tests need.
+- Database sessions do not use the agent's browser slots (`WFM_AGENT_MAX_SESSIONS`): an agent lends
+  up to 8 at once, so a fixture does not wait behind the browser of the test it prepares. A session
+  is closed after 5 idle minutes or 30 minutes in all, and an open transaction rolls back with it,
+  as it does when the run stops.
+- The agent needs the driver of the database: the Docker image has all three; with Node, the
+  packages `pg`, `mysql2` and `mssql` in the command below. An agent without it says which package
+  to install.
+- An agent older than this release cannot run database scripts: the fixture fails and asks you to
+  update the pool's agents. **Try it** in the fixture editor still runs from the server.
+
 ## Set up
 
 ### 1. Create the agent (owners)
@@ -78,7 +100,7 @@ With Node 20.18.1 or later:
 ```bash
 curl -fsSL https://webflowmaster.example.com/cli/wfm-agent.mjs -o wfm-agent.mjs
 curl -fsSL https://webflowmaster.example.com/cli/wfm-bdd-child.mjs -o wfm-bdd-child.mjs
-npm install playwright@<server version> ws @grpc/grpc-js @grpc/proto-loader undici@^7 https-proxy-agent@^7 zod@^3 @cucumber/cucumber@12.9.0 @cucumber/gherkin@38.0.0 @cucumber/messages@32.3.1 tsx@^4 @opentelemetry/api@^1.10.0 @opentelemetry/context-async-hooks@^3.0.0 @opentelemetry/core@^3.0.0 @opentelemetry/exporter-trace-otlp-http@^0.300.0 @opentelemetry/resources@^3.0.0 @opentelemetry/sdk-trace@^3.0.0
+npm install playwright@<server version> ws @grpc/grpc-js @grpc/proto-loader undici@^7 https-proxy-agent@^7 zod@^3 pg@^8 mssql@^12 mysql2@^3 @cucumber/cucumber@12.9.0 @cucumber/gherkin@38.0.0 @cucumber/messages@32.3.1 tsx@^4 @opentelemetry/api@^1.10.0 @opentelemetry/context-async-hooks@^3.0.0 @opentelemetry/core@^3.0.0 @opentelemetry/exporter-trace-otlp-http@^0.300.0 @opentelemetry/resources@^3.0.0 @opentelemetry/sdk-trace@^3.0.0
 npx playwright install chromium        # and firefox / webkit / msedge if plans use them
 WFM_URL=https://webflowmaster.example.com WFM_AGENT_TOKEN=wfa_... node wfm-agent.mjs
 ```

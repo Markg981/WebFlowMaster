@@ -3,6 +3,7 @@ import { createHash, createHmac, randomBytes, randomUUID, timingSafeEqual } from
 import logger from '../../platform/logger';
 import { AGENT_POOL_PATTERN, AGENT_TOKEN_PREFIX, type AgentEngine } from '@shared/agents';
 import { BddAgentProfileSchema } from '@shared/bdd-agent';
+import { AGENT_API_PROTOCOLS } from '@shared/agent-protocol';
 
 /**
  * The two credentials of the agent relay.
@@ -126,7 +127,7 @@ export function verifyTicket(
     return { error: 'malformed ticket' };
   if (!['chromium', 'firefox', 'webkit'].includes(ticket.engine))
     return { error: 'malformed ticket' };
-  if (ticket.apiProtocol !== undefined && !['grpc', 'websocket'].includes(ticket.apiProtocol))
+  if (ticket.apiProtocol !== undefined && !AGENT_API_PROTOCOLS.includes(ticket.apiProtocol))
     return { error: 'malformed ticket' };
   if (
     ticket.bddProfile !== undefined &&
@@ -140,6 +141,8 @@ export function verifyTicket(
     ticket.apiFeatures !== undefined &&
     (!ticket.apiProtocol ||
       !Array.isArray(ticket.apiFeatures) ||
+      // A database session has no optional features.
+      (ticket.apiProtocol === 'database' && ticket.apiFeatures.length > 0) ||
       ticket.apiFeatures.length > 1 ||
       ticket.apiFeatures.some((feature) => feature !== 'native-protocol-v2'))
   )

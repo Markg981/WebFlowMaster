@@ -106,6 +106,15 @@ export async function vetDatabaseTarget(
 }
 
 export const DATABASE_TIMEOUT_MS = 30_000;
+/** The longest a statement may take, wherever it runs (also the agent's limit). */
+export const MAX_DATABASE_TIMEOUT_MS = 5 * 60_000;
+
+/** A timeout within 1 second and MAX_DATABASE_TIMEOUT_MS. */
+export function boundedDatabaseTimeout(timeoutMs: number): number {
+  return Number.isFinite(timeoutMs)
+    ? Math.min(Math.max(Math.round(timeoutMs), 1000), MAX_DATABASE_TIMEOUT_MS)
+    : DATABASE_TIMEOUT_MS;
+}
 /** Rows kept from a result. A step reads a value or a few rows, never a table. */
 export const MAX_ROWS = 1000;
 /** Rows written into {{db.json}}. */
@@ -398,7 +407,11 @@ const runSqlServer = async (
   }
 };
 
-export const runDatabaseQuery: DatabaseRunner = (kind, url, sql, timeoutMs, target) => {
+export const runDatabaseQuery: DatabaseRunner = (kind, url, sql, requestedMs, target) => {
+  const timeoutMs = boundedDatabaseTimeout(requestedMs);
+  // Spelled out where the timer is made, so the bound is plain to read (and to CodeQL).
+  if (!(timeoutMs <= MAX_DATABASE_TIMEOUT_MS))
+    return Promise.reject(new Error('Invalid database timeout.'));
   const run = kind === 'postgres' ? runPostgres : kind === 'mysql' ? runMysql : runSqlServer;
   // Every driver has its own timeouts, and each covers only part of the way; this covers it all.
   return Promise.race([

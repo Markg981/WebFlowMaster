@@ -651,7 +651,16 @@ export class TestRunner {
                 let outcome: Awaited<ReturnType<typeof executeStep>>;
                 try {
                   outcome = await executeStep(
-                    { page, reporter, vars, startedAt: startTime, artifactDir: screenshotBaseDir },
+                    {
+                      page,
+                      reporter,
+                      vars,
+                      startedAt: startTime,
+                      artifactDir: screenshotBaseDir,
+                      ...(options?.data
+                        ? { database: options.data.query, vetDatabase: options.data.vet }
+                        : {}),
+                    },
                     step,
                   );
                 } catch (firstError: any) {
@@ -685,7 +694,16 @@ export class TestRunner {
                   }
                   reporter.resetStepState();
                   outcome = await executeStep(
-                    { page, reporter, vars, startedAt: startTime, artifactDir: screenshotBaseDir },
+                    {
+                      page,
+                      reporter,
+                      vars,
+                      startedAt: startTime,
+                      artifactDir: screenshotBaseDir,
+                      ...(options?.data
+                        ? { database: options.data.query, vetDatabase: options.data.vet }
+                        : {}),
+                    },
                     step,
                   );
                 }

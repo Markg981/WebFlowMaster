@@ -53,6 +53,28 @@ nativi precedenti mantengono unary/WebSocket legacy, ma non ricevono ticket avan
 Le identità TLS provengono dall’ambiente dell’organizzazione del test; i campi risolti viaggiano
 solo nella sessione nativa autenticata, mentre ticket e registro contengono nomi di capability.
 
+## Database nella rete privata {#databases}
+
+Le [data fixture](../guide/web-tests#data-fixtures) e gli step
+[Query database](../guide/web-tests#database) di un piano su un pool locale eseguono il loro SQL su
+un agente del pool, dalla rete dell'agente, come già i suoi browser. Un database che solo l'agente
+raggiunge, come il database di un'applicazione sulla macchina di uno sviluppatore o dietro il
+firewall aziendale, viene preparato e verificato senza aprirlo al server.
+
+- L'indirizzo, password compresa, viaggia nella sessione autenticata per ogni fixture o istruzione e
+  non viene mai salvato sull'agente. Dagli errori che tornano la password viene tolta.
+- La policy di uscita verso i database del server non si applica: decide la rete dell'agente.
+  Date all'utente del database solo i permessi che servono ai test.
+- Le sessioni database non usano i posti browser dell'agente (`WFM_AGENT_MAX_SESSIONS`): un agente
+  ne presta fino a 8 alla volta, così una fixture non aspetta dietro il browser del test che
+  prepara. Una sessione si chiude dopo 5 minuti di inattività o 30 minuti in tutto, e una
+  transazione aperta viene annullata con lei, come quando il run si ferma.
+- L'agente deve avere il driver del database: l'immagine Docker li ha tutti e tre; con Node, i
+  pacchetti `pg`, `mysql2` e `mssql` del comando seguente. Un agente senza driver dice quale
+  pacchetto installare.
+- Un agente precedente a questa release non esegue script database: la fixture fallisce e chiede di
+  aggiornare gli agenti del pool. **Prova** nell'editor delle fixture gira comunque dal server.
+
 ## Configurazione
 
 ### 1. Crea l'agente (owner)
@@ -78,7 +100,7 @@ Con Node 20.18.1 o successivo:
 ```bash
 curl -fsSL https://webflowmaster.example.com/cli/wfm-agent.mjs -o wfm-agent.mjs
 curl -fsSL https://webflowmaster.example.com/cli/wfm-bdd-child.mjs -o wfm-bdd-child.mjs
-npm install playwright@<versione del server> ws @grpc/grpc-js @grpc/proto-loader undici@^7 https-proxy-agent@^7 zod@^3 @cucumber/cucumber@12.9.0 @cucumber/gherkin@38.0.0 @cucumber/messages@32.3.1 tsx@^4 @opentelemetry/api@^1.10.0 @opentelemetry/context-async-hooks@^3.0.0 @opentelemetry/core@^3.0.0 @opentelemetry/exporter-trace-otlp-http@^0.300.0 @opentelemetry/resources@^3.0.0 @opentelemetry/sdk-trace@^3.0.0
+npm install playwright@<versione del server> ws @grpc/grpc-js @grpc/proto-loader undici@^7 https-proxy-agent@^7 zod@^3 pg@^8 mssql@^12 mysql2@^3 @cucumber/cucumber@12.9.0 @cucumber/gherkin@38.0.0 @cucumber/messages@32.3.1 tsx@^4 @opentelemetry/api@^1.10.0 @opentelemetry/context-async-hooks@^3.0.0 @opentelemetry/core@^3.0.0 @opentelemetry/exporter-trace-otlp-http@^0.300.0 @opentelemetry/resources@^3.0.0 @opentelemetry/sdk-trace@^3.0.0
 npx playwright install chromium        # e firefox / webkit / msedge se i piani li usano
 WFM_URL=https://webflowmaster.example.com WFM_AGENT_TOKEN=wfa_... node wfm-agent.mjs
 ```

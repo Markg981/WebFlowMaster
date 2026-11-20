@@ -370,12 +370,13 @@ refuses fails the step with the database's message.
 
 Characters such as `@` or `/` in the password are written as `%40` and `%2F`. For a second
 database, name it: `db.reporting.url` and the value `@reporting SELECT …`.
-`db.timeout` changes the 30-second limit, in seconds. At most 1000 rows are kept.
+`db.timeout` changes the 30-second limit, in seconds, up to 300. At most 1000 rows are kept.
 
 The statement runs with the rights of the user in the address: use a user that can read only what
 the tests check, and write only what they prepare, and never a production database. The query runs
-from the WebFlowMaster runner, not from the browser — also on a local agent — so the runner must
-reach the database. Values are put into the SQL as they are: quote text (`'{{email}}'`), and use
+from the WebFlowMaster runner, not from the browser, so the runner must reach the database; for a plan
+on a local pool, the runner is an agent of the pool
+([databases inside the private network](../integrations/local-agents#databases)). Values are put into the SQL as they are: quote text (`'{{email}}'`), and use
 variables whose values the test controls.
 
 ## Location and downloads {#location-and-downloads}
@@ -514,8 +515,9 @@ run without writing.
 environment has it, otherwise with `db.url`: a user that may write the test data can be kept apart
 from the one the steps read with. Set `db.expect` (or `db.<name>.expect`) to the database name, or
 `DATABASE@SERVER`, and nothing is written when the address reaches another database. The SQL runs
-from the WebFlowMaster server, which must reach the database, also when the browser runs on a local
-agent.
+from the WebFlowMaster server, which must reach the database; for a plan on a local pool it runs on an
+agent of the pool, from its network
+([databases inside the private network](../integrations/local-agents#databases)).
 
 A run whose fixture fails is reported as blocked, as with a failed precondition, and the report
 shows a **Data fixture** step for each one: already there, created, or why it failed.
@@ -560,7 +562,7 @@ that needs it (`order__customer`) and shows the library key and version, for ins
 cannot be deleted; the message lists who names it.
 
 **Try it.** In the editor, **Try it** runs the fixture and its dependencies against an environment's
-database, from the server, without running a test:
+database, from the server (also for a plan that runs on a local pool), without running a test:
 
 - **Check only** runs the checks and writes nothing. It reports each fixture as found or missing.
 - **Dry run** also runs the scripts, then rolls everything back. It needs an environment where

@@ -1,0 +1,17 @@
+{
+  "id": "WEB-98",
+  "area": "WEB",
+  "title": "Data fixture e Query database su agente locale: il database raggiungibile solo dall'agente viene preparato e verificato dalla rete dell'agente",
+  "priority": "P1",
+  "actor": "owner.a",
+  "preconditions": "Agente locale di questa release nel pool dmo-local, su una macchina Windows con il DMO locale e il suo database SQL Server raggiungibile solo da lì (localhost); database con le tabelle dell'NCC vuote. Ambiente QA con db.url = sqlserver://utente:password@localhost:1433/DMO (?trustServerCertificate=true se il certificato è autofirmato) e Preparazione dati attiva. Piano NCC con Esegui su = Agenti locali: dmo-local.",
+  "steps": [
+    "Nel progetto del DMO creare in libreria la fixture ncc_base: verifica SELECT TOP 1 Id FROM <tabella anagrafica NCC> WHERE Code = {{params.code}}, script INSERT della riga minima con Code = {{params.code}}, output id. Salvare.",
+    "Aprire il test NCC: Aggiungi dalla libreria, fixture ncc_base, versione Ultima; aggiungere uno step Query database SELECT COUNT(*) AS n FROM <tabella anagrafica NCC> con verifica {{db.n}} = 1. Salvare.",
+    "Eseguire il piano NCC sull'ambiente QA (pool dmo-local).",
+    "Eseguire di nuovo il piano.",
+    "Aprire ncc_base e premere Prova sull'ambiente QA in modalità Solo verifica.",
+    "In Impostazioni → Agenti locali osservare l'agente di dmo-local durante un'esecuzione del piano."
+  ],
+  "expected": "3: il report mostra lo step Data fixture ncc_base Created prima del primo step, la Query database passa con n = 1 e il test NCC prosegue sul DMO con la riga creata; la riga è nel database del DMO locale, che il server non raggiunge. 4: ncc_base è Already there e il database contiene sempre una sola riga. 5: la prova gira dal server e fallisce perché localhost non è il database del DMO (limite documentato: Prova non passa dall'agente); nessuna password compare nel messaggio. 6: le sessioni database non riducono i browser disponibili dell'agente. Se l'agente fosse di una release precedente, la fixture fallirebbe con il messaggio che chiede di aggiornare gli agenti del pool."
+}

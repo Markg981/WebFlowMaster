@@ -509,6 +509,7 @@ async function runDefinition(
         onPreconditionFailure: policies.onPreconditionFailure,
         signal: unitSignal(scope),
         http: agentHttp?.fetch,
+        data: agentHttp?.data,
         evidenceDir,
         dataSetup: variables.dataSetup,
         dependencies:

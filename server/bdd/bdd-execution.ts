@@ -6,6 +6,7 @@ import { resolveBddBinding } from './bdd-profiles';
 import { getTenantOrgId, withTenantTransaction } from '../platform/middleware/tenancy';
 import { runBddOnAgent } from '../runtime/agents/agent-bdd';
 import { AgentHttp } from '../runtime/agents/agent-fetch';
+import { agentDataRunner } from '../runtime/agents/agent-database';
 import { runPreconditions } from '../runtime/precondition-runner';
 import { runCleanups } from '../runtime/cleanup-runner';
 import { fixtureReportSteps, runDataFixtures } from '../runtime/data-setup/fixture-runner';
@@ -50,8 +51,10 @@ export async function runDedicatedBddTest(
     const organizationId = getTenantOrgId();
     if (!organizationId) throw new Error('BDD execution requires an organization context.');
     const target = { organizationId, pool: profile.pool };
+    const agentData = agentDataRunner(target, { signal: options?.signal });
     // The data the scenario needs in the application's database, once for the test as a UI run
-    // does it (server/execution/run-test.ts), from this server: the agent only runs Cucumber.
+    // does it (server/execution/run-test.ts), through an agent of the profile's pool: the
+    // database is where that network reaches (server/runtime/agents/agent-database.ts).
     let blockedByFixture = false;
     const fixtures = (test as { dataFixtures?: TestDataFixture[] | null }).dataFixtures;
     if (fixtures && fixtures.length > 0) {
@@ -59,6 +62,8 @@ export async function runDedicatedBddTest(
         dataSetup: options?.dataSetup === true,
         signal: options?.signal,
         expand: expandFromLibrary(test.projectId),
+        openSession: agentData.openSession,
+        vet: agentData.vet,
       });
       steps.push(
         ...fixtureReportSteps(fx).map((step) => ({

@@ -19,6 +19,8 @@ export interface PublishedAgent {
   browsers: string[];
   maxSessions: number;
   activeSessions: number;
+  /** Database sessions, apart from activeSessions. Absent from an instance older than them. */
+  databaseSessions?: number;
   draining: boolean;
   apiProtocols?: Array<import('@shared/agent-protocol').AgentApiProtocol>;
   apiProtocolFeatures?: Array<import('@shared/agent-protocol').AgentApiFeature>;
