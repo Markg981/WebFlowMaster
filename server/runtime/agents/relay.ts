@@ -1,4 +1,5 @@
 import { randomUUID } from 'crypto';
+import { AGENT_DATABASE_LIMITS } from '@shared/agent-protocol';
 import type { IncomingMessage, Server } from 'http';
 import type { Duplex } from 'stream';
 import { WebSocket, WebSocketServer, type RawData } from 'ws';
@@ -78,8 +79,24 @@ interface ConnectedAgent {
   ws: WebSocket;
   hello: AgentHello;
   sessions: Set<string>;
+  /**
+   * The sessions of `sessions` that are on a database, not a browser: counted apart, against
+   * AGENT_DATABASE_LIMITS.maxSessions, so a fixture never waits behind its test's browser.
+   */
+  databaseSessions: Set<string>;
   draining: boolean;
   alive: boolean;
+}
+
+/** The browsers (and API and BDD sessions) an agent is lending. */
+function browserSessions(c: ConnectedAgent): number {
+  for (const id of c.databaseSessions) if (!c.sessions.has(id)) c.databaseSessions.delete(id);
+  return c.sessions.size - c.databaseSessions.size;
+}
+
+function databaseSessions(c: ConnectedAgent): number {
+  browserSessions(c);
+  return c.databaseSessions.size;
 }
 
 interface PendingSession {
@@ -203,7 +220,7 @@ export class AgentRelay {
   /** How many browsers an agent is lending right now, wherever it is connected. */
   sessionsOf(agentId: string): number {
     const local = this.connected.get(agentId);
-    if (local) return local.sessions.size;
+    if (local) return browserSessions(local);
     for (const instance of this.others) {
       const agent = instance.agents.find((a) => a.id === agentId);
       if (agent) return agent.activeSessions;
@@ -291,7 +308,8 @@ export class AgentRelay {
       playwrightVersion: c.hello.playwrightVersion,
       browsers: c.hello.browsers,
       maxSessions: c.hello.maxSessions,
-      activeSessions: c.sessions.size,
+      activeSessions: browserSessions(c),
+      databaseSessions: databaseSessions(c),
       draining: c.draining,
       apiProtocols: c.hello.apiProtocols,
       apiProtocolFeatures: c.hello.apiProtocolFeatures,
@@ -369,6 +387,7 @@ export class AgentRelay {
             maxSessions: Math.max(1, Math.min(Number(hello.maxSessions) || 1, 16)),
           },
           sessions: new Set(),
+          databaseSessions: new Set(),
           draining: false,
           alive: true,
         };
@@ -431,7 +450,8 @@ export class AgentRelay {
       playwrightVersion: c.hello.playwrightVersion,
       browsers: c.hello.browsers,
       maxSessions: c.hello.maxSessions,
-      activeSessions: c.sessions.size,
+      activeSessions: browserSessions(c),
+      databaseSessions: databaseSessions(c),
       draining: c.draining,
       local: c,
       apiProtocols: c.hello.apiProtocols,
@@ -483,15 +503,23 @@ export class AgentRelay {
       return {
         reason: ticket.bddProfile
           ? `No agent of pool "${ticket.pool}" supports BDD profile "${ticket.bddProfile.id}" at revision "${ticket.bddProfile.revision}". Configure or update the dedicated agents.`
-          : ticket.apiProtocol
+          : ticket.apiProtocol === 'database'
+            ? `No agent of pool "${ticket.pool}" can run database scripts: they are older than data fixtures on agents. Update the agents by downloading /cli/wfm-agent.mjs again or rebuilding their Docker image.`
+            : ticket.apiProtocol
             ? `No agent of pool "${ticket.pool}" supports ${ticket.apiProtocol}${ticket.apiFeatures?.length ? ' with streaming, mTLS or conversation features' : ''}. Update the agents by downloading /cli/wfm-agent.mjs again or rebuilding their Docker image.`
             : `No agent of pool "${ticket.pool}" has ${ticket.engine} installed.`,
       };
-    const free = withBrowser.filter((c) => !c.draining && c.activeSessions < c.maxSessions);
+    const database = ticket.apiProtocol === 'database';
+    const load = (c: Candidate) => (database ? (c.databaseSessions ?? 0) : c.activeSessions);
+    const free = withBrowser.filter(
+      (c) =>
+        !c.draining &&
+        load(c) < (database ? AGENT_DATABASE_LIMITS.maxSessions : c.maxSessions),
+    );
     if (free.length === 0)
       return { reason: `Every agent of pool "${ticket.pool}" is busy or draining.` };
     // Least busy first; between equals, one held here saves a hop.
-    free.sort((a, b) => a.activeSessions - b.activeSessions || Number(!a.local) - Number(!b.local));
+    free.sort((a, b) => load(a) - load(b) || Number(!a.local) - Number(!b.local));
     return { candidate: free[0] };
   }
 
@@ -529,6 +557,7 @@ export class AgentRelay {
         };
         this.pending.set(id, session);
         agent.sessions.add(id);
+        if (verified.apiProtocol === 'database') agent.databaseSessions.add(id);
         // The runner starts talking the moment it is connected; held until the browser is there.
         runner.on('message', (data, isBinary) => {
           if (this.pending.has(id)) session.buffered.push({ data, isBinary });

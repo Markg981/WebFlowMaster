@@ -2,6 +2,8 @@ import type { Browser, BrowserContext } from 'playwright';
 import { allowsSelfSignedCertificate } from '../../platform/outbound-http';
 import { connectToAgentBrowser, type AgentTarget } from './agent-browser';
 import { runProtocolOnAgent } from './agent-protocol';
+import { agentDataRunner } from './agent-database';
+import type { DataRunner } from '../data-setup/data-runner';
 import type { OneConnectionFetch } from '../../api-tests/api-test-runner';
 
 /**
@@ -164,7 +166,13 @@ export class AgentHttp {
   private readonly protocolRequests = new Set<AbortController>();
   private requestQueue: Promise<unknown> = Promise.resolve();
   private closed = false;
+  private readonly closing = new AbortController();
   readonly fetch: OneConnectionFetch;
+  /**
+   * Where the run's data fixtures and queryDatabase steps reach the database: an agent of the
+   * same pool (server/runtime/agents/agent-database.ts). Its sessions end when this is closed.
+   */
+  readonly data: DataRunner;
 
   constructor(
     readonly agent: AgentTarget,
@@ -176,6 +184,7 @@ export class AgentHttp {
         availabilityWaitMs: 6000,
       }),
   ) {
+    this.data = agentDataRunner(agent, { signal: this.closing.signal });
     const http = fetchThroughBrowser(() => this.browser());
     this.fetch = Object.assign(
       ((input: RequestInfo | URL, init?: RequestInit) =>
@@ -262,6 +271,7 @@ export class AgentHttp {
 
   async close(): Promise<void> {
     this.closed = true;
+    this.closing.abort();
     for (const controller of this.protocolRequests) controller.abort();
     const browser = await this.borrowed?.catch(() => null);
     this.borrowed = null;

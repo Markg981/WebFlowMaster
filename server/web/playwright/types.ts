@@ -177,6 +177,11 @@ export interface ExecuteSequenceOptions {
   dependencies?: FrozenDependencies;
   /** The plan run's attempt this sequence runs as; a healing proposal names it. */
   attempt?: ExecutionAttemptRef;
+  /**
+   * Where queryDatabase steps reach the database: an agent of the plan's pool
+   * (server/runtime/data-setup/data-runner.ts). Absent: this runner.
+   */
+  data?: import('../../runtime/data-setup/data-runner').DataRunner;
 }
 
 // Interface for the ad-hoc sequence payload

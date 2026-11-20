@@ -13,26 +13,17 @@ import { relayBaseUrl, RUNNER_PLAYWRIGHT_VERSION, type AgentTarget } from './age
 import { relaySecret, signTicket } from './agent-credentials';
 import { requiredApiFeatures } from './api-protocol-features';
 
-/** Native API request, executed by the agent over its existing outbound session relay. */
-async function runProtocolOnAgentImpl(
-  agent: AgentTarget,
-  request: AgentProtocolRequest,
-  env: NodeJS.ProcessEnv = process.env,
-  signal?: AbortSignal,
-  waitForSlotMs = 6000,
-): Promise<ProtocolResponse> {
-  const ticket = signTicket(
-    {
-      ...agent,
-      engine: 'chromium',
-      headless: true,
-      playwrightVersion: RUNNER_PLAYWRIGHT_VERSION,
-      apiProtocol: request.protocol,
-      apiFeatures: await requiredApiFeatures(request),
-    },
-    relaySecret(env),
-  );
-  const base = relayBaseUrl(env);
+/**
+ * Waits until the relay has an agent for the ticket, or throws why it has none. A slot the last
+ * session is giving back is waited for up to `waitForSlotMs`; any other reason fails at once.
+ */
+export async function awaitAgentSlot(
+  base: string,
+  ticket: string,
+  signal: AbortSignal | undefined,
+  waitForSlotMs: number,
+  fallbackReason: string,
+): Promise<void> {
   const deadline = Date.now() + waitForSlotMs;
   const availabilitySignal = signal
     ? AbortSignal.any([signal, AbortSignal.timeout(10_000)])
@@ -53,8 +44,30 @@ async function runProtocolOnAgentImpl(
     // Browser close is acknowledged before the agent process and cluster directory release its slot.
     await delay(100, undefined, { signal: availabilitySignal });
   } while (true);
-  if (!available.available)
-    throw new Error(available.reason ?? 'No agent supports this API protocol.');
+  if (!available.available) throw new Error(available.reason ?? fallbackReason);
+}
+
+/** Native API request, executed by the agent over its existing outbound session relay. */
+async function runProtocolOnAgentImpl(
+  agent: AgentTarget,
+  request: AgentProtocolRequest,
+  env: NodeJS.ProcessEnv = process.env,
+  signal?: AbortSignal,
+  waitForSlotMs = 6000,
+): Promise<ProtocolResponse> {
+  const ticket = signTicket(
+    {
+      ...agent,
+      engine: 'chromium',
+      headless: true,
+      playwrightVersion: RUNNER_PLAYWRIGHT_VERSION,
+      apiProtocol: request.protocol,
+      apiFeatures: await requiredApiFeatures(request),
+    },
+    relaySecret(env),
+  );
+  const base = relayBaseUrl(env);
+  await awaitAgentSlot(base, ticket, signal, waitForSlotMs, 'No agent supports this API protocol.');
 
   return new Promise<ProtocolResponse>((resolve, reject) => {
     const socket = new WebSocket(
