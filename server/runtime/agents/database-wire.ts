@@ -49,7 +49,5 @@ export function decodeDatabaseValue(value: unknown): unknown {
         );
     }
   }
-  return Object.fromEntries(
-    Object.entries(value).map(([key, v]) => [key, decodeDatabaseValue(v)]),
-  );
+  return Object.fromEntries(Object.entries(value).map(([key, v]) => [key, decodeDatabaseValue(v)]));
 }

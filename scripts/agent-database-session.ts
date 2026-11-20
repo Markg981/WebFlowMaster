@@ -41,7 +41,10 @@ async function withDriver<T>(kind: AgentDatabaseKind, work: () => Promise<T>): P
 export function invalidDatabaseCall(call: AgentDatabaseCall, opened: boolean): string | null {
   if (!call || typeof call !== 'object' || !Number.isInteger(call.id)) return 'Invalid call.';
   const timeout = (ms: unknown) =>
-    typeof ms === 'number' && Number.isFinite(ms) && ms > 0 && ms <= AGENT_DATABASE_LIMITS.maxTimeoutMs;
+    typeof ms === 'number' &&
+    Number.isFinite(ms) &&
+    ms > 0 &&
+    ms <= AGENT_DATABASE_LIMITS.maxTimeoutMs;
   switch (call.op) {
     case 'open':
       if (opened) return 'The session is open already.';
@@ -52,7 +55,10 @@ export function invalidDatabaseCall(call: AgentDatabaseCall, opened: boolean): s
       if (opened) return 'The session is open already.';
       if (typeof call.url !== 'string' || databaseKind(call.url) !== call.kind)
         return 'The database address does not match its dialect.';
-      if (typeof call.sql !== 'string' || Buffer.byteLength(call.sql) > AGENT_DATABASE_LIMITS.maxSqlBytes)
+      if (
+        typeof call.sql !== 'string' ||
+        Buffer.byteLength(call.sql) > AGENT_DATABASE_LIMITS.maxSqlBytes
+      )
         return 'Invalid statement.';
       return timeout(call.timeoutMs) ? null : 'Invalid timeout.';
     case 'query': {
@@ -70,7 +76,9 @@ export function invalidDatabaseCall(call: AgentDatabaseCall, opened: boolean): s
       if (sql.values.length > AGENT_DATABASE_LIMITS.maxValues)
         return `The statement has more than ${AGENT_DATABASE_LIMITS.maxValues} values.`;
       // Values are what a fixture's parameters can be: text, numbers, true or false, or nothing.
-      if (!sql.values.every((v) => v === null || ['string', 'number', 'boolean'].includes(typeof v)))
+      if (
+        !sql.values.every((v) => v === null || ['string', 'number', 'boolean'].includes(typeof v))
+      )
         return 'A value of the statement is not text, a number or a boolean.';
       break;
     }
@@ -109,8 +117,14 @@ export function serveDatabaseSession(
   let url = '';
   let closed = false;
   let queue: Promise<void> = Promise.resolve();
-  const lifetime = setTimeout(() => socket.close(1000, 'The database session lasted too long.'), AGENT_DATABASE_LIMITS.maxSessionMs);
-  let idle = setTimeout(() => socket.close(1000, 'The database session was idle.'), AGENT_DATABASE_LIMITS.idleMs);
+  const lifetime = setTimeout(
+    () => socket.close(1000, 'The database session lasted too long.'),
+    AGENT_DATABASE_LIMITS.maxSessionMs,
+  );
+  let idle = setTimeout(
+    () => socket.close(1000, 'The database session was idle.'),
+    AGENT_DATABASE_LIMITS.idleMs,
+  );
 
   const finish = () => {
     if (closed) return;
@@ -167,7 +181,10 @@ export function serveDatabaseSession(
 
   socket.on('message', (raw) => {
     clearTimeout(idle);
-    idle = setTimeout(() => socket.close(1000, 'The database session was idle.'), AGENT_DATABASE_LIMITS.idleMs);
+    idle = setTimeout(
+      () => socket.close(1000, 'The database session was idle.'),
+      AGENT_DATABASE_LIMITS.idleMs,
+    );
     let call: AgentDatabaseCall;
     try {
       call = JSON.parse(raw.toString()) as AgentDatabaseCall;

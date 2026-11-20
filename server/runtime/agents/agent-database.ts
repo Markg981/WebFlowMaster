@@ -18,7 +18,11 @@ import { decodeDatabaseValue } from './database-wire';
 /** What a call may take beyond its own timeout: the relay hop and the agent's queue. */
 const CALL_ALLOWANCE_MS = 30_000;
 
-type CallBody = AgentDatabaseCall extends infer C ? (C extends { id: number } ? Omit<C, 'id'> : never) : never;
+type CallBody = AgentDatabaseCall extends infer C
+  ? C extends { id: number }
+    ? Omit<C, 'id'>
+    : never
+  : never;
 
 /** One database session lent by an agent of the pool, called one statement at a time. */
 class AgentDatabaseSession {
@@ -54,9 +58,7 @@ class AgentDatabaseSession {
     socket.on('error', (error) => this.fail(error));
     socket.on('close', (_code, reason) =>
       this.fail(
-        new Error(
-          reason.toString() || `The agent of pool "${pool}" closed the database session.`,
-        ),
+        new Error(reason.toString() || `The agent of pool "${pool}" closed the database session.`),
       ),
     );
   }

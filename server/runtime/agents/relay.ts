@@ -506,15 +506,14 @@ export class AgentRelay {
           : ticket.apiProtocol === 'database'
             ? `No agent of pool "${ticket.pool}" can run database scripts: they are older than data fixtures on agents. Update the agents by downloading /cli/wfm-agent.mjs again or rebuilding their Docker image.`
             : ticket.apiProtocol
-            ? `No agent of pool "${ticket.pool}" supports ${ticket.apiProtocol}${ticket.apiFeatures?.length ? ' with streaming, mTLS or conversation features' : ''}. Update the agents by downloading /cli/wfm-agent.mjs again or rebuilding their Docker image.`
-            : `No agent of pool "${ticket.pool}" has ${ticket.engine} installed.`,
+              ? `No agent of pool "${ticket.pool}" supports ${ticket.apiProtocol}${ticket.apiFeatures?.length ? ' with streaming, mTLS or conversation features' : ''}. Update the agents by downloading /cli/wfm-agent.mjs again or rebuilding their Docker image.`
+              : `No agent of pool "${ticket.pool}" has ${ticket.engine} installed.`,
       };
     const database = ticket.apiProtocol === 'database';
     const load = (c: Candidate) => (database ? (c.databaseSessions ?? 0) : c.activeSessions);
     const free = withBrowser.filter(
       (c) =>
-        !c.draining &&
-        load(c) < (database ? AGENT_DATABASE_LIMITS.maxSessions : c.maxSessions),
+        !c.draining && load(c) < (database ? AGENT_DATABASE_LIMITS.maxSessions : c.maxSessions),
     );
     if (free.length === 0)
       return { reason: `Every agent of pool "${ticket.pool}" is busy or draining.` };

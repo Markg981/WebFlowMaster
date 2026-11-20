@@ -29,6 +29,8 @@ import WebSocket from 'ws';
 import type { BrowserServer } from 'playwright';
 import { serveApiSession } from './agent-api-session';
 import { serveDatabaseSession } from './agent-database-session';
+import type { SqlSessionFactory } from '../server/runtime/data-setup/sql-session';
+import type { DatabaseRunner } from '../server/runtime/database-step';
 import { loadBddProfiles, publicBddProfiles, type OperatorBddProfile } from './bdd-profiles';
 import { serveBddSession } from './agent-bdd-session';
 import type { AgentNetworkProtocol } from '../shared/agent-protocol';
@@ -49,6 +51,8 @@ export interface AgentOptions {
   log?: (line: string) => void;
   /** Called when the server refuses the token or the version; the process exits on it. */
   onFatal?: (reason: string) => void;
+  /** Stand-ins for the database drivers, for tests. */
+  database?: { open?: SqlSessionFactory; run?: DatabaseRunner };
 }
 
 export interface RunningAgent {
@@ -203,10 +207,15 @@ export function runAgent(options: AgentOptions): RunningAgent {
     });
     sessions.set(sessionId, { sockets: [remote], database: true });
     remote.once('error', () => finishTrace(sessionId, true));
-    serveDatabaseSession(remote, () => {
-      sessions.delete(sessionId);
-      finishTrace(sessionId);
-    });
+    serveDatabaseSession(
+      remote,
+      () => {
+        sessions.delete(sessionId);
+        finishTrace(sessionId);
+      },
+      options.database?.open,
+      options.database?.run,
+    );
   }
 
   function connect() {
