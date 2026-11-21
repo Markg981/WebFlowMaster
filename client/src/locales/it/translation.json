@@ -1561,6 +1561,11 @@
         "description": "Registra con un nome le richieste fatte dalle pagine del test dopo il checkpoint di rete precedente: metodo, percorso, query ordinata, stato e hash dei corpi, mai i corpi. Senza pattern tiene le chiamate fetch e XHR. Un confronto di run le mette a fianco dello stesso checkpoint su un altro ambiente. Non fa mai fallire il test per le richieste fatte.",
         "valueHint": "il nome del checkpoint, poi facoltativi | e pattern di URL, poi facoltativi | e una regex mascherata nei body delle richieste — es. api-ordini | **/api/orders** | \\d{14}"
       },
+      "checkpointDownload": {
+        "name": "Checkpoint del download",
+        "description": "Fa clic sull'elemento e registra con un nome il contenuto del file scaricato, conservato con le evidenze del run: i fogli di una cartella di lavoro cella per cella come vengono visualizzati, il testo di un PDF pagina per pagina, le righe di un CSV, lo sha-256 di qualsiasi altro file. Un confronto di run lo mette a fianco dello stesso checkpoint su un altro ambiente. Non fa mai fallire il test per il contenuto del file.",
+        "valueHint": "il nome del checkpoint, facoltativi ; rows=N ; cols=N, poi facoltativi | e una regex mascherata nel nome del file, poi facoltativi | e una regex mascherata nel contenuto — es. batch-summary; rows=1000 | \\d{8}_\\d{6} | \\d{2}/\\d{2}/\\d{4}"
+      },
       "mockRequest": {
         "name": "Simula richiesta",
         "description": "Da qui in poi le richieste della pagina a questo indirizzo ricevono questa risposta, non quella del server: un errore, una lista vuota, una risposta lenta o un backend non ancora pronto. Una simulazione successiva dello stesso indirizzo la sostituisce; vale in tutte le schede.",
@@ -5804,6 +5809,7 @@
       "table": "Tabella",
       "chart": "Grafico",
       "network": "Rete",
+      "download": "Download",
       "visual": "Screenshot",
       "performance": "Durata"
     },

@@ -1561,6 +1561,11 @@
         "description": "Records under a name the requests the test's pages made since the previous network checkpoint: method, path, sorted query, status and the hashes of the bodies, never the bodies. With no pattern it keeps the fetch and XHR calls. A run comparison sets them against the same checkpoint on another environment. It never fails the test on what the requests were.",
         "valueHint": "the checkpoint name, then optionally | and URL patterns, then optionally | and a regex masked in request bodies — e.g. orders-api | **/api/orders** | \\d{14}"
       },
+      "checkpointDownload": {
+        "name": "Checkpoint download",
+        "description": "Clicks the element and records under a name the content of the file it downloads, kept with the run's evidence: the sheets of a workbook cell by cell as they are displayed, the text of a PDF page by page, the rows of a CSV, the sha-256 of anything else. A run comparison sets it against the same checkpoint on another environment. It never fails the test on what the file holds.",
+        "valueHint": "the checkpoint name, optionally ; rows=N ; cols=N, then optionally | and a regex masked in the file name, then optionally | and a regex masked in the content — e.g. batch-summary; rows=1000 | \\d{8}_\\d{6} | \\d{2}/\\d{2}/\\d{4}"
+      },
       "mockRequest": {
         "name": "Mock request",
         "description": "From now on the page's requests to this address are answered here, not by the server: an error, an empty list, a slow answer, or a backend that is not ready. A later mock of the same address replaces it; it holds in every tab.",
@@ -5804,6 +5809,7 @@
       "table": "Table",
       "chart": "Chart",
       "network": "Network",
+      "download": "Download",
       "visual": "Screenshot",
       "performance": "Duration"
     },

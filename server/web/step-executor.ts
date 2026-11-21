@@ -31,6 +31,8 @@ import {
   type SmsQuery,
 } from '../messaging/sms-inbox';
 import { inspectDownload } from '../runtime/download-check';
+import { downloadCheckpoint } from '../runtime/download-checkpoint';
+import { parseDownloadCheckpointValue } from '@shared/download-checkpoint';
 import {
   chartCheckpoint,
   networkCheckpoint,
@@ -48,6 +50,7 @@ import {
   MAX_TABLE_ROWS,
   type ChartCheckpointData,
   type CheckpointCapture,
+  type DownloadCheckpointData,
   type NetworkCheckpointData,
   type TableCheckpointData,
 } from '@shared/comparison';
@@ -392,6 +395,41 @@ function requireSelector(
 ): { selector: string } | { error: string } {
   if (!rt.selector) return { error: `Selector missing for ${action} action.` };
   return { selector: rt.selector };
+}
+
+/**
+ * Clicks the selector and saves the file it downloads: in the run's artifact directory, kept with
+ * its evidence, or in a temporary one the caller removes (`temporary`) in the builder's preview.
+ */
+async function takeDownload(
+  rt: StepRuntime,
+  selector: string,
+): Promise<{ name: string; file: string; dir: string; temporary: boolean } | { error: string }> {
+  let download: Download;
+  try {
+    [download] = await Promise.all([
+      rt.page.waitForEvent('download', { timeout: rt.timeoutMs }),
+      rt.click(selector),
+    ]);
+  } catch (error) {
+    if (error instanceof Error && /timeout/i.test(error.message)) {
+      return {
+        error: `Clicking ${selector} did not download a file within ${Math.round(rt.timeoutMs / 1000)} s.`,
+      };
+    }
+    throw error;
+  }
+  const failure = await download.failure();
+  if (failure) return { error: `The download failed: ${failure}.` };
+  const name = download.suggestedFilename();
+  const dir = rt.artifactDir ?? (await fs.mkdtemp(path.join(os.tmpdir(), 'wfm-download-')));
+  await fs.ensureDir(dir);
+  const file = path.join(
+    dir,
+    `download_${Date.now()}_${name.replace(/[^\w.-]+/g, '_').slice(-80)}`,
+  );
+  await download.saveAs(file);
+  return { name, file, dir, temporary: !rt.artifactDir };
 }
 
 /** Splits "name=value" at the first `=`, so a value may contain its own. */
@@ -1032,30 +1070,9 @@ const HANDLERS: Record<AdhocActionId, StepHandler> = {
     const checks = parseDownloadChecks(resolved.value);
     if ('error' in checks) return failed(checks.error);
 
-    let download: Download;
-    try {
-      [download] = await Promise.all([
-        rt.page.waitForEvent('download', { timeout: rt.timeoutMs }),
-        rt.click(target.selector),
-      ]);
-    } catch (error) {
-      if (error instanceof Error && /timeout/i.test(error.message)) {
-        return failed(
-          `Clicking ${target.selector} did not download a file within ${Math.round(rt.timeoutMs / 1000)} s.`,
-        );
-      }
-      throw error;
-    }
-    const failure = await download.failure();
-    if (failure) return failed(`The download failed: ${failure}.`);
-    const name = download.suggestedFilename();
-    const dir = rt.artifactDir ?? (await fs.mkdtemp(path.join(os.tmpdir(), 'wfm-download-')));
-    await fs.ensureDir(dir);
-    const file = path.join(
-      dir,
-      `download_${Date.now()}_${name.replace(/[^\w.-]+/g, '_').slice(-80)}`,
-    );
-    await download.saveAs(file);
+    const taken = await takeDownload(rt, target.selector);
+    if ('error' in taken) return failed(taken.error);
+    const { name, file, dir } = taken;
     let inspected: Awaited<ReturnType<typeof inspectDownload>>;
     try {
       inspected = await inspectDownload(file, name);
@@ -1458,6 +1475,61 @@ const HANDLERS: Record<AdhocActionId, StepHandler> = {
         (value.mask ? `, request bodies masked by /${value.mask.source}/` : '') +
         (checkpoint.truncated ? ' (cut).' : '.') +
         (attached ? '' : ' The journal started at this step; nothing before it was recorded.'),
+    };
+  },
+
+  // The content of the file a click on the target downloads (download-checkpoint.ts), kept with
+  // the run's evidence: sheets cell by cell, PDF pages line by line, the sha-256 of anything else.
+  checkpointDownload: async (rt) => {
+    const target = requireSelector(rt, 'checkpointDownload');
+    if ('error' in target) return failed(target.error);
+    const resolved = requireValue(rt, 'checkpointDownload');
+    if ('error' in resolved) return failed(resolved.error);
+    const value = parseDownloadCheckpointValue(resolved.value);
+    if ('error' in value)
+      return failed(`Value not valid for checkpointDownload action: ${value.error}.`);
+
+    const taken = await takeDownload(rt, target.selector);
+    if ('error' in taken) return failed(taken.error);
+    const { name, file, dir, temporary } = taken;
+    let checkpoint: CheckpointCapture;
+    try {
+      checkpoint = await downloadCheckpoint(file, name, value, dir);
+    } catch (error) {
+      return failed(`${name} could not be read: ${(error as Error).message}`);
+    } finally {
+      if (temporary) await fs.remove(dir).catch(() => undefined);
+    }
+    const data = checkpoint.data as DownloadCheckpointData;
+    const rows = data.sheets?.reduce((sum, sheet) => sum + sheet.rows.length, 0);
+    const finding: DownloadFinding = {
+      name,
+      type: data.type,
+      size: data.size,
+      ...(rows !== undefined ? { rows } : {}),
+      ...(data.pageCount !== undefined ? { pages: data.pageCount } : {}),
+      sample: (data.sheets?.[0]?.rows ?? data.pages?.[0] ?? [])
+        .slice(0, 5)
+        .map((line) => (Array.isArray(line) ? line.join(' | ') : line))
+        .join('\n')
+        .slice(0, 500),
+      checks: [],
+      ...(temporary ? {} : { fileUrl: file }),
+    };
+    const content = data.sheets
+      ? data.type === 'csv'
+        ? `${rows} row(s)`
+        : `${data.sheets.length} sheet(s), ${rows} row(s)`
+      : data.pages
+        ? `${data.pageCount} page(s)`
+        : `sha-256 ${data.sha256?.slice(0, 12)}…`;
+    return {
+      status: 'passed',
+      checkpoint,
+      download: finding,
+      detail:
+        `Checkpoint "${value.name}": ${name} (${data.type}, ${content})` +
+        (checkpoint.truncated ? ' (cut).' : '.'),
     };
   },
 
