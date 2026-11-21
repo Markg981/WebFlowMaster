@@ -1402,7 +1402,7 @@ Leggere prima lo [schema per dominio](./database-schema) per le spiegazioni e le
 
 ## fixture_ledger {#fixture-ledger}
 
-`fixtureLedger` — `shared/schema/data-fixtures.ts:101`
+`fixtureLedger` — `shared/schema/data-fixtures.ts:105`
 
 | Proprietà TS     | Colonna SQL       | Dichiarazione                                                               |
 | ---------------- | ----------------- | --------------------------------------------------------------------------- |
