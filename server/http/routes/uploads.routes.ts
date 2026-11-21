@@ -2,7 +2,7 @@ import { type RequestHandler } from 'express';
 import { flattenZodError } from '../zod-error';
 import { asyncRouter } from '../../platform/middleware/async-router';
 import multer from 'multer';
-import { XLSX_UPLOAD_DIR, XlsxLimitError } from '../../integrations/xlsx-guard';
+import { XLSX_UPLOAD_DIR, XlsxLimitError } from '../../platform/xlsx-guard';
 import { excelService } from '../../integrations/excel-service';
 import fs from 'fs-extra';
 import logger from '../../platform/logger';

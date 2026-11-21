@@ -30,6 +30,7 @@ import { diffText } from './diff-text';
 import { diffTable } from './diff-table';
 import { diffChart } from './diff-chart';
 import { diffNetwork } from './diff-network';
+import { diffDownload } from './diff-download';
 import { diffPerformance } from './diff-performance';
 import { diffVisual, type ScreenshotLoader } from './diff-visual';
 import { markKnownDifferences, type KnownDifferenceScope } from './known-differences';
@@ -102,6 +103,7 @@ async function differencesOf(
     ...diffTable(left, right, policy),
     ...diffChart(left, right, policy),
     ...diffNetwork(left, right, policy),
+    ...diffDownload(left, right, policy),
     ...(await diffVisual(left, right, policy, load)),
     ...diffPerformance(
       left,

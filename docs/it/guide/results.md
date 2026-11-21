@@ -323,6 +323,13 @@ Cosa si confronta, checkpoint per checkpoint, abbinati per nome:
 - **Checkpoint di rete**: ogni chiamata (metodo, percorso e query) dal checkpoint di rete
   precedente, quante volte è stata fatta, il suo stato e l'hash del corpo della richiesta, e di
   quello della risposta se le tolleranze lo chiedono;
+- **Checkpoint del download**: il nome del file (dopo la sua maschera) e il tipo; per una cartella
+  Excel i nomi dei fogli nell'ordine, poi di ogni foglio l'intervallo, gli intervalli uniti, la
+  visibilità e le celle — una differenza indica la cella, come `sheets[Aggregated]!C3`, e una riga
+  presente su un solo lato è una differenza (`sheets[Aggregated]!12:12`); per un PDF il numero di
+  pagine, poi le righe di ogni pagina, allineate in modo che una riga aggiunta o tolta sia una
+  differenza (`pages[2].lines[5]`); per gli altri file lo SHA-256. Celle e righe che si leggono come
+  numeri coincidono entro la tolleranza numerica;
 - gli screenshot dello stesso step e le durate: quella del test e, dove il log la registra, quella
   di ogni step. Essere più veloci non è mai una differenza, e nemmeno un rallentamento sotto i
   250 ms.

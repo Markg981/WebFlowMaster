@@ -1561,6 +1561,11 @@
         "description": "Hält unter einem Namen die Anfragen fest, die die Seiten des Tests seit dem vorigen Netzwerk-Checkpoint gestellt haben: Methode, Pfad, sortierte Query, Status und die Hashes der Bodys, nie die Bodys selbst. Ohne Muster behält er die Fetch- und XHR-Aufrufe. Ein Laufvergleich stellt sie dem gleichen Checkpoint auf einer anderen Umgebung gegenüber. Lässt den Test nie wegen der Anfragen fehlschlagen.",
         "valueHint": "der Name des Checkpoints, optional gefolgt von | und URL-Mustern, dann optional | und einem Regex, der in Request-Bodys maskiert wird — z. B. bestellungen-api | **/api/orders** | \\d{14}"
       },
+      "checkpointDownload": {
+        "name": "Download-Checkpoint",
+        "description": "Klickt auf das Element und hält unter einem Namen den Inhalt der heruntergeladenen Datei fest, die mit den Nachweisen des Laufs aufbewahrt wird: die Blätter einer Arbeitsmappe Zelle für Zelle wie angezeigt, den Text eines PDF Seite für Seite, die Zeilen einer CSV, den SHA-256 jeder anderen Datei. Ein Laufvergleich stellt ihn dem gleichen Checkpoint auf einer anderen Umgebung gegenüber. Lässt den Test nie wegen des Dateiinhalts fehlschlagen.",
+        "valueHint": "der Name des Checkpoints, optional ; rows=N ; cols=N, dann optional | und ein Regex, der im Dateinamen maskiert wird, dann optional | und ein Regex, der im Inhalt maskiert wird — z. B. batch-summary; rows=1000 | \\d{8}_\\d{6} | \\d{2}/\\d{2}/\\d{4}"
+      },
       "mockRequest": {
         "name": "Anfrage simulieren",
         "description": "Ab hier beantwortet der Test die Anfragen der Seite an diese Adresse statt des Servers: ein Fehler, eine leere Liste, eine langsame Antwort oder ein noch nicht fertiges Backend. Eine spätere Simulation derselben Adresse ersetzt sie; sie gilt in allen Tabs.",
@@ -5804,6 +5809,7 @@
       "table": "Tabelle",
       "chart": "Diagramm",
       "network": "Netzwerk",
+      "download": "Download",
       "visual": "Screenshot",
       "performance": "Dauer"
     },

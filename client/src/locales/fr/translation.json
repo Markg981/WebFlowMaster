@@ -1561,6 +1561,11 @@
         "description": "Enregistre sous un nom les requêtes faites par les pages du test depuis le point de contrôle réseau précédent : méthode, chemin, query triée, statut et empreintes des corps, jamais les corps. Sans motif, il garde les appels fetch et XHR. Une comparaison d'exécutions les met en regard du même point de contrôle sur un autre environnement. Ne fait jamais échouer le test sur les requêtes faites.",
         "valueHint": "le nom du point de contrôle, puis éventuellement | et des motifs d'URL, puis éventuellement | et une regex masquée dans les corps des requêtes — p. ex. api-commandes | **/api/orders** | \\d{14}"
       },
+      "checkpointDownload": {
+        "name": "Point de contrôle de téléchargement",
+        "description": "Clique sur l'élément et enregistre sous un nom le contenu du fichier téléchargé, conservé avec les preuves de l'exécution : les feuilles d'un classeur cellule par cellule telles qu'affichées, le texte d'un PDF page par page, les lignes d'un CSV, le sha-256 de tout autre fichier. Une comparaison d'exécutions le met en regard du même point de contrôle sur un autre environnement. Ne fait jamais échouer le test sur le contenu du fichier.",
+        "valueHint": "le nom du point de contrôle, éventuellement ; rows=N ; cols=N, puis éventuellement | et une regex masquée dans le nom du fichier, puis éventuellement | et une regex masquée dans le contenu — p. ex. batch-summary; rows=1000 | \\d{8}_\\d{6} | \\d{2}/\\d{2}/\\d{4}"
+      },
       "mockRequest": {
         "name": "Simuler une requête",
         "description": "Désormais les requêtes de la page vers cette adresse reçoivent cette réponse au lieu de celle du serveur : une erreur, une liste vide, une réponse lente ou un backend pas encore prêt. Une simulation ultérieure de la même adresse la remplace ; elle vaut dans tous les onglets.",
@@ -5804,6 +5809,7 @@
       "table": "Tableau",
       "chart": "Graphique",
       "network": "Réseau",
+      "download": "Téléchargement",
       "visual": "Capture d'écran",
       "performance": "Durée"
     },

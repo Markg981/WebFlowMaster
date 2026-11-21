@@ -44,6 +44,7 @@ import {
   Lightbulb,
   MapPin,
   FileDown,
+  FileSpreadsheet,
   MessageSquareText,
 } from 'lucide-react';
 
@@ -108,6 +109,7 @@ const ACTION_ICONS: Record<AdhocActionId, LucideIcon> = {
   checkpointTable: Table,
   checkpointChart: ChartLine,
   checkpointNetwork: Network,
+  checkpointDownload: FileSpreadsheet,
   if: GitBranch,
   else: GitBranch,
   endIf: GitMerge,

@@ -126,6 +126,8 @@ export const ADHOC_ACTION_IDS = [
   // The requests since the previous network checkpoint: method, path, query, status and body
   // hashes, never the bodies.
   'checkpointNetwork',
+  // The content of the file a click downloads: sheets cell by cell, PDF pages line by line.
+  'checkpointDownload',
   // Blocks — see shared/flow.ts, which pairs them. `if` and `repeatWhile` take a condition:
   // with an element, a state it is in now (visible, hidden, checked, contains:text…); without
   // one, a comparison of values ("{{status}} == Paid").
@@ -317,6 +319,7 @@ export const ACTION_REQUIREMENTS: Record<
   checkpointChart: { target: true, value: true, valueRequired: true },
   // The name, then optionally `| pattern[, pattern]`.
   checkpointNetwork: { target: false, value: true, valueRequired: true },
+  checkpointDownload: { target: true, value: true, valueRequired: true },
   if: { target: false, value: true, valueRequired: true, optionalTarget: true },
   else: { target: false, value: false, valueRequired: false },
   endIf: { target: false, value: false, valueRequired: false },
@@ -606,6 +609,11 @@ export const ACTION_I18N: Record<
     description: 'dashboardPageNew.actions.checkpointNetwork.description',
     icon: 'Network',
   },
+  checkpointDownload: {
+    name: 'dashboardPageNew.actions.checkpointDownload.name',
+    description: 'dashboardPageNew.actions.checkpointDownload.description',
+    icon: 'FileSpreadsheet',
+  },
   if: {
     name: 'dashboardPageNew.actions.if.name',
     description: 'dashboardPageNew.actions.if.description',
@@ -670,6 +678,7 @@ export const ACTION_VALUE_HINTS: Partial<Record<AdhocActionId, string>> = {
   checkpointTable: 'dashboardPageNew.actions.checkpointTable.valueHint',
   checkpointChart: 'dashboardPageNew.actions.checkpointChart.valueHint',
   checkpointNetwork: 'dashboardPageNew.actions.checkpointNetwork.valueHint',
+  checkpointDownload: 'dashboardPageNew.actions.checkpointDownload.valueHint',
   if: 'dashboardPageNew.actions.if.valueHint',
   repeat: 'dashboardPageNew.actions.repeat.valueHint',
   repeatWhile: 'dashboardPageNew.actions.repeatWhile.valueHint',

@@ -54,6 +54,7 @@ riordinarlo: tutto il builder si usa quindi da tastiera e da touch screen.
 | **Checkpoint di tabella**                       | Registra con un nome i testi delle celle di una tabella, riga per riga, per un confronto. Il valore è il nome, seguito facoltativamente da `; rows=<css>; cells=<css>`, per esempio `ordini; rows=tbody tr`.                                                                                                                            |
 | **Checkpoint di grafico**                       | Registra con un nome le serie, gli assi e le linee di riferimento di un grafico, per un confronto. Li legge dalla libreria che ha disegnato il grafico: DevExtreme, ECharts o `element.__wfmChartModel()` dell'applicazione.                                                                                                            |
 | **Checkpoint di rete**                          | Registra le richieste fatte dalle pagine del test dal checkpoint di rete precedente: metodo, percorso, query ordinata, stato e gli hash dei corpi, mai i corpi. Il valore è il nome, seguito facoltativamente da `\|` e da pattern di URL, per esempio `api-ordini \| **/api/orders**`; senza pattern conserva le chiamate fetch e XHR. |
+| **Checkpoint del download**                     | Clicca l'elemento e registra con un nome il contenuto del file che scarica, per un confronto: una cartella Excel cella per cella, un PDF pagina per pagina — vedi [Checkpoint di un download](#checkpoint-download).                                                                                                                    |
 | **Verifica accessibilità**                      | Controlla la pagina in quel punto con axe-core, e fallisce sulle violazioni di gravità pari o superiore a quella scelta (serious di default).                                                                                                                                                                                           |
 | **Imposta la posizione**                        | Da quel momento il browser comunica alla pagina questa posizione — vedi [Posizione e download](#posizione-e-download).                                                                                                                                                                                                                  |
 | **Verifica un download**                        | Clicca l'elemento e controlla il file scaricato — vedi [Posizione e download](#posizione-e-download).                                                                                                                                                                                                                                   |
@@ -427,6 +428,42 @@ fa fallire lo step. Gli step successivi possono usare <code v-pre>{{download.nam
 <code v-pre>{{download.pages}}</code> e <code v-pre>{{download.text}}</code> (i primi 2.000
 caratteri) — in uno step **Verifica valori**, per esempio. Il report collega il file e mostra cosa
 conteneva.
+
+### Checkpoint di un download {#checkpoint-download}
+
+**Checkpoint del download** clicca il suo elemento come **Verifica un download**, conserva il file
+con le evidenze dell'esecuzione e, invece di controllarlo, ne registra il contenuto con un nome,
+così che un [confronto](results.md#comparing-environments) lo metta a fianco dello stesso checkpoint
+sull'altro ambiente — l'export Excel della pagina vecchia contro quello della nuova, cella per
+cella. Non fa mai fallire il test per il contenuto del file; fallisce solo se non viene scaricato
+nulla o se il file non si può leggere.
+
+Il valore è il nome, poi facoltativamente `; rows=N; cols=N`, poi facoltativamente `|` e
+un'espressione regolare mascherata nel nome del file, poi facoltativamente `|` e una mascherata nel
+contenuto:
+
+```yaml
+- action: { id: checkpointDownload, name: Checkpoint download }
+  targetElement: { selector: '#export-xlsx' }
+  value: 'batch-summary-aggregated; rows=1000 | \d{8}_\d{6} | \d{2}/\d{2}/\d{4} \d{2}:\d{2}'
+```
+
+Ciò che una maschera trova diventa `<masked>` su entrambi i lati — un timestamp nel nome del file,
+una data di stampa nel contenuto. Con una maschera sul contenuto ma nessuna sul nome, scrivete
+`nome | | maschera`. Cosa viene registrato dipende dal file:
+
+- **Excel** (`.xlsx`): i nomi dei fogli nell'ordine e, per ogni foglio, l'intervallo usato, gli
+  intervalli uniti, se è nascosto, e le celle come vengono **visualizzate** — con il formato numerico
+  applicato (`1,234.50`, `12.5%`, `07/03/2026`), il risultato di una formula, il testo del rich text.
+  Al massimo 500 righe e 50 colonne per foglio, salvo `rows=` e `cols=` (fino a 5.000 e 500). Prima
+  di aprirlo, il file viene controllato con gli stessi limiti di dimensione di una cartella caricata;
+- **PDF**: il numero di pagine e il testo di ogni pagina (fino a 200), riga per riga, con gli spazi
+  normalizzati;
+- **CSV**: le sue righe, come un unico foglio senza nome;
+- **testo e JSON**: con una maschera sul contenuto, lo SHA-256 del testo mascherato; altrimenti,
+  come per ogni altro file, lo SHA-256 dei suoi byte.
+
+Il nome del file e il tipo vengono sempre registrati; la dimensione è mostrata ma mai confrontata.
 
 ## Velocità delle pagine {#velocita-delle-pagine}
 

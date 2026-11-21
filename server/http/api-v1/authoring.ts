@@ -28,6 +28,7 @@ import {
 } from '@shared/schema';
 import { testDataSetInputSchema, sharedSetIdOf } from '@shared/test-data';
 import { manualSequenceProblem } from '@shared/manual-tests';
+import { downloadCheckpointProblem } from '@shared/download-checkpoint';
 import { MOBILE_GRID_PROVIDERS, mobileTestFieldsSchema, refineMobileTest } from '@shared/mobile';
 import { type ApiScope } from '@shared/api-scopes';
 import { apiError, holdsScope, requireScope } from '../middleware/require-scope';
@@ -421,6 +422,8 @@ async function saveTest(
   await editableProject(tx, req, input.projectId);
   const problem = manualSequenceProblem(input.sequence);
   if (problem) throw new AuthoringError(400, 'manual_step_empty', problem);
+  const stepProblem = downloadCheckpointProblem(input.sequence);
+  if (stepProblem) throw new AuthoringError(400, 'invalid_request', stepProblem);
   await validateDataset(tx, input.dataset);
   const name = input.name ?? existing?.name;
   const [duplicate] = await tx
@@ -1276,6 +1279,8 @@ export function registerAuthoringRoutes(router: Router) {
             );
           const problem = manualSequenceProblem(candidate.data.sequence);
           if (problem) throw new AuthoringError(400, 'manual_step_empty', problem);
+          const stepProblem = downloadCheckpointProblem(candidate.data.sequence);
+          if (stepProblem) throw new AuthoringError(400, 'invalid_request', stepProblem);
           await validateDataset(tx, candidate.data.dataset);
           await prepareBddForSave(tx, candidate.data, existing);
           if (input.dryRun) {

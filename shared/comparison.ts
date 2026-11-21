@@ -7,6 +7,7 @@
  * read the same words from here.
  */
 import { z } from 'zod';
+import type { DownloadType } from './downloads';
 
 export const COMPARISON_STATUSES = [
   'queued',
@@ -57,7 +58,7 @@ export type ComparisonResultVerdict = (typeof COMPARISON_RESULT_VERDICTS)[number
 export const COMPARISON_REVIEW_STATUSES = ['open', 'accepted', 'defect'] as const;
 export type ComparisonReviewStatus = (typeof COMPARISON_REVIEW_STATUSES)[number];
 
-export const CHECKPOINT_KINDS = ['text', 'table', 'chart', 'network'] as const;
+export const CHECKPOINT_KINDS = ['text', 'table', 'chart', 'network', 'download'] as const;
 export type CheckpointKind = (typeof CHECKPOINT_KINDS)[number];
 
 export const DIFFERENCE_KINDS = [
@@ -66,6 +67,7 @@ export const DIFFERENCE_KINDS = [
   'table',
   'chart',
   'network',
+  'download',
   'visual',
   'performance',
 ] as const;
@@ -79,6 +81,11 @@ export const MAX_CHECKPOINT_BYTES_PER_TEST = 1024 * 1024;
 export const MAX_TABLE_ROWS = 500;
 /** The most requests a network checkpoint keeps. */
 export const MAX_NETWORK_ENTRIES = 500;
+/**
+ * The most a download checkpoint keeps: an exported workbook or report holds more than a table
+ * on screen, and is still well within MAX_CHECKPOINT_BYTES_PER_TEST.
+ */
+export const MAX_DOWNLOAD_CHECKPOINT_BYTES = 256 * 1024;
 /** The most texts a text checkpoint keeps when its target matches many elements. */
 export const MAX_TEXT_MATCHES = 200;
 /** The most differences kept on one test's result; the rest are counted, not stored. */
@@ -134,6 +141,40 @@ export interface NetworkCheckpointEntry {
 /** The data of a network checkpoint: the requests since the previous one that match, sorted. */
 export interface NetworkCheckpointData {
   entries: NetworkCheckpointEntry[];
+}
+
+/** One worksheet of a downloaded workbook (or the rows of a CSV), as displayed. */
+export interface DownloadCheckpointSheet {
+  name: string;
+  /** Set when the sheet is hidden in the workbook. */
+  hidden?: boolean;
+  /** The used range, from the first to the last cell with a value, e.g. `A1:F20`; '' when empty. */
+  range: string;
+  /** The displayed text of each cell of the used range, row by row (cut at the step's rows/cols). */
+  rows: string[][];
+  /** The merged ranges, sorted, e.g. `A1:C1`. */
+  merges: string[];
+}
+
+/**
+ * The data of a download checkpoint: the file a click downloaded, read into what can be compared.
+ * `size` is shown, never compared: two libraries write the same content in different bytes.
+ */
+export interface DownloadCheckpointData {
+  /** The suggested file name, its volatile parts masked. */
+  fileName: string;
+  /** What the content is read as (shared/downloads.ts). */
+  type: DownloadType;
+  /** The extension of the suggested name, lower case, without the dot. */
+  extension: string;
+  size: number;
+  /** A workbook's sheets in order; a CSV's rows as one sheet named ''. */
+  sheets?: DownloadCheckpointSheet[];
+  /** A PDF's page count, and the lines of text of each page, whitespace collapsed. */
+  pageCount?: number;
+  pages?: string[][];
+  /** Any other file: sha-256 of its bytes (or of its masked text). */
+  sha256?: string;
 }
 
 export interface ComparisonDifference {

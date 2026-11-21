@@ -5,6 +5,8 @@ import path from 'path';
 import fs from 'fs-extra';
 import type { AddressInfo } from 'net';
 import type { Browser } from 'playwright';
+import ExcelJS from 'exceljs';
+import type { DownloadCheckpointData } from '@shared/comparison';
 import { parseDownloadChecks, parseGeolocation } from '@shared/downloads';
 import { parseCsv } from './runtime/download-check';
 import { executeStep } from './web/step-executor';
@@ -56,6 +58,7 @@ describe('in a real browser', () => {
   let server: http.Server;
   let base = '';
   let pdf: Buffer;
+  let xlsx: Buffer;
 
   beforeAll(async () => {
     const { chromium } = await import('playwright');
@@ -64,6 +67,12 @@ describe('in a real browser', () => {
     await maker.setContent('<h1>Invoice 42</h1><p>Total 1.234,50 EUR</p>');
     pdf = await maker.pdf();
     await maker.close();
+    const workbook = new ExcelJS.Workbook();
+    const sheet = workbook.addWorksheet('Aggregated');
+    sheet.addRow(['Batch', 'Total']);
+    sheet.addRow(['B-1', 1234.5]);
+    sheet.getCell('B2').numFmt = '#,##0.00';
+    xlsx = Buffer.from(await workbook.xlsx.writeBuffer());
     server = http.createServer((req, res) => {
       if (req.url === '/report.csv') {
         res.writeHead(200, {
@@ -79,8 +88,15 @@ describe('in a real browser', () => {
         });
         return res.end(pdf);
       }
+      if (req.url === '/summary.xlsx') {
+        res.writeHead(200, {
+          'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+          'Content-Disposition': 'attachment; filename="summary_20260307_140509.xlsx"',
+        });
+        return res.end(xlsx);
+      }
       res.writeHead(200, { 'Content-Type': 'text/html' });
-      res.end(`<a id="csv" href="/report.csv">CSV</a> <a id="pdf" href="/invoice.pdf">PDF</a> <a id="none" href="#">nothing</a>
+      res.end(`<a id="csv" href="/report.csv">CSV</a> <a id="pdf" href="/invoice.pdf">PDF</a> <a id="xlsx" href="/summary.xlsx">XLSX</a> <a id="none" href="#">nothing</a>
         <button id="where" onclick="navigator.geolocation.getCurrentPosition(p => document.title = p.coords.latitude + ',' + p.coords.longitude)">where</button>`);
     });
     await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
@@ -142,6 +158,51 @@ describe('in a real browser', () => {
     expect(outcome.download).toMatchObject({ type: 'pdf', pages: 1 });
     expect(outcome.download!.fileUrl).toBeUndefined(); // no run: nothing kept
     await page.context().close();
+  });
+
+  it('checkpoints a workbook it keeps with the run, and a PDF it does not', async () => {
+    const page = await (await browser.newContext({ acceptDownloads: true })).newPage();
+    await page.goto(base);
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'wfm-dl-test-'));
+    const xlsxOutcome = await executeStep(
+      { page, vars: { stamp: '\\d{8}_\\d{6}' }, artifactDir: dir },
+      step('checkpointDownload', 'aggregated | {{stamp}}', '#xlsx'),
+    );
+    expect(xlsxOutcome).toMatchObject({
+      status: 'passed',
+      detail: 'Checkpoint "aggregated": summary_20260307_140509.xlsx (xlsx, 1 sheet(s), 2 row(s)).',
+      checkpoint: { name: 'aggregated', kind: 'download' },
+    });
+    expect(xlsxOutcome.checkpoint!.data).toMatchObject({
+      fileName: 'summary_<masked>.xlsx',
+      sheets: [
+        {
+          name: 'Aggregated',
+          range: 'A1:B2',
+          rows: [
+            ['Batch', 'Total'],
+            ['B-1', '1,234.50'],
+          ],
+        },
+      ],
+    });
+    expect(await fs.pathExists(xlsxOutcome.download!.fileUrl!)).toBe(true);
+
+    const pdfOutcome = await executeStep(
+      { page, vars: {} },
+      step('checkpointDownload', 'invoice', '#pdf'),
+    );
+    expect(pdfOutcome.status).toBe('passed');
+    const data = pdfOutcome.checkpoint!.data as DownloadCheckpointData;
+    expect(data).toMatchObject({ type: 'pdf', pageCount: 1 });
+    expect(data.pages![0]).toEqual(['Invoice 42', 'Total 1.234,50 EUR']);
+    expect(pdfOutcome.download!.fileUrl).toBeUndefined();
+
+    expect(
+      await executeStep({ page, vars: {} }, step('checkpointDownload', 'x | (', '#xlsx')),
+    ).toMatchObject({ status: 'failed', error: expect.stringContaining('not valid') });
+    await page.context().close();
+    await fs.remove(dir);
   });
 
   it('says so when the click downloads nothing', async () => {

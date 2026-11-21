@@ -1,5 +1,5 @@
 import ExcelJS from 'exceljs';
-import { assertXlsxWithinLimits } from './xlsx-guard';
+import { assertXlsxWithinLimits } from '../platform/xlsx-guard';
 
 export interface ExcelTestCase {
   id: string;
