@@ -52,6 +52,7 @@ touch screen.
 | **Checkpoint table**                         | Records a table's cell texts, row by row, under a name, for a comparison. The value is the name, then optionally `; rows=<css>; cells=<css>`, for example `orders; rows=tbody tr`.                                                                                                                                                |
 | **Checkpoint chart**                         | Records a chart's series, axes and reference lines under a name, for a comparison. It reads them from the library that drew the chart: DevExtreme, ECharts, or the application's own `element.__wfmChartModel()`.                                                                                                                 |
 | **Checkpoint network**                       | Records the requests the test's pages made since the previous network checkpoint: method, path, sorted query, status and the hashes of the bodies, never the bodies. The value is the name, then optionally `\|` and URL patterns, for example `orders-api \| **/api/orders**`; with no pattern it keeps the fetch and XHR calls. |
+| **Checkpoint download**                      | Clicks the element and records the content of the file it downloads under a name, for a comparison: an Excel workbook cell by cell, a PDF page by page — see [Checkpoint a download](#checkpoint-download).                                                                                                                       |
 | **Check accessibility**                      | Checks the page with axe-core at that point, and fails on violations at or above the severity you choose (serious by default).                                                                                                                                                                                                    |
 | **Set location**                             | From then on the browser reports this position to the page — see [Location and downloads](#location-and-downloads).                                                                                                                                                                                                               |
 | **Check a download**                         | Clicks the element and checks the file it downloads — see [Location and downloads](#location-and-downloads).                                                                                                                                                                                                                      |
@@ -405,6 +406,40 @@ fails the step. Later steps can use <code v-pre>{{download.name}}</code>,
 <code v-pre>{{download.pages}}</code> and <code v-pre>{{download.text}}</code> (the first 2,000
 characters) — in an **Assert values** step, for instance. The report links the file and shows what it
 held.
+
+### Checkpoint a download {#checkpoint-download}
+
+**Checkpoint download** clicks its element like **Check a download**, keeps the file with the run's
+evidence, and records its content under a name instead of checking it, so that a
+[comparison](results.md#comparing-environments) can set it against the same checkpoint on the other
+environment — the Excel export of the old page against the new one's, cell by cell. It never fails
+the test on what the file holds; it fails only when nothing is downloaded or the file cannot be read.
+
+The value is the name, then optionally `; rows=N; cols=N`, then optionally `|` and a regular
+expression masked in the file name, then optionally `|` and one masked in the content:
+
+```yaml
+- action: { id: checkpointDownload, name: Checkpoint download }
+  targetElement: { selector: '#export-xlsx' }
+  value: 'batch-summary-aggregated; rows=1000 | \d{8}_\d{6} | \d{2}/\d{2}/\d{4} \d{2}:\d{2}'
+```
+
+What a mask matches becomes `<masked>` on both sides — a timestamp in the file name, a print date
+in the content. With a content mask but none for the name, write `name | | mask`. What is recorded
+depends on the file:
+
+- **Excel** (`.xlsx`): the sheet names in order, and for each sheet its used range, its merged
+  ranges, whether it is hidden, and its cells as they are **displayed** — the number format applied
+  (`1,234.50`, `12.5%`, `07/03/2026`), the result of a formula, the text of rich text. At most 500
+  rows and 50 columns per sheet unless `rows=` and `cols=` say otherwise (up to 5,000 and 500). The
+  file is checked against the same size limits as an uploaded workbook before it is opened;
+- **PDF**: the page count and the text of each page (up to 200), line by line, with spacing
+  normalized;
+- **CSV**: its rows, as one unnamed sheet;
+- **text and JSON**: with a content mask, the SHA-256 of the masked text; otherwise, like any other
+  file, the SHA-256 of its bytes.
+
+The file name and its type are always recorded; the size is shown but never compared.
 
 ## Page speed {#page-speed}
 

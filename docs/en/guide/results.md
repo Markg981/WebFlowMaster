@@ -314,6 +314,12 @@ What is compared, checkpoint by checkpoint, matched by name:
 - **Checkpoint network**: each call (method, path and query) since the previous network checkpoint,
   how many times it was made, its status and the hash of the request body, and of the response body
   if the tolerances ask for it;
+- **Checkpoint download**: the file name (after its mask) and type; for a workbook the sheet names
+  in order, then each sheet's range, merged ranges, visibility and cells — a difference names the
+  cell, as in `sheets[Aggregated]!C3`, and a row on one side only is one difference
+  (`sheets[Aggregated]!12:12`); for a PDF the page count, then each page's lines, aligned so that a
+  line added or removed is one difference (`pages[2].lines[5]`); for other files the SHA-256. Cells
+  and lines that read as numbers match within the numeric tolerance;
 - the screenshots of the same step, and the durations: the test's and, where the log records it, each
   step's. Faster is never a difference, and neither is a slowdown under 250 ms.
 

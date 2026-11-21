@@ -146,6 +146,7 @@ letteralmente è un rilievo — in modalità strict l'esportazione è rifiutata,
 | `checkpointTable`    | unsupported | una cattura per il confronto di run, che solo WebFlowMaster abbina e confronta                                    |
 | `checkpointChart`    | unsupported | una cattura per il confronto di run, che solo WebFlowMaster abbina e confronta                                    |
 | `checkpointNetwork`  | unsupported | una cattura per il confronto di run, che solo WebFlowMaster abbina e confronta                                    |
+| `checkpointDownload` | unsupported | una cattura per il confronto di run, che solo WebFlowMaster abbina e confronta                                    |
 | `queryDatabase`      | unsupported | interroga il database dell'ambiente tramite WebFlowMaster                                                         |
 | `assertAccessible`   | unsupported | la scansione axe-core e le sue soglie girano in WebFlowMaster                                                     |
 | `measurePerformance` | unsupported | la raccolta dei Web Vitals gira in WebFlowMaster                                                                  |
