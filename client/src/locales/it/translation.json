@@ -3009,6 +3009,20 @@
     "remove": "Rimuovi data fixture",
     "moveUp": "Sposta su",
     "moveDown": "Sposta giù",
+    "library": {
+      "addTitle": "Aggiungi dalla libreria del progetto",
+      "project": "Progetto",
+      "fixture": "Fixture della libreria",
+      "add": "Aggiungi dalla libreria",
+      "emptyProject": "Questo progetto non ha ancora fixture in libreria.",
+      "runsInOrder": "Eseguite in questo ordine: {{chain}}",
+      "fromLibrary": "libreria {{key}}",
+      "unknown": "Fixture di libreria #{{id}} (non nel progetto scelto)",
+      "version": "Versione",
+      "latest": "Ultima (ora v{{version}})",
+      "values": "Valori (vuoto mantiene il default)",
+      "valueFor": "Valore per {{name}}"
+    },
     "teardown": "Script di teardown, dopo il test",
     "teardownHint": "Rimuove quanto creato dallo script sopra. Gira dopo il test, dall'ultima fixture alla prima, e solo per i dati applicati da questa esecuzione. I valori creati si leggono come {{example}}.",
     "teardownPolicy": "Esegui il teardown",
@@ -3038,20 +3052,6 @@
         "failed": "Fallito",
         "kept": "Conservato"
       }
-    },
-    "library": {
-      "addTitle": "Aggiungi dalla libreria del progetto",
-      "project": "Progetto",
-      "fixture": "Fixture della libreria",
-      "add": "Aggiungi dalla libreria",
-      "emptyProject": "Questo progetto non ha ancora fixture in libreria.",
-      "runsInOrder": "Eseguite in questo ordine: {{chain}}",
-      "fromLibrary": "libreria {{key}}",
-      "unknown": "Fixture di libreria #{{id}} (non nel progetto scelto)",
-      "version": "Versione",
-      "latest": "Ultima (ora v{{version}})",
-      "values": "Valori (vuoto mantiene il default)",
-      "valueFor": "Valore per {{name}}"
     }
   },
   "environments": {
@@ -3401,8 +3401,6 @@
       "data_fixture_created": "Fixture dati creata",
       "data_fixture_updated": "Fixture dati aggiornata",
       "data_fixture_deleted": "Fixture dati eliminata",
-      "data_fixture_teardown_failed": "Teardown della fixture dati fallito",
-      "data_fixture_teardown_retried": "Teardown della fixture dati rieseguito",
       "secret_set": "Segreto impostato",
       "secret_deleted": "Segreto eliminato",
       "system_settings_changed": "Impostazione di sistema modificata",
@@ -3509,7 +3507,9 @@
       "browser_grid_created": "Browser grid aggiunto",
       "browser_grid_updated": "Browser grid modificato",
       "browser_grid_deleted": "Browser grid rimosso",
-      "visual_baseline_approved": "Baseline visiva approvata"
+      "visual_baseline_approved": "Baseline visiva approvata",
+      "data_fixture_teardown_failed": "Teardown della fixture dati fallito",
+      "data_fixture_teardown_retried": "Teardown della fixture dati rieseguito"
     }
   },
   "security": {
@@ -4149,7 +4149,7 @@
     "modules": {
       "open": "Importa moduli…",
       "title": "Importa moduli",
-      "description": "Ogni caso dei moduli scelti che non è ancora un test diventa un test manuale, nella suite “QA hub · <modulo>”. I casi già importati restano come sono.",
+      "description": "Ogni caso dei moduli scelti che non è ancora un test diventa un test manuale, nella suite “QA hub · <modulo>”. Un caso il cui id QA è già in un test del progetto non viene mai importato due volte. Di default solo i casi attivi.",
       "modules": "Moduli",
       "all": "Seleziona tutti",
       "none": "Deseleziona tutti",
@@ -4163,7 +4163,11 @@
       "tooMany": "Importa al massimo {{max}} moduli alla volta.",
       "submit": "Importa {{count}} casi",
       "done": "Moduli importati",
-      "doneSummary": "{{modules}} moduli: {{created}} test creati, {{updated}} aggiornati, {{skipped}} casi saltati."
+      "doneSummary": "{{modules}} moduli: {{created}} test creati, {{updated}} aggiornati, {{skipped}} casi saltati.",
+      "sync": "Sincronizza i test esistenti: modulo, area funzionale, scenario, titolo e testo dei passi manuali. Passi registrati o automatici, checkpoint, data fixture, precondizioni e cleanup non vengono mai modificati; i casi deprecati nell’hub vengono etichettati, non eliminati.",
+      "pages": "Solo queste feature highlight (pagine)",
+      "pagesPlaceholder": "Separate da virgola; vuoto: tutte le pagine",
+      "doneDetail": "{{already}} già importati, {{deprecated}} deprecati esclusi, {{failed}} falliti."
     }
   },
   "hubWaves": {
@@ -4534,6 +4538,7 @@
     "editTitle": "Modifica test manuale",
     "description": "Gli step che una persona esegue, ciascuno con il risultato atteso. In un run di un piano attende un esito nel report.",
     "name": "Nome",
+    "caseId": "Id caso QA",
     "step": "Step {{n}}",
     "action": "Azione",
     "expected": "Risultato atteso",

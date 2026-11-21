@@ -59,6 +59,8 @@ interface LibraryTest {
   id: number;
   kind: 'browser' | 'manual' | 'bdd' | 'cucumber';
   name: string;
+  /** The QA case id (QA hub), when the test came from there. */
+  externalCaseId?: string | null;
   url: string;
   status: string;
   updatedAt: string;
@@ -360,6 +362,15 @@ const TestLibraryPage: React.FC = () => {
                   <TableRow key={test.id}>
                     <TableCell className="font-medium">
                       {test.name}
+                      {test.externalCaseId && (
+                        <Badge
+                          variant="outline"
+                          className="ml-2 font-mono font-normal"
+                          data-testid={`test-qa-id-${test.id}`}
+                        >
+                          {test.externalCaseId}
+                        </Badge>
+                      )}
                       {test.kind === 'cucumber' && (
                         <Badge variant="secondary" className="ml-2 font-normal">
                           {t('bdd.cucumber', 'Cucumber')}

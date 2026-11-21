@@ -3,7 +3,7 @@
   "info": {
     "title": "WebFlowMaster API",
     "version": "1.2.0",
-    "description": "Provision projects, tests, datasets, plans, schedules, environments, tags and webhooks, import/export suites, quarantine tests, start runs and collect their results and evidence.\n\nAuthenticate with an API key, as `Authorization: Bearer <key>` or `X-API-Key: <key>`. A key with scopes works only here, and on each endpoint only with the scope it names:\n\n- `projects:read` (role viewer or higher): Read accessible projects.\n- `projects:write` (role editor or higher): Create, rename and delete accessible projects.\n- `tests:read` (role viewer or higher): Read UI, manual and BDD tests.\n- `tests:write` (role editor or higher): Create, update and delete UI, manual and BDD tests.\n- `datasets:read` (role viewer or higher): Read shared test datasets.\n- `datasets:write` (role editor or higher): Create, update and delete shared test datasets.\n- `plans:write` (role editor or higher): Create, update and delete plans and replace their typed test membership.\n- `api-tests:read` (role viewer or higher): Read API tests, with literal secrets replaced by variables.\n- `api-tests:write` (role editor or higher): Create, update and delete API tests.\n- `mobile-tests:read` (role viewer or higher): Read native mobile tests.\n- `mobile-tests:write` (role editor or higher): Create, update and delete native mobile tests.\n- `suites:read` (role viewer or higher): Export portable suites; API and mobile tests also need their read scope.\n- `suites:write` (role editor or higher): Import portable suites; API and mobile tests also need their write scope.\n- `plans:read` (role viewer or higher): List test plans.\n- `runs:read` (role viewer or higher): Read runs, their status, their JUnit reports and their screenshots, videos and other recognised evidence. Traces and HAR files also need runs:evidence.\n- `runs:write` (role editor or higher): Start runs and cancel them.\n- `runs:evidence` (role editor or higher): Download raw run evidence that may hold credentials: Playwright traces, HAR files and unrecognised files.\n- `schedules:read` (role viewer or higher): Read plan schedules.\n- `schedules:write` (role editor or higher): Create, update, pause, resume and delete plan schedules.\n- `environments:read` (role viewer or higher): Read environments and the names of their secrets, never the values.\n- `environments:write` (role editor or higher): Create and delete environments.\n- `secrets:write` (role editor or higher): Set, rotate and delete environment secrets; values are never read back.\n- `tags:read` (role viewer or higher): Read tags and how many tests carry each.\n- `tags:write` (role editor or higher): Create, rename and delete tags.\n- `quarantine:read` (role viewer or higher): List the tests in quarantine.\n- `quarantine:write` (role editor or higher): Quarantine tests and release them.\n- `webhooks:read` (role editor or higher): List a plan's webhooks (token prefixes only), as the web application lets editors.\n- `webhooks:write` (role editor or higher): Create and delete plan webhooks; the token is shown once, on creation.\n- `billing:read` (role viewer or higher): Read the organization's plan, subscription status, limits in force and usage against them.\n\nErrors are always `{ \"error\": { \"code\", \"message\" } }`; branch on `code`."
+    "description": "Provision projects, tests, datasets, plans, schedules, environments, tags and webhooks, import/export suites, quarantine tests, start runs and collect their results and evidence.\n\nAuthenticate with an API key, as `Authorization: Bearer <key>` or `X-API-Key: <key>`. A key with scopes works only here, and on each endpoint only with the scope it names:\n\n- `projects:read` (role viewer or higher): Read accessible projects.\n- `projects:write` (role editor or higher): Create, rename and delete accessible projects.\n- `tests:read` (role viewer or higher): Read UI, manual and BDD tests.\n- `tests:write` (role editor or higher): Create, update and delete UI, manual and BDD tests.\n- `datasets:read` (role viewer or higher): Read shared test datasets.\n- `datasets:write` (role editor or higher): Create, update and delete shared test datasets.\n- `plans:write` (role editor or higher): Create, update and delete plans and replace their typed test membership.\n- `api-tests:read` (role viewer or higher): Read API tests, with literal secrets replaced by variables.\n- `api-tests:write` (role editor or higher): Create, update and delete API tests.\n- `mobile-tests:read` (role viewer or higher): Read native mobile tests.\n- `mobile-tests:write` (role editor or higher): Create, update and delete native mobile tests.\n- `suites:read` (role viewer or higher): Export portable suites; API and mobile tests also need their read scope.\n- `suites:write` (role editor or higher): Import portable suites; API and mobile tests also need their write scope.\n- `plans:read` (role viewer or higher): List test plans.\n- `runs:read` (role viewer or higher): Read runs, their status, their JUnit reports and their screenshots, videos and other recognised evidence. Traces and HAR files also need runs:evidence.\n- `runs:write` (role editor or higher): Start runs and cancel them.\n- `runs:evidence` (role editor or higher): Download raw run evidence that may hold credentials: Playwright traces, HAR files and unrecognised files.\n- `schedules:read` (role viewer or higher): Read plan schedules.\n- `schedules:write` (role editor or higher): Create, update, pause, resume and delete plan schedules.\n- `environments:read` (role viewer or higher): Read environments and the names of their secrets, never the values.\n- `environments:write` (role editor or higher): Create and delete environments.\n- `secrets:write` (role editor or higher): Set, rotate and delete environment secrets; values are never read back.\n- `tags:read` (role viewer or higher): Read tags and how many tests carry each.\n- `tags:write` (role editor or higher): Create, rename and delete tags.\n- `quarantine:read` (role viewer or higher): List the tests in quarantine.\n- `quarantine:write` (role editor or higher): Quarantine tests and release them.\n- `webhooks:read` (role editor or higher): List a plan's webhooks (token prefixes only), as the web application lets editors.\n- `webhooks:write` (role editor or higher): Create and delete plan webhooks; the token is shown once, on creation.\n- `qa-hub:read` (role viewer or higher): Read QA hub import jobs and the audit of what is imported against the hub.\n- `qa-hub:write` (role editor or higher): Start QA hub module imports and syncs (background jobs) into accessible projects.\n- `billing:read` (role viewer or higher): Read the organization's plan, subscription status, limits in force and usage against them.\n\nErrors are always `{ \"error\": { \"code\", \"message\" } }`; branch on `code`."
   },
   "servers": [{ "url": "/" }],
   "components": {
@@ -64,6 +64,11 @@
           "component": { "type": ["string", "null"] },
           "priority": { "type": ["string", "null"] },
           "severity": { "type": ["string", "null"] },
+          "externalCaseId": {
+            "type": ["string", "null"],
+            "pattern": "^[A-Za-z0-9]+_TC_[0-9]{1,6}$",
+            "description": "The QA hub case id (NCC_TC_00301), normalised on save. One live test per project may hold a case: a second answers 409 external_case_id_conflict with existingTestId."
+          },
           "status": { "type": "string", "enum": ["draft", "ready", "archived"] }
         },
         "required": ["name", "url", "sequence"]
@@ -97,6 +102,11 @@
           "component": { "type": ["string", "null"] },
           "priority": { "type": ["string", "null"] },
           "severity": { "type": ["string", "null"] },
+          "externalCaseId": {
+            "type": ["string", "null"],
+            "pattern": "^[A-Za-z0-9]+_TC_[0-9]{1,6}$",
+            "description": "The QA hub case id (NCC_TC_00301), normalised on save. One live test per project may hold a case: a second answers 409 external_case_id_conflict with existingTestId."
+          },
           "status": { "type": "string", "enum": ["draft", "ready", "archived"] }
         },
         "required": []
@@ -131,7 +141,16 @@
           "component": { "type": ["string", "null"] },
           "priority": { "type": ["string", "null"] },
           "severity": { "type": ["string", "null"] },
+          "externalCaseId": {
+            "type": ["string", "null"],
+            "pattern": "^[A-Za-z0-9]+_TC_[0-9]{1,6}$",
+            "description": "The QA hub case id (NCC_TC_00301), normalised on save. One live test per project may hold a case: a second answers 409 external_case_id_conflict with existingTestId."
+          },
           "status": { "type": "string", "enum": ["draft", "ready", "archived"] },
+          "externalSource": {
+            "type": ["string", "null"],
+            "description": "'qa-hub' when externalCaseId is set."
+          },
           "createdAt": { "type": "string", "format": "date-time" },
           "updatedAt": { "type": "string", "format": "date-time" },
           "publishedVersion": { "type": ["integer", "null"] }
@@ -1190,6 +1209,113 @@
         },
         "required": ["id", "testPlanId", "name", "tokenPrefix", "token"]
       },
+      "QaHubImportInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "modules": {
+            "type": "array",
+            "items": { "type": "string", "minLength": 1, "maxLength": 200 },
+            "minItems": 1,
+            "maxItems": 50
+          },
+          "projectId": { "type": ["integer", "null"], "minimum": 1, "default": null },
+          "variant": { "type": "string", "enum": ["standard", "reference"], "default": "standard" },
+          "includeDeprecated": { "type": "boolean", "default": false },
+          "updateChanged": { "type": "boolean", "default": false },
+          "featureHighlights": {
+            "type": "array",
+            "items": { "type": "string" },
+            "maxItems": 200,
+            "description": "Only cases of these feature highlights (pages); absent: all of them."
+          },
+          "sync": {
+            "type": "boolean",
+            "default": false,
+            "description": "Also refresh tests that exist: module, feature area, scenario, title and manual steps text. A recorded or automated sequence, checkpoints, fixtures, preconditions and cleanups are never touched; deprecated cases are tagged qa-hub-deprecated, not deleted."
+          }
+        },
+        "required": ["modules"]
+      },
+      "QaHubJob": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string" },
+          "kind": { "type": "string" },
+          "status": {
+            "type": "string",
+            "enum": ["queued", "running", "succeeded", "failed", "cancelled"]
+          },
+          "params": { "type": "object", "additionalProperties": true },
+          "progress": { "type": ["object", "null"], "additionalProperties": true },
+          "summary": {
+            "type": ["object", "null"],
+            "additionalProperties": true,
+            "description": "When finished: modules[] and the totals created, updated, unchanged, skipped, alreadyImported, skippedDeprecated, deprecatedMarked, failed, changes{} and stepsKept; each module also lists failures[] with the reason."
+          },
+          "error": { "type": ["string", "null"] },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "startedAt": { "type": ["string", "null"], "format": "date-time" },
+          "finishedAt": { "type": ["string", "null"], "format": "date-time" },
+          "cancelRequested": { "type": "boolean" }
+        },
+        "required": ["id", "kind", "status", "createdAt", "cancelRequested"]
+      },
+      "QaHubAudit": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "projectId": { "type": ["integer", "null"] },
+          "modules": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "module": { "type": "string" },
+                "defined": { "type": "integer", "minimum": 0 },
+                "deprecated": { "type": "integer", "minimum": 0 },
+                "imported": { "type": "integer", "minimum": 0 },
+                "missing": { "type": "integer", "minimum": 0 },
+                "duplicateCases": { "type": "integer", "minimum": 0 },
+                "taxonomyDiffers": { "type": "integer", "minimum": 0 }
+              },
+              "required": []
+            }
+          },
+          "duplicates": {
+            "type": "array",
+            "items": { "type": "object", "additionalProperties": true }
+          },
+          "taxonomyDifferences": {
+            "type": "array",
+            "items": { "type": "object", "additionalProperties": true }
+          },
+          "orphans": {
+            "type": "array",
+            "items": { "type": "object", "additionalProperties": true }
+          },
+          "totals": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "duplicates": { "type": "integer", "minimum": 0 },
+              "taxonomyDifferences": { "type": "integer", "minimum": 0 },
+              "orphans": { "type": "integer", "minimum": 0 }
+            },
+            "required": []
+          }
+        },
+        "required": [
+          "projectId",
+          "modules",
+          "duplicates",
+          "taxonomyDifferences",
+          "orphans",
+          "totals"
+        ]
+      },
       "Error": {
         "type": "object",
         "required": ["error"],
@@ -1779,7 +1905,13 @@
             "in": "query",
             "schema": { "type": "integer", "minimum": 0, "default": 0 }
           },
-          { "name": "projectId", "in": "query", "schema": { "type": "integer", "minimum": 1 } }
+          { "name": "projectId", "in": "query", "schema": { "type": "integer", "minimum": 1 } },
+          {
+            "name": "externalCaseId",
+            "in": "query",
+            "schema": { "type": "string" },
+            "description": "The test holding this QA case id, in any spelling (NCC_TC_0134 is NCC_TC_00134)."
+          }
         ],
         "responses": {
           "200": {
@@ -5625,6 +5757,205 @@
             "description": "Success.",
             "content": {
               "application/json": { "schema": { "$ref": "#/components/schemas/Billing" } }
+            }
+          },
+          "400": {
+            "description": "Invalid body, identifier or referenced resource.",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/Error" } }
+            }
+          },
+          "401": {
+            "description": "No usable credential.",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/Error" } }
+            }
+          },
+          "403": {
+            "description": "Insufficient scope, role or project access.",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/Error" } }
+            }
+          },
+          "404": {
+            "description": "No such resource visible to this account.",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/Error" } }
+            }
+          },
+          "409": {
+            "description": "Name conflict or dataset still in use.",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/Error" } }
+            }
+          },
+          "429": {
+            "description": "Rate limit or tenant quota exceeded.",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/Error" } }
+            }
+          },
+          "500": {
+            "description": "The operation failed; writes are rolled back.",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/Error" } }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/qa-hub/import/modules": {
+      "post": {
+        "operationId": "importQaHubModules",
+        "summary": "Import (or sync) every case of whole QA hub modules, as a background job.",
+        "description": "Idempotent and resumable: a case a live test of the project already holds is reported as already imported and never duplicated, and a re-run only picks up what is left. Poll the job at /api/v1/qa-hub/jobs/{jobId}.",
+        "security": [{ "bearerKey": [] }, { "headerKey": [] }],
+        "x-required-scope": "qa-hub:write",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": { "schema": { "$ref": "#/components/schemas/QaHubImportInput" } }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Success.",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/QaHubJob" } }
+            }
+          },
+          "400": {
+            "description": "Invalid body, identifier or referenced resource.",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/Error" } }
+            }
+          },
+          "401": {
+            "description": "No usable credential.",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/Error" } }
+            }
+          },
+          "403": {
+            "description": "Insufficient scope, role or project access.",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/Error" } }
+            }
+          },
+          "404": {
+            "description": "No such resource visible to this account.",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/Error" } }
+            }
+          },
+          "409": {
+            "description": "Name conflict or dataset still in use.",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/Error" } }
+            }
+          },
+          "429": {
+            "description": "Rate limit or tenant quota exceeded.",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/Error" } }
+            }
+          },
+          "500": {
+            "description": "The operation failed; writes are rolled back.",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/Error" } }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/qa-hub/jobs/{jobId}": {
+      "get": {
+        "operationId": "getQaHubJob",
+        "summary": "Read the progress and the summary of an import job.",
+        "security": [{ "bearerKey": [] }, { "headerKey": [] }],
+        "x-required-scope": "qa-hub:read",
+        "parameters": [
+          { "name": "jobId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/QaHubJob" } }
+            }
+          },
+          "400": {
+            "description": "Invalid body, identifier or referenced resource.",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/Error" } }
+            }
+          },
+          "401": {
+            "description": "No usable credential.",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/Error" } }
+            }
+          },
+          "403": {
+            "description": "Insufficient scope, role or project access.",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/Error" } }
+            }
+          },
+          "404": {
+            "description": "No such resource visible to this account.",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/Error" } }
+            }
+          },
+          "409": {
+            "description": "Name conflict or dataset still in use.",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/Error" } }
+            }
+          },
+          "429": {
+            "description": "Rate limit or tenant quota exceeded.",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/Error" } }
+            }
+          },
+          "500": {
+            "description": "The operation failed; writes are rolled back.",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/Error" } }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/qa-hub/audit": {
+      "get": {
+        "operationId": "auditQaHub",
+        "summary": "Per hub module: defined, imported, missing, duplicates, taxonomy differences and tests whose QA id the hub no longer has.",
+        "security": [{ "bearerKey": [] }, { "headerKey": [] }],
+        "x-required-scope": "qa-hub:read",
+        "parameters": [
+          { "name": "projectId", "in": "query", "schema": { "type": "integer", "minimum": 1 } },
+          {
+            "name": "modules",
+            "in": "query",
+            "schema": { "type": "string" },
+            "description": "Comma separated module names; absent: every module."
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": { "type": "integer", "minimum": 1, "maximum": 1000, "default": 100 }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/QaHubAudit" } }
             }
           },
           "400": {

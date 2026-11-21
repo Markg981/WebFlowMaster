@@ -57,7 +57,11 @@ import {
   type HubWaveResult,
 } from '@shared/hub-waves';
 import { manualStepsOf, type ManualResultLog, type ManualStep } from '@shared/manual-tests';
-import type { HubModuleImportCounts, HubModuleImportParams } from '@shared/testcases-hub';
+import {
+  HUB_MODULE_IMPORT_MAX_FAILURES,
+  type HubModuleImportCounts,
+  type HubModuleImportParams,
+} from '@shared/testcases-hub';
 import {
   runWithTenant,
   withTenantTransaction,
@@ -675,9 +679,11 @@ async function importMissingCases(
  */
 async function importIntoModuleSuites(
   actor: WaveActor,
-  params: { projectId: number | null; variant: 'standard' | 'reference' },
+  params: { projectId: number | null; variant: 'standard' | 'reference'; sync?: boolean },
   byModule: Map<string, string[]>,
   hooks: WorkHooks,
+  /** Cases left out per module because they are deprecated in the hub. */
+  skippedDeprecated: Map<string, number> = new Map(),
 ): Promise<HubModuleImportCounts[]> {
   const total = Array.from(byModule.values()).reduce((sum, list) => sum + list.length, 0);
   let done = 0;
@@ -691,6 +697,13 @@ async function importIntoModuleSuites(
       updated: 0,
       unchanged: 0,
       skipped: 0,
+      alreadyImported: 0,
+      skippedDeprecated: skippedDeprecated.get(module) ?? 0,
+      deprecatedMarked: 0,
+      failed: 0,
+      failures: [],
+      changes: {},
+      stepsKept: 0,
     };
     counts.push(tally);
     if (list.length === 0) continue;
@@ -699,20 +712,53 @@ async function importIntoModuleSuites(
       if (await hooks.cancelled?.()) throw new WorkCancelled();
       await hooks.progress?.(done, total, module);
       const chunk = list.slice(start, start + HUB_WAVE_IMPORT_CHUNK);
-      const result = await withTenantTransaction((tx) =>
-        importCases(tx, req, {
-          caseIds: chunk,
-          projectId: params.projectId,
-          suiteId,
-          newSuiteName: suiteId == null ? `${WAVE_SUITE_PREFIX}${module}` : null,
-          variant: params.variant,
-        }),
-      );
-      suiteId = result.suiteId;
-      tally.created += result.created;
-      tally.updated += result.updated;
-      tally.unchanged += result.unchanged;
-      tally.skipped += result.skipped;
+      const run = (caseIds: string[]) =>
+        withTenantTransaction((tx) =>
+          importCases(tx, req, {
+            caseIds,
+            projectId: params.projectId,
+            suiteId,
+            newSuiteName: suiteId == null ? `${WAVE_SUITE_PREFIX}${module}` : null,
+            variant: params.variant,
+            sync: params.sync,
+          }),
+        );
+      const absorb = (result: Awaited<ReturnType<typeof run>>) => {
+        suiteId = result.suiteId;
+        tally.created += result.created;
+        tally.updated += result.updated;
+        tally.unchanged += result.unchanged;
+        tally.skipped += result.skipped;
+        tally.alreadyImported += result.alreadyImported;
+        tally.deprecatedMarked += result.deprecatedMarked;
+        for (const item of result.cases) {
+          for (const field of item.changed ?? [])
+            tally.changes[field] = (tally.changes[field] ?? 0) + 1;
+          if (item.stepsKept) tally.stepsKept++;
+        }
+      };
+      try {
+        absorb(await run(chunk));
+      } catch (error) {
+        // A source or suite problem hits every case alike; anything else is isolated per case so
+        // one bad definition does not lose the other 499 (the chunk's own transaction rolled back).
+        if (error instanceof WorkCancelled || error instanceof HubSourceError) throw error;
+        for (const caseId of chunk) {
+          if (await hooks.cancelled?.()) throw new WorkCancelled();
+          try {
+            absorb(await run([caseId]));
+          } catch (caseError) {
+            if (caseError instanceof WorkCancelled || caseError instanceof HubSourceError)
+              throw caseError;
+            tally.failed++;
+            if (tally.failures.length < HUB_MODULE_IMPORT_MAX_FAILURES)
+              tally.failures.push({
+                caseId,
+                reason: (caseError as Error).message?.slice(0, 300) || 'unknown_error',
+              });
+          }
+        }
+      }
       done += chunk.length;
     }
   }
@@ -727,6 +773,12 @@ export interface HubModuleImportSummary {
   updated: number;
   unchanged: number;
   skipped: number;
+  alreadyImported: number;
+  skippedDeprecated: number;
+  deprecatedMarked: number;
+  failed: number;
+  changes: Record<string, number>;
+  stepsKept: number;
 }
 
 /**
@@ -739,39 +791,70 @@ export async function importModules(
   params: HubModuleImportParams,
   hooks: WorkHooks,
 ): Promise<HubModuleImportSummary> {
-  const pending = or(
-    isNull(hubTestCases.testId),
-    params.updateChanged
-      ? and(
-          isNotNull(hubTestCases.importedHash),
-          ne(hubTestCases.importedHash, hubTestCases.contentHash),
-        )
-      : undefined,
+  // A sync looks at every case, imported or not; otherwise the cases without a test (and, when
+  // asked, the imported ones whose case changed in the hub). A re-run therefore only picks up
+  // what is left: the job is idempotent and resumable.
+  const pending = params.sync
+    ? undefined
+    : or(
+        isNull(hubTestCases.testId),
+        params.updateChanged
+          ? and(
+              isNotNull(hubTestCases.importedHash),
+              ne(hubTestCases.importedHash, hubTestCases.contentHash),
+            )
+          : undefined,
+      );
+  const pages = params.featureHighlights?.length
+    ? inArray(hubTestCases.featureHighlight, params.featureHighlights)
+    : undefined;
+  const scope = and(
+    inArray(hubTestCases.module, params.modules),
+    isNull(hubTestCases.missingSince),
+    pages,
+    pending,
   );
-  const rows = await withTenantTransaction((tx) =>
-    tx
+  const { rows, deprecated } = await withTenantTransaction(async (tx) => ({
+    rows: await tx
       .select({ caseId: hubTestCases.caseId, module: hubTestCases.module })
       .from(hubTestCases)
-      .where(
-        and(
-          inArray(hubTestCases.module, params.modules),
-          isNull(hubTestCases.missingSince),
-          params.includeDeprecated ? undefined : eq(hubTestCases.status, 'active'),
-          pending,
-        ),
-      )
+      .where(and(scope, params.includeDeprecated ? undefined : eq(hubTestCases.status, 'active')))
       .orderBy(hubTestCases.module, hubTestCases.caseId),
-  );
+    deprecated: params.includeDeprecated
+      ? []
+      : await tx
+          .select({ module: hubTestCases.module, n: sql<number>`count(*)::int` })
+          .from(hubTestCases)
+          .where(and(scope, ne(hubTestCases.status, 'active')))
+          .groupBy(hubTestCases.module),
+  }));
   // The modules in the order they were asked for, those with nothing to import too.
   const byModule = new Map<string, string[]>(params.modules.map((m) => [m, []]));
   for (const row of rows) byModule.get(row.module)?.push(row.caseId);
-  const counts = await importIntoModuleSuites(actor, params, byModule, hooks);
+  const counts = await importIntoModuleSuites(
+    actor,
+    params,
+    byModule,
+    hooks,
+    new Map(deprecated.map((row) => [row.module, Number(row.n)])),
+  );
+  const sum = (pick: (c: HubModuleImportCounts) => number) =>
+    counts.reduce((total, c) => total + pick(c), 0);
+  const changes: Record<string, number> = {};
+  for (const c of counts)
+    for (const [field, n] of Object.entries(c.changes)) changes[field] = (changes[field] ?? 0) + n;
   return {
     modules: counts,
-    created: counts.reduce((sum, c) => sum + c.created, 0),
-    updated: counts.reduce((sum, c) => sum + c.updated, 0),
-    unchanged: counts.reduce((sum, c) => sum + c.unchanged, 0),
-    skipped: counts.reduce((sum, c) => sum + c.skipped, 0),
+    created: sum((c) => c.created),
+    updated: sum((c) => c.updated),
+    unchanged: sum((c) => c.unchanged),
+    skipped: sum((c) => c.skipped),
+    alreadyImported: sum((c) => c.alreadyImported),
+    skippedDeprecated: sum((c) => c.skippedDeprecated),
+    deprecatedMarked: sum((c) => c.deprecatedMarked),
+    failed: sum((c) => c.failed),
+    changes,
+    stepsKept: sum((c) => c.stepsKept),
   };
 }
 

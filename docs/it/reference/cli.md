@@ -29,6 +29,20 @@ node wfm.mjs run 12 --wait --junit junit.xml
 | `wfm compare --plan PLAN_ID --baseline ENV_ID --candidate ENV_ID`                   | Esegue il piano su due ambienti, o due indirizzi con `--baseline-url`/`--candidate-url` (e `--recorded-url`), e li confronta test per test; `--html`/`--pdf` scrivono il report di parità. `--mode`, `--candidate-delay`, `--policy <file>` (una policy di confronto in JSON), `--name` e `--fail-on` (predefinito `different,outcome_mismatch`) come in [Bloccare una migrazione sulla parità dei run](../integrations/ci#comparison); `--fail-on`, `--html` e `--pdf` implicano `--wait`. |
 | `wfm help`                                                                          | Stampa l'uso.                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
 
+## Import dal QA hub
+
+Serve una chiave API con `qa-hub:write` (import) o `qa-hub:read` (audit, job), oppure una chiave ad accesso completo. L'import è un job in background: idempotente (un caso il cui id QA è già in un test del progetto è segnalato come già importato e mai creato due volte), riprendibile (una nuova esecuzione prende solo ciò che resta) e a lotti, quindi un modulo da 4.000+ casi non è un problema.
+
+```bash
+wfm hub import "DMO Core,DMO Sales" --project 7 --wait          # moduli interi, casi attivi
+wfm hub import "DMO Core" --feature-highlights "Weighing,Labels"  # solo alcune pagine
+wfm hub import "DMO Core" --sync --wait                          # aggiorna anche i test esistenti
+wfm hub audit "DMO Core" --project 7                             # definiti, importati, mancanti, duplicati
+wfm hub job JOB_ID --wait
+```
+
+`--sync` aggiorna modulo, area funzionale, scenario, titolo e testo dei passi manuali. Non modifica mai una sequenza registrata o automatica, i checkpoint, le data fixture, le precondizioni o i cleanup; un caso deprecato nell'hub viene etichettato `qa-hub-deprecated`, non eliminato. `--include-deprecated` importa anche i casi deprecati. Codice di uscita `1` se un caso è fallito. Lo stesso via REST: `POST /api/v1/qa-hub/import/modules`, `GET /api/v1/qa-hub/jobs/{jobId}`, `GET /api/v1/qa-hub/audit?modules=a,b&projectId=7`; test per id QA: `GET /api/v1/tests?externalCaseId=NCC_TC_00301`.
+
 ## Opzioni
 
 | Opzione                 | Default                | Significato                                                                                                                                                                                                                        |

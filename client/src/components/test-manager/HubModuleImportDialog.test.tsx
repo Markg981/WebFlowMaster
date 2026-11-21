@@ -108,6 +108,7 @@ describe('HubModuleImportDialog', () => {
       variant: 'standard',
       includeDeprecated: false,
       updateChanged: false,
+      sync: false,
     });
   });
 });

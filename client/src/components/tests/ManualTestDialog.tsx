@@ -27,6 +27,7 @@ import GherkinArguments from './GherkinArguments';
 export interface ManualTestDraftSource {
   id: number;
   name: string;
+  externalCaseId?: string | null;
   sequence?: unknown;
   bdd?: unknown;
   /** When the test was loaded: sent back so a save over someone else's edit is refused (M-07). */
@@ -46,6 +47,7 @@ const EMPTY_STEP: ManualStep = { action: '', expected: '' };
 export const ManualTestDialog: React.FC<Props> = ({ isOpen, onClose, test, onSaved }) => {
   const { t } = useTranslation();
   const [name, setName] = useState('');
+  const [caseId, setCaseId] = useState('');
   const [steps, setSteps] = useState<ManualStep[]>([EMPTY_STEP]);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -54,6 +56,7 @@ export const ManualTestDialog: React.FC<Props> = ({ isOpen, onClose, test, onSav
   useEffect(() => {
     if (!isOpen) return;
     setName(test?.name ?? '');
+    setCaseId(test?.externalCaseId ?? '');
     const existing = test ? manualStepsOf(test.sequence) : [];
     setSteps(existing.length > 0 ? existing : [EMPTY_STEP]);
     setError(null);
@@ -87,6 +90,8 @@ export const ManualTestDialog: React.FC<Props> = ({ isOpen, onClose, test, onSav
         // No address and no elements: nothing is opened in a browser.
         body: JSON.stringify({
           name: name.trim(),
+          // Empty clears the QA id; the server normalises and refuses a duplicate.
+          externalCaseId: caseId.trim() === '' ? null : caseId.trim(),
           url: '',
           sequence: toSequence(written).map((step, i) => ({
             ...step,
@@ -165,6 +170,18 @@ export const ManualTestDialog: React.FC<Props> = ({ isOpen, onClose, test, onSav
               value={name}
               maxLength={200}
               onChange={(e) => setName(e.target.value)}
+            />
+          </div>
+
+          <div className="grid gap-1">
+            <Label htmlFor="manual-test-case-id">{t('manualTests.caseId', 'QA case id')}</Label>
+            <Input
+              id="manual-test-case-id"
+              value={caseId}
+              maxLength={64}
+              placeholder="NCC_TC_00301"
+              onChange={(e) => setCaseId(e.target.value)}
+              data-testid="manual-test-case-id"
             />
           </div>
 

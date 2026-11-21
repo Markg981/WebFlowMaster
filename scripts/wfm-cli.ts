@@ -23,7 +23,8 @@ export const EXIT_PASSED = 0;
 export const EXIT_RUN_FAILED = 1;
 export const EXIT_TOOL_ERROR = 2;
 
-type Command = 'run' | 'status' | 'junit' | 'export' | 'tests' | 'units' | 'compare' | 'help';
+type Command =
+  'run' | 'status' | 'junit' | 'export' | 'tests' | 'units' | 'compare' | 'hub' | 'help';
 
 export interface CliOptions {
   command: Command;
@@ -74,6 +75,14 @@ export interface CliOptions {
   policyPath?: string;
   comparisonName?: string;
   failOn?: string[];
+  /** `wfm hub import|audit|job`: the QA hub import (server/http/qa-hub-service.ts). */
+  hubAction?: 'import' | 'audit' | 'job';
+  hubModules?: string[];
+  featureHighlights?: string[];
+  sync?: boolean;
+  includeDeprecated?: boolean;
+  updateChanged?: boolean;
+  limit?: number;
 }
 
 export interface CliIo {
@@ -108,6 +117,10 @@ Usage:
               [--html <file>] [--pdf <file>]
   wfm tests export [--project <id|none>] [--format yaml|json|gherkin] [--out <file>]
   wfm tests import <file> [--project <id>] [--dry-run]
+  wfm hub import <module>[,<module>...] [--project <id>] [--feature-highlights <page>[,<page>...]]
+                 [--sync] [--include-deprecated] [--update-changed] [--wait]
+  wfm hub audit [<module>[,<module>...]] [--project <id>] [--limit <n>] [--json]
+  wfm hub job <jobId> [--wait]
 
 Options:
   --url <url>            Server base URL (default: $WFM_URL)
@@ -136,6 +149,12 @@ Options:
   --bdd-mode             tests import: manual or cucumber
   --bdd-profile          cucumber import: authorized destination profile UUID
   --bdd-revision         cucumber import: pinned destination support revision
+  --feature-highlights   hub import: only cases of these pages (feature highlights), comma separated
+  --sync                 hub import: also refresh the tests that exist (taxonomy, title, manual steps
+                         text); never a recorded or automated sequence, fixtures, preconditions or cleanups
+  --include-deprecated   hub import: also import cases deprecated in the hub (default: active only)
+  --update-changed       hub import: rewrite imported manual tests whose case changed in the hub
+  --limit <n>            hub audit: most items per list (default: 100)
   --plan <id>            compare: the plan to run on both environments
   --baseline <id>        compare: the environment that is the reference
   --candidate <id>       compare: the environment under judgement (default: the baseline's)
@@ -151,6 +170,11 @@ Options:
   --fail-on <verdicts>   compare: the test verdicts that fail the step, comma separated, from
                          different, outcome_mismatch, both_failed, not_comparable, equivalent
                          (default: different,outcome_mismatch)
+
+wfm hub imports whole QA hub modules as a background job (needs the qa-hub:write scope; audit and
+job need qa-hub:read). It is idempotent: a case a test of the project already holds is reported as
+already imported, a re-run only picks up what is left. Without --wait it prints the job id; with
+--wait it polls, prints the summary and exits 1 when a case failed.
 
 wfm units lists what a run expected — one unit per test, browser, language and device — and,
 given a unit, every attempt at it and every dataset row of each, with links to their evidence.
@@ -193,7 +217,8 @@ export function parseArgs(
     command !== 'export' &&
     command !== 'tests' &&
     command !== 'units' &&
-    command !== 'compare'
+    command !== 'compare' &&
+    command !== 'hub'
   ) {
     return { error: `Unknown command "${command}".` };
   }
@@ -309,6 +334,24 @@ export function parseArgs(
       case '--name':
         options.comparisonName = value();
         break;
+      case '--feature-highlights':
+        options.featureHighlights = (value() ?? '')
+          .split(',')
+          .map((v) => v.trim())
+          .filter(Boolean);
+        break;
+      case '--sync':
+        options.sync = true;
+        break;
+      case '--include-deprecated':
+        options.includeDeprecated = true;
+        break;
+      case '--update-changed':
+        options.updateChanged = true;
+        break;
+      case '--limit':
+        options.limit = Number(value());
+        break;
       case '--fail-on':
         options.failOn = (value() ?? '')
           .split(',')
@@ -353,6 +396,7 @@ export function parseArgs(
   }
 
   if (command === 'compare') return compareOptions(options, positional);
+  if (command === 'hub') return hubOptions(options, positional);
 
   options.target = positional[0];
   if (!options.target) return { error: `${command} needs an id. See --help.` };
@@ -411,6 +455,33 @@ export const FAIL_ON_VERDICTS = [
   'equivalent',
 ] as const;
 export const DEFAULT_FAIL_ON = ['different', 'outcome_mismatch'];
+
+function hubOptions(options: CliOptions, positional: string[]): CliOptions | { error: string } {
+  const [action, arg] = positional;
+  if (action !== 'import' && action !== 'audit' && action !== 'job')
+    return { error: 'hub needs import, audit or job. See --help.' };
+  const list = (arg ?? '')
+    .split(',')
+    .map((v) => v.trim())
+    .filter(Boolean);
+  if (action === 'import' && list.length === 0)
+    return { error: 'hub import needs the module name(s), comma separated. See --help.' };
+  if (action === 'job' && !arg) return { error: 'hub job needs the job id. See --help.' };
+  if (options.project !== undefined && !/^\d+$/.test(options.project))
+    return { error: '--project is a project id.' };
+  if (options.limit !== undefined && !(Number.isInteger(options.limit) && options.limit > 0))
+    return { error: '--limit must be a positive number.' };
+  if (!Number.isFinite(options.timeoutSeconds) || options.timeoutSeconds <= 0)
+    return { error: '--timeout must be a positive number of seconds.' };
+  if (!Number.isFinite(options.pollSeconds) || options.pollSeconds <= 0)
+    return { error: '--poll must be a positive number of seconds.' };
+  return {
+    ...options,
+    hubAction: action,
+    hubModules: action === 'job' ? undefined : list,
+    target: action === 'job' ? arg : undefined,
+  };
+}
 
 function compareOptions(options: CliOptions, positional: string[]): CliOptions | { error: string } {
   if (positional.length)
@@ -687,6 +758,7 @@ export async function runCli(options: CliOptions, io: CliIo): Promise<number> {
 
   try {
     if (options.command === 'tests') return await testsFile(options, io, call);
+    if (options.command === 'hub') return await hubCommand(options, io, call);
     if (options.command === 'junit') {
       return await download(
         io,
@@ -1235,6 +1307,109 @@ const FULL_ACCESS_NEEDED =
  * `wfm tests export` writes a project's tests as one file; `wfm tests import` reads one back (tests
  * of the same name updated, the others created). Exit 1 when the import left tests out.
  */
+interface HubJobView {
+  id: string;
+  status: string;
+  summary?: Record<string, unknown> | null;
+  error?: string | null;
+  progress?: Record<string, unknown> | null;
+}
+
+/** `wfm hub import|audit|job`: the QA hub import over /api/v1/qa-hub. */
+async function hubCommand(options: CliOptions, io: CliIo, call: Call): Promise<number> {
+  const fail = async (what: string, response: Response) => {
+    io.error(`${what}: ${response.status} ${await errorText(response)}`);
+    return EXIT_TOOL_ERROR;
+  };
+  const finish = (job: HubJobView): number => {
+    if (options.json) io.log(JSON.stringify(job, null, 2));
+    else {
+      const s = (job.summary ?? {}) as Record<string, unknown>;
+      io.log(`Job ${job.id}: ${job.status}`);
+      for (const key of [
+        'created',
+        'alreadyImported',
+        'updated',
+        'unchanged',
+        'skipped',
+        'skippedDeprecated',
+        'deprecatedMarked',
+        'failed',
+        'stepsKept',
+      ])
+        if (typeof s[key] === 'number') io.log(`  ${key}: ${s[key]}`);
+      if (job.error) io.log(`  error: ${job.error}`);
+      for (const m of (s.modules as Array<Record<string, unknown>> | undefined) ?? [])
+        for (const f of (m.failures as Array<{ caseId: string; reason: string }> | undefined) ?? [])
+          io.log(`  failed ${f.caseId}: ${f.reason}`);
+    }
+    const failed = Number((job.summary as Record<string, unknown> | null)?.failed ?? 0);
+    return job.status === 'succeeded' && failed === 0 ? EXIT_PASSED : EXIT_RUN_FAILED;
+  };
+  const wait = async (id: string): Promise<number> => {
+    const deadline = io.now() + options.timeoutSeconds * 1000;
+    for (;;) {
+      const response = await call(`/api/v1/qa-hub/jobs/${encodeURIComponent(id)}`);
+      if (!response.ok) return fail('Could not read the job', response);
+      const job = (await response.json()) as HubJobView;
+      if (!['queued', 'running'].includes(job.status)) return finish(job);
+      if (io.now() > deadline) {
+        io.error(`Gave up waiting for job ${id}; it keeps running on the server.`);
+        return EXIT_TOOL_ERROR;
+      }
+      await io.sleep(options.pollSeconds * 1000);
+    }
+  };
+
+  if (options.hubAction === 'audit') {
+    const query = new URLSearchParams({
+      ...(options.hubModules?.length ? { modules: options.hubModules.join(',') } : {}),
+      ...(options.project ? { projectId: options.project } : {}),
+      ...(options.limit ? { limit: String(options.limit) } : {}),
+    });
+    const response = await call(`/api/v1/qa-hub/audit?${query}`);
+    if (!response.ok) return fail('Could not audit', response);
+    const audit = (await response.json()) as {
+      modules: Array<Record<string, unknown>>;
+      totals: Record<string, number>;
+    };
+    if (options.json) io.log(JSON.stringify(audit, null, 2));
+    else {
+      for (const m of audit.modules)
+        io.log(
+          `${m.module}: defined ${m.defined}, imported ${m.imported}, missing ${m.missing}, duplicates ${m.duplicateCases}, taxonomy differs ${m.taxonomyDiffers}`,
+        );
+      io.log(
+        `Totals: ${audit.totals.duplicates} duplicate(s), ${audit.totals.taxonomyDifferences} taxonomy difference(s), ${audit.totals.orphans} test(s) with a QA id the hub no longer has.`,
+      );
+    }
+    return EXIT_PASSED;
+  }
+  if (options.hubAction === 'job') {
+    if (options.wait) return wait(options.target!);
+    const response = await call(`/api/v1/qa-hub/jobs/${encodeURIComponent(options.target!)}`);
+    if (!response.ok) return fail('Could not read the job', response);
+    return finish((await response.json()) as HubJobView);
+  }
+  const response = await call('/api/v1/qa-hub/import/modules', {
+    method: 'POST',
+    body: JSON.stringify({
+      modules: options.hubModules,
+      projectId: options.project ? Number(options.project) : null,
+      ...(options.featureHighlights?.length
+        ? { featureHighlights: options.featureHighlights }
+        : {}),
+      sync: options.sync === true,
+      includeDeprecated: options.includeDeprecated === true,
+      updateChanged: options.updateChanged === true,
+    }),
+  });
+  if (response.status !== 202) return fail('Could not start the import', response);
+  const job = (await response.json()) as HubJobView;
+  io.log(`Started job ${job.id}.`);
+  return options.wait ? wait(job.id) : EXIT_PASSED;
+}
+
 async function testsFile(options: CliOptions, io: CliIo, call: Call): Promise<number> {
   if (options.testsAction === 'export') {
     const query = new URLSearchParams({
