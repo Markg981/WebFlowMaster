@@ -3009,6 +3009,20 @@
     "remove": "Remove data fixture",
     "moveUp": "Move up",
     "moveDown": "Move down",
+    "library": {
+      "addTitle": "Add from the project library",
+      "project": "Project",
+      "fixture": "Library fixture",
+      "add": "Add from library",
+      "emptyProject": "This project has no library fixtures yet.",
+      "runsInOrder": "Runs in this order: {{chain}}",
+      "fromLibrary": "library {{key}}",
+      "unknown": "Library fixture #{{id}} (not in the chosen project)",
+      "version": "Version",
+      "latest": "Latest (now v{{version}})",
+      "values": "Values (empty keeps the default)",
+      "valueFor": "Value for {{name}}"
+    },
     "teardown": "Teardown script, after the test",
     "teardownHint": "Removes what the script above made. Runs after the test, last fixture first, and only for data this run applied. Read the values it made as {{example}}.",
     "teardownPolicy": "Run the teardown",
@@ -3038,20 +3052,6 @@
         "failed": "Failed",
         "kept": "Kept"
       }
-    },
-    "library": {
-      "addTitle": "Add from the project library",
-      "project": "Project",
-      "fixture": "Library fixture",
-      "add": "Add from library",
-      "emptyProject": "This project has no library fixtures yet.",
-      "runsInOrder": "Runs in this order: {{chain}}",
-      "fromLibrary": "library {{key}}",
-      "unknown": "Library fixture #{{id}} (not in the chosen project)",
-      "version": "Version",
-      "latest": "Latest (now v{{version}})",
-      "values": "Values (empty keeps the default)",
-      "valueFor": "Value for {{name}}"
     }
   },
   "environments": {
@@ -3401,8 +3401,6 @@
       "data_fixture_created": "Data fixture created",
       "data_fixture_updated": "Data fixture updated",
       "data_fixture_deleted": "Data fixture deleted",
-      "data_fixture_teardown_failed": "Data fixture teardown failed",
-      "data_fixture_teardown_retried": "Data fixture teardown retried",
       "secret_set": "Secret set",
       "secret_deleted": "Secret deleted",
       "system_settings_changed": "System setting changed",
@@ -3509,7 +3507,9 @@
       "browser_grid_created": "Browser grid added",
       "browser_grid_updated": "Browser grid changed",
       "browser_grid_deleted": "Browser grid removed",
-      "visual_baseline_approved": "Visual baseline approved"
+      "visual_baseline_approved": "Visual baseline approved",
+      "data_fixture_teardown_failed": "Data fixture teardown failed",
+      "data_fixture_teardown_retried": "Data fixture teardown retried"
     }
   },
   "security": {
@@ -4149,7 +4149,7 @@
     "modules": {
       "open": "Import modules…",
       "title": "Import modules",
-      "description": "Every case of the chosen modules that is not a test yet becomes a manual test, in the suite “QA hub · <module>”. Cases already imported are left as they are.",
+      "description": "Every case of the chosen modules that is not a test yet becomes a manual test, in the suite “QA hub · <module>”. A case whose QA id a test of the project already holds is never imported twice. Active cases by default.",
       "modules": "Modules",
       "all": "Select all",
       "none": "Select none",
@@ -4163,7 +4163,11 @@
       "tooMany": "Import at most {{max}} modules at a time.",
       "submit": "Import {{count}} cases",
       "done": "Modules imported",
-      "doneSummary": "{{modules}} modules: {{created}} tests created, {{updated}} updated, {{skipped}} cases skipped."
+      "doneSummary": "{{modules}} modules: {{created}} tests created, {{updated}} updated, {{skipped}} cases skipped.",
+      "sync": "Sync the tests that exist: module, feature area, scenario, title and manual steps text. Recorded or automated steps, checkpoints, data fixtures, preconditions and cleanups are never changed; cases deprecated in the hub are tagged, not deleted.",
+      "pages": "Only these feature highlights (pages)",
+      "pagesPlaceholder": "Comma separated; empty: all pages",
+      "doneDetail": "{{already}} already imported, {{deprecated}} deprecated left out, {{failed}} failed."
     }
   },
   "hubWaves": {
@@ -4534,6 +4538,7 @@
     "editTitle": "Edit manual test",
     "description": "The steps a person performs, each with the result to expect. In a plan run it waits for a verdict in the report.",
     "name": "Name",
+    "caseId": "QA case id",
     "step": "Step {{n}}",
     "action": "Action",
     "expected": "Expected result",

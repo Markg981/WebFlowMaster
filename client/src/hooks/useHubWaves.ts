@@ -261,6 +261,10 @@ export interface HubModuleImportInput {
   variant: 'standard' | 'reference';
   includeDeprecated: boolean;
   updateChanged: boolean;
+  /** Only cases of these feature highlights (pages). */
+  featureHighlights?: string[];
+  /** Also refresh the tests that exist (taxonomy, title, manual steps text). */
+  sync?: boolean;
 }
 
 /** What a finished module import did, as its job summary holds it. */
@@ -272,11 +276,24 @@ export interface HubModuleImportSummary {
     updated: number;
     unchanged: number;
     skipped: number;
+    alreadyImported: number;
+    skippedDeprecated: number;
+    deprecatedMarked: number;
+    failed: number;
+    failures: Array<{ caseId: string; reason: string }>;
+    changes: Record<string, number>;
+    stepsKept: number;
   }>;
   created: number;
   updated: number;
   unchanged: number;
   skipped: number;
+  alreadyImported: number;
+  skippedDeprecated: number;
+  deprecatedMarked: number;
+  failed: number;
+  changes: Record<string, number>;
+  stepsKept: number;
 }
 
 export function useImportHubModules() {

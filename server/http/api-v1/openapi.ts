@@ -4,6 +4,7 @@ import { CI_PROVIDERS } from '@shared/ci';
 import { COMPARISON_MODES, COMPARISON_STATUSES, COMPARISON_VERDICTS } from '@shared/comparison';
 import { authoringPaths, authoringSchemas } from './authoring-openapi';
 import { managementPaths, managementSchemas } from './management-openapi';
+import { qaHubPaths, qaHubSchemas } from './qa-hub-openapi';
 
 /**
  * The description of /api/v1, served at /api/v1/openapi.json.
@@ -95,6 +96,7 @@ export const openApiDocument = {
     schemas: {
       ...authoringSchemas,
       ...managementSchemas,
+      ...qaHubSchemas,
       Error: {
         type: 'object',
         required: ['error'],
@@ -274,6 +276,7 @@ export const openApiDocument = {
   paths: {
     ...authoringPaths,
     ...managementPaths,
+    ...qaHubPaths,
     '/api/v1/plans': {
       ...authoringPaths['/api/v1/plans'],
       get: {

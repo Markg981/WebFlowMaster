@@ -134,4 +134,30 @@ describe('ManualTestDialog', () => {
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
     expect(JSON.parse(fetchMock.mock.calls[1][1].body).expectedUpdatedAt).toBeUndefined();
   });
+
+  it('round-trips the QA case id: shows it, sends it, and clears it when emptied', async () => {
+    render(
+      <ManualTestDialog
+        isOpen
+        onClose={vi.fn()}
+        test={{
+          id: 3,
+          name: '[NCC_TC_00301] Weigh',
+          externalCaseId: 'NCC_TC_00301',
+          sequence: toSequence([{ action: 'Open', expected: 'Shown' }]),
+        }}
+        onSaved={vi.fn()}
+      />,
+    );
+    const field = screen.getByLabelText('QA case id');
+    expect(field).toHaveValue('NCC_TC_00301');
+    fireEvent.click(screen.getByText('Save'));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body).externalCaseId).toBe('NCC_TC_00301');
+
+    fireEvent.change(field, { target: { value: '  ' } });
+    fireEvent.click(screen.getByText('Save'));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
+    expect(JSON.parse(fetchMock.mock.calls[1][1].body).externalCaseId).toBeNull();
+  });
 });
