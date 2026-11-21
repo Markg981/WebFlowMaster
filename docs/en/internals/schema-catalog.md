@@ -1404,7 +1404,7 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 
 ## fixture_ledger {#fixture-ledger}
 
-`fixtureLedger` — `shared/schema/data-fixtures.ts:101`
+`fixtureLedger` — `shared/schema/data-fixtures.ts:105`
 
 | TS property      | SQL column        | Declaration                                                                 |
 | ---------------- | ----------------- | --------------------------------------------------------------------------- |
