@@ -2,11 +2,13 @@ import React, { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   DATA_FIXTURE_PARAM_TYPES,
+  DATA_FIXTURE_TEARDOWN_POLICIES,
   DataFixturesSchema,
   isDataFixtureRef,
   type DataFixture,
   type DataFixtureParam,
   type DataFixtureRef,
+  type DataFixtureTeardownPolicy,
   type TestDataFixture,
 } from '@shared/schema';
 import { useProjects } from '@/hooks/use-projects';
@@ -311,6 +313,30 @@ export const DataFixturesPanel: React.FC<DataFixturesPanelProps> = ({
                 </p>
               </div>
 
+              <div className="space-y-1">
+                <Label htmlFor={fieldId('teardown')}>{t('dataFixtures.teardown')}</Label>
+                <Textarea
+                  id={fieldId('teardown')}
+                  value={fixture.teardown ?? ''}
+                  rows={3}
+                  className="font-mono text-xs"
+                  placeholder={`DELETE FROM customers WHERE id = {{fx.${fixture.alias || 'alias'}.id}}`}
+                  onChange={(e) => update(index, { teardown: e.target.value || null })}
+                />
+                <p className="text-xs text-muted-foreground">
+                  {t('dataFixtures.teardownHint', {
+                    example: `{{fx.${fixture.alias || 'alias'}.${fixture.outputs[0] || 'id'}}}`,
+                  })}
+                </p>
+                {fixture.teardown?.trim() && (
+                  <TeardownPolicySelect
+                    id={fieldId('teardownPolicy')}
+                    value={fixture.teardownPolicy}
+                    onChange={(teardownPolicy) => update(index, { teardownPolicy })}
+                  />
+                )}
+              </div>
+
               <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                 <div className="space-y-1">
                   <Label htmlFor={fieldId('outputs')}>{t('dataFixtures.outputs')}</Label>
@@ -392,6 +418,38 @@ export const DataFixturesPanel: React.FC<DataFixturesPanelProps> = ({
     </Card>
   );
 };
+
+/** When the teardown runs for this use of the fixture; the server reads an absent value as `always`. */
+function TeardownPolicySelect({
+  id,
+  value,
+  onChange,
+}: {
+  id: string;
+  value: DataFixtureTeardownPolicy | undefined;
+  onChange: (policy: DataFixtureTeardownPolicy) => void;
+}) {
+  const { t } = useTranslation();
+  return (
+    <div className="flex items-center gap-2">
+      <Label htmlFor={id} className="text-xs">
+        {t('dataFixtures.teardownPolicy')}
+      </Label>
+      <Select value={value ?? 'always'} onValueChange={(v) => onChange(v as DataFixtureTeardownPolicy)}>
+        <SelectTrigger id={id} className="w-64" aria-label={t('dataFixtures.teardownPolicy')}>
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {DATA_FIXTURE_TEARDOWN_POLICIES.map((policy) => (
+            <SelectItem key={policy} value={policy}>
+              {t(`dataFixtures.policy.${policy}`)}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
+  );
+}
 
 /** Pick a project, then one of its library fixtures, to add as a reference. */
 function LibraryPicker({
@@ -541,6 +599,13 @@ function LibraryRefEditor({
           </Select>
         </div>
       </div>
+      {fixture?.definition.teardown?.trim() && (
+        <TeardownPolicySelect
+          id={fieldId('teardownPolicy')}
+          value={entry.teardownPolicy}
+          onChange={(teardownPolicy) => onChange({ teardownPolicy })}
+        />
+      )}
       {fixture && fixture.definition.params.length > 0 && (
         <div className="space-y-2">
           <Label>{t('dataFixtures.library.values')}</Label>

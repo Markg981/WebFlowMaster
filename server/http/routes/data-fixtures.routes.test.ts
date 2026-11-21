@@ -268,4 +268,155 @@ describe('the data fixture library', () => {
     const broken = [{ ...ref, version: 9 }];
     expect(await freeze(broken)).toBe(broken);
   });
+
+  it('keeps a teardown and its policy through create, update, read and freeze', async () => {
+    const withTeardown = customer({
+      definition: {
+        ...customer().definition,
+        teardown: 'DELETE FROM customers WHERE code = {{params.code}}',
+      },
+    });
+    const created = await create(withTeardown);
+    expect(created.status).toBe(201);
+    const list = await request(app).get(`/api/projects/${projectId}/data-fixtures`);
+    expect(list.body[0].definition.teardown).toBe(
+      'DELETE FROM customers WHERE code = {{params.code}}',
+    );
+    // A teardown that reads a parameter nobody declared is refused like an apply would be.
+    const bad = await request(app)
+      .put(`/api/data-fixtures/${created.body.id}`)
+      .send({ definition: { ...customer().definition, teardown: 'DELETE FROM t WHERE c = {{params.nope}}' } });
+    expect(bad.status).toBe(400);
+
+    const { body: second } = await create(order);
+    const saved = await request(app)
+      .post('/api/tests')
+      .send({
+        name: 'Teardown policy round trip',
+        url: 'https://shop.test',
+        projectId,
+        sequence: [],
+        elements: [],
+        dataFixtures: [
+          {
+            kind: 'ref',
+            id: 'r1',
+            alias: 'order',
+            fixtureId: second.id,
+            version: 'latest',
+            params: {},
+            teardownPolicy: 'onSuccess',
+          },
+          {
+            id: 'inline',
+            name: 'Inline',
+            alias: 'inline',
+            params: [],
+            check: 'SELECT 1 AS one',
+            apply: 'SELECT 1',
+            teardown: 'SELECT 2',
+            teardownPolicy: 'never',
+            outputs: [],
+          },
+        ],
+      });
+    expect(saved.status).toBe(201);
+    const [stored] = await privilegedDb
+      .select()
+      .from(testsTable)
+      .where(eq(testsTable.id, saved.body.id));
+    const read = { body: stored as unknown as { dataFixtures: Array<Record<string, unknown>> } };
+    expect(read.body.dataFixtures[0].teardownPolicy).toBe('onSuccess');
+    expect(read.body.dataFixtures[1]).toMatchObject({ teardown: 'SELECT 2', teardownPolicy: 'never' });
+
+    const { freezeDataFixtures } = await import('../../authoring/fixture-graph');
+    const { runWithTenant, withTenantTransaction } =
+      await import('../../platform/middleware/tenancy');
+    const frozen = (await runWithTenant(organizationId, () =>
+      withTenantTransaction((tx) => freezeDataFixtures(tx, read.body.dataFixtures, projectId)),
+    )) as Array<{ alias: string; teardownPolicy?: string }>;
+    // The dependency the reference pulled in follows the policy of the entry that pulled it in.
+    expect(frozen.map((f) => [f.alias, f.teardownPolicy])).toEqual([
+      ['order__customer', 'onSuccess'],
+      // This library order has no teardown, so it has no policy to carry.
+      ['order', undefined],
+      ['inline', 'never'],
+    ]);
+  });
+
+  it('refuses an unknown teardown policy', async () => {
+    const res = await request(app)
+      .post('/api/tests')
+      .send({
+        name: 'Bad policy',
+        url: 'https://shop.test',
+        projectId,
+        sequence: [],
+        elements: [],
+        dataFixtures: [
+          {
+            id: 'x',
+            name: 'X',
+            alias: 'x',
+            params: [],
+            check: 'SELECT 1 AS one',
+            apply: 'SELECT 1',
+            teardown: 'SELECT 2',
+            teardownPolicy: 'sometimes',
+            outputs: [],
+          },
+        ],
+      });
+    expect(res.status).toBe(400);
+  });
+
+  it('lists the pending teardowns, refuses a stranger and an unknown row', async () => {
+    const { fixtureLedger } = await import('@shared/schema');
+    const [row] = await privilegedDb
+      .insert(fixtureLedger)
+      .values({
+        organizationId,
+        runId: 'run-ledger-route',
+        alias: 'customer',
+        name: 'A customer',
+        policy: 'always',
+        entry: {
+          name: 'A customer',
+          alias: 'customer',
+          connection: null,
+          timeoutMs: 1000,
+          teardown: 'SELECT 1',
+          params: [],
+        },
+        bindings: {},
+        status: 'pending',
+      })
+      .returning();
+    const list = await request(app).get('/api/data-fixture-ledger?status=pending,failed');
+    expect(list.status).toBe(200);
+    expect(list.body.map((r: { id: number }) => r.id)).toContain(row.id);
+    expect(JSON.stringify(list.body)).not.toMatch(/secret|db\./);
+
+    expect((await request(app).post('/api/data-fixture-ledger/999999999/teardown')).status).toBe(404);
+    currentUser = { id: otherUserId, username: 'other', organizationId: otherOrganizationId, role: 'editor' };
+    const stranger = await request(app).post(`/api/data-fixture-ledger/${row.id}/teardown`);
+    expect(stranger.status).toBe(404);
+    currentUser = { id: userId, username: 'fixture-library-user', organizationId, role: 'viewer' };
+    expect((await request(app).post(`/api/data-fixture-ledger/${row.id}/teardown`)).status).toBe(403);
+
+    // An editor of the right organization: the environment is gone, so the teardown cannot run (502),
+    // the row says why, and a second request finds it failed (retryable) rather than running twice.
+    currentUser = { id: userId, username: 'fixture-library-user', organizationId, role: 'editor' };
+    const failed = await request(app).post(`/api/data-fixture-ledger/${row.id}/teardown`);
+    expect(failed.status).toBe(502);
+    expect(failed.body.outcome).toBe('failed');
+    expect(failed.body.detail).toMatch(/environment/);
+    const [after] = await privilegedDb.select().from(fixtureLedger).where(eq(fixtureLedger.id, row.id));
+    expect(after.status).toBe('failed');
+    expect(after.attempts).toBe(1);
+
+    // A settled or in-flight apply is refused with 409.
+    await privilegedDb.update(fixtureLedger).set({ status: 'done' }).where(eq(fixtureLedger.id, row.id));
+    expect((await request(app).post(`/api/data-fixture-ledger/${row.id}/teardown`)).status).toBe(409);
+  });
 });

@@ -28,6 +28,8 @@ export const ORG_SCOPED_TABLES = [
   // The data fixture library and its frozen versions (migration 0117).
   'data_fixture_library',
   'data_fixture_versions',
+  // What a run applied and has yet to tear down (migration 0119).
+  'fixture_ledger',
   'test_plan_selected_tests',
   'test_plan_webhooks',
   'report_test_case_results',

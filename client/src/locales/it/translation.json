@@ -3009,6 +3009,36 @@
     "remove": "Rimuovi data fixture",
     "moveUp": "Sposta su",
     "moveDown": "Sposta giù",
+    "teardown": "Script di teardown, dopo il test",
+    "teardownHint": "Rimuove quanto creato dallo script sopra. Gira dopo il test, dall'ultima fixture alla prima, e solo per i dati applicati da questa esecuzione. I valori creati si leggono come {{example}}.",
+    "teardownPolicy": "Esegui il teardown",
+    "policy": {
+      "always": "Dopo ogni esecuzione",
+      "onSuccess": "Solo dopo un'esecuzione riuscita",
+      "never": "Mai (conserva i dati)"
+    },
+    "ledger": {
+      "title": "Dati lasciati dalle esecuzioni",
+      "description": "Fixture applicate da un'esecuzione il cui teardown non e' stato completato (esecuzione interrotta, teardown fallito o conservato). Da qui si puo' eseguire il teardown.",
+      "empty": "Nessun teardown in attesa.",
+      "fixture": "Fixture",
+      "run": "Esecuzione",
+      "applied": "Applicata",
+      "status": "Stato",
+      "detail": "Dettaglio",
+      "runTeardown": "Esegui teardown",
+      "runTeardownFor": "Esegui il teardown di {{name}}",
+      "done": "Teardown completato",
+      "failed": "Teardown fallito",
+      "statuses": {
+        "applying": "In applicazione",
+        "pending": "In attesa",
+        "running": "In corso",
+        "done": "Completato",
+        "failed": "Fallito",
+        "kept": "Conservato"
+      }
+    },
     "library": {
       "addTitle": "Aggiungi dalla libreria del progetto",
       "project": "Progetto",
@@ -3371,6 +3401,8 @@
       "data_fixture_created": "Fixture dati creata",
       "data_fixture_updated": "Fixture dati aggiornata",
       "data_fixture_deleted": "Fixture dati eliminata",
+      "data_fixture_teardown_failed": "Teardown della fixture dati fallito",
+      "data_fixture_teardown_retried": "Teardown della fixture dati rieseguito",
       "secret_set": "Segreto impostato",
       "secret_deleted": "Segreto eliminato",
       "system_settings_changed": "Impostazione di sistema modificata",

@@ -816,6 +816,9 @@ export const AUDIT_ACTIONS = {
   DATA_FIXTURE_CREATED: 'data_fixture.created',
   DATA_FIXTURE_UPDATED: 'data_fixture.updated',
   DATA_FIXTURE_DELETED: 'data_fixture.deleted',
+  // A teardown that failed (data left behind) and its retry by a person or the sweep.
+  DATA_FIXTURE_TEARDOWN_FAILED: 'data_fixture.teardown_failed',
+  DATA_FIXTURE_TEARDOWN_RETRIED: 'data_fixture.teardown_retried',
   SECRET_SET: 'secret.set',
   SECRET_DELETED: 'secret.deleted',
   SYSTEM_SETTINGS_CHANGED: 'system_settings.changed',
