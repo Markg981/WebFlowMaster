@@ -14,7 +14,7 @@ import {
   type DownloadCheckpointValue,
 } from '@shared/download-checkpoint';
 import { canonical } from '../authoring/step-provenance';
-import { assertXlsxWithinLimits } from '../integrations/xlsx-guard';
+import { assertXlsxWithinLimits } from '../platform/xlsx-guard';
 import { checkpointHash, normaliseText } from './checkpoint';
 import { downloadTypeOf, parseCsv } from './download-check';
 

@@ -3,7 +3,7 @@ import path from 'path';
 import { afterEach, describe, expect, it } from 'vitest';
 import ExcelJS from 'exceljs';
 import { XLSX_UPLOAD_DIR, XlsxLimitError, assertXlsxWithinLimits } from './xlsx-guard';
-import { buildZip, type ZipPart } from './xlsx-fixtures';
+import { buildZip, type ZipPart } from '../integrations/xlsx-fixtures';
 
 const created: string[] = [];
 function write(buf: Buffer): string {

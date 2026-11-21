@@ -8,7 +8,7 @@ import {
   parseDownloadCheckpointValue,
   type DownloadCheckpointValue,
 } from '@shared/download-checkpoint';
-import { XlsxLimitError } from '../integrations/xlsx-guard';
+import { XlsxLimitError } from '../platform/xlsx-guard';
 import { buildZip } from '../integrations/xlsx-fixtures';
 import { downloadCheckpoint, formatDate, formatNumber } from './download-checkpoint';
 
