@@ -13,12 +13,12 @@ import {
   modulesImportSchema,
   startModuleImport,
   toJob,
-} from '../../integrations/qa-hub-service';
+} from '../qa-hub-service';
 import { AuthoringError, body, handled, notFound, valid } from './authoring';
 
 /**
  * The QA hub import for API keys and CI: start a module import (or sync) as a background job,
- * poll it, and read the audit. The shared logic is in integrations/qa-hub-service.ts.
+ * poll it, and read the audit. The shared logic is in http/qa-hub-service.ts.
  */
 export const qaHubImportSchema = modulesImportSchema;
 

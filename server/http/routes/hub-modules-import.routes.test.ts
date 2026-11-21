@@ -291,7 +291,9 @@ describe('the QA case id', () => {
 
   it('finds a test by its id on the REST list, any spelling', async () => {
     const [row] = await idsOf();
-    const res = await request(app).get('/api/tests').query({ externalCaseId: row.caseId!.toLowerCase() });
+    const res = await request(app)
+      .get('/api/tests')
+      .query({ externalCaseId: row.caseId!.toLowerCase() });
     expect(res.status).toBe(200);
     expect(res.body.map((t: any) => t.id)).toEqual([row.id]);
   });

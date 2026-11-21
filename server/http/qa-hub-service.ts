@@ -20,11 +20,11 @@ import {
   type HubModuleImportParams,
 } from '@shared/testcases-hub';
 import { withTenantTransaction } from '../platform/middleware/tenancy';
-import { editableProject } from '../http/api-v1/authoring';
-import { currentSource } from '../http/routes/testcase-hub.routes';
+import { editableProject } from './api-v1/authoring';
+import { currentSource } from './routes/testcase-hub.routes';
 import { recordAudit } from '../tenancy/audit';
-import { HubSourceError } from './testcases-hub';
-import { importModules, startHubJob, type WaveActor } from './hub-waves';
+import { HubSourceError } from '../integrations/testcases-hub';
+import { importModules, startHubJob, type WaveActor } from '../integrations/hub-waves';
 
 export function actorOf(req: Request): WaveActor {
   const user = req.user!;

@@ -95,7 +95,8 @@ export const API_SCOPES = {
   },
   'qa-hub:write': {
     minimumRole: 'editor',
-    description: 'Start QA hub module imports and syncs (background jobs) into accessible projects.',
+    description:
+      'Start QA hub module imports and syncs (background jobs) into accessible projects.',
   },
   'billing:read': {
     minimumRole: 'viewer',

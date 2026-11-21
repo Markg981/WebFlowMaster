@@ -51,7 +51,7 @@ import {
   requireSource,
   startModuleImport,
   toJob,
-} from '../../integrations/qa-hub-service';
+} from '../qa-hub-service';
 
 /**
  * QA hub waves (server/integrations/hub-waves.ts): the QA team's test sessions as the hub keeps

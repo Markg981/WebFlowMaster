@@ -75,7 +75,7 @@ export interface CliOptions {
   policyPath?: string;
   comparisonName?: string;
   failOn?: string[];
-  /** `wfm hub import|audit|job`: the QA hub import (server/integrations/qa-hub-service.ts). */
+  /** `wfm hub import|audit|job`: the QA hub import (server/http/qa-hub-service.ts). */
   hubAction?: 'import' | 'audit' | 'job';
   hubModules?: string[];
   featureHighlights?: string[];

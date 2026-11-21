@@ -461,7 +461,9 @@ async function saveTest(
     if (error instanceof ExternalCaseIdError)
       throw new AuthoringError(
         error.code === 'external_case_id_conflict' ? 409 : 400,
-        error.code === 'external_case_id_conflict' ? 'external_case_id_conflict' : 'invalid_request',
+        error.code === 'external_case_id_conflict'
+          ? 'external_case_id_conflict'
+          : 'invalid_request',
         error.message,
         { existingTestId: error.existingTestId },
       );

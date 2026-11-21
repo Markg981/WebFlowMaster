@@ -1001,9 +1001,7 @@ async function tagDeprecated(tx: TenantTx, organizationId: number, testId: numbe
     .where(and(eq(testTags.tagId, tag.id), eq(testTags.testId, testId)))
     .limit(1);
   if (tagged) return false;
-  await tx
-    .insert(testTags)
-    .values({ organizationId, tagId: tag.id, testId, testType: 'ui' });
+  await tx.insert(testTags).values({ organizationId, tagId: tag.id, testId, testType: 'ui' });
   return true;
 }
 
@@ -1098,10 +1096,7 @@ export async function importCases(
       const held = heldByCase.get(caseId);
       if (held) {
         foundById = true;
-        await tx
-          .update(hubTestCases)
-          .set({ testId: held.id })
-          .where(eq(hubTestCases.id, row.id));
+        await tx.update(hubTestCases).set({ testId: held.id }).where(eq(hubTestCases.id, row.id));
         if (!input.sync) {
           result.cases.push({ caseId, outcome: 'already_imported', testId: held.id });
           result.alreadyImported++;

@@ -818,9 +818,7 @@ export async function importModules(
     rows: await tx
       .select({ caseId: hubTestCases.caseId, module: hubTestCases.module })
       .from(hubTestCases)
-      .where(
-        and(scope, params.includeDeprecated ? undefined : eq(hubTestCases.status, 'active')),
-      )
+      .where(and(scope, params.includeDeprecated ? undefined : eq(hubTestCases.status, 'active')))
       .orderBy(hubTestCases.module, hubTestCases.caseId),
     deprecated: params.includeDeprecated
       ? []
