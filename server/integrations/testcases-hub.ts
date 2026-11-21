@@ -17,7 +17,7 @@ import { inflateRawSync } from 'zlib';
 import type { Request } from 'express';
 import { isDeepStrictEqual } from 'util';
 import { randomUUID } from 'crypto';
-import { and, eq, inArray, isNull, sql } from 'drizzle-orm';
+import { and, eq, inArray, isNull, ne, sql } from 'drizzle-orm';
 import {
   AUDIT_ACTIONS,
   hubTestCases,
@@ -909,7 +909,10 @@ export async function writeCatalog(
   const gone = and(
     eq(hubTestCases.sourceId, source.id),
     isNull(hubTestCases.missingSince),
-    sql`${hubTestCases.refreshedAt} <> ${now}`,
+    // Compared through the column, so the value is encoded as the insert above encoded it. A
+    // Date bound to a raw sql fragment is sent in the server's local time zone, and on a machine
+    // that is not on UTC it never equals the stamp: every case was reported as gone.
+    ne(hubTestCases.refreshedAt, now),
   );
   const [missingRow] = await tx
     .select({ missing: sql<number>`count(*)` })
