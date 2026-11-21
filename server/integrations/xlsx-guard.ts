@@ -74,10 +74,15 @@ async function measureEntry(
  * Reads the zip central directory, rejects archives whose declared sizes would exhaust memory when
  * ExcelJS loads them, then inflates every entry into a counter (not trusting the declared sizes) and
  * rejects any whose real size differs from the declaration or crosses the limits. Throws XlsxLimitError.
+ * Only a file under `root` is opened: the upload directory, or the directory a test saved a
+ * download in.
  */
-export async function assertXlsxWithinLimits(filePath: string): Promise<void> {
+export async function assertXlsxWithinLimits(
+  filePath: string,
+  root: string = XLSX_UPLOAD_DIR,
+): Promise<void> {
   const resolved = path.resolve(filePath);
-  if (!resolved.startsWith(XLSX_UPLOAD_DIR + path.sep)) throw new Error(INVALID);
+  if (!resolved.startsWith(path.resolve(root) + path.sep)) throw new Error(INVALID);
   const fh = await fs.open(resolved, 'r');
   try {
     const { size } = await fh.stat();

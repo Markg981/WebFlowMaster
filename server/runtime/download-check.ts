@@ -10,7 +10,7 @@ import type { DownloadedFile, DownloadType } from '@shared/downloads';
 
 const MAX_TEXT = 2_000_000;
 
-function typeOf(name: string, head: Buffer): DownloadType {
+export function downloadTypeOf(name: string, head: Buffer): DownloadType {
   if (head.subarray(0, 5).toString('latin1') === '%PDF-') return 'pdf';
   const ext = path.extname(name).toLowerCase().replace('.', '');
   if (ext === 'xlsx' || (head[0] === 0x50 && head[1] === 0x4b && ext === 'xlsx')) return 'xlsx';
@@ -75,7 +75,7 @@ export async function inspectDownload(
   name: string,
 ): Promise<{ file: DownloadedFile; text: string }> {
   const buffer = await fs.readFile(file);
-  const type = typeOf(name, buffer.subarray(0, 8));
+  const type = downloadTypeOf(name, buffer.subarray(0, 8));
   const base = { name, type, size: buffer.length };
   let text = '';
   let extra: Partial<DownloadedFile> = {};
