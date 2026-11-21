@@ -15,7 +15,6 @@ import {
   reportTestCaseResults,
   testPlanSelectedTests,
   testPlans,
-  type HubJob,
   type HubWave,
   type HubWaveResultRow,
 } from '@shared/schema';
@@ -31,22 +30,28 @@ import {
   type HubStatusCounts,
 } from '@shared/hub-waves';
 import { readManualLog } from '@shared/manual-tests';
-import { HUB_MODULE_IMPORT_MAX_MODULES } from '@shared/testcases-hub';
 import { HubSourceError } from '../../integrations/testcases-hub';
 import {
   WAVE_PLAN_PREFIX,
-  importModules,
   materializeWave,
   startHubJob,
   syncWaves,
   waveReaderOf,
-  type WaveActor,
   type WaveImportOutcome,
 } from '../../integrations/hub-waves';
 import { editableProject } from '../api-v1/authoring';
 import { sessionRateLimit, sharedHeavyRateLimit } from '../middleware/rate-limits';
 import { auditActor, recordAudit } from '../../tenancy/audit';
-import { currentSource, sendHubError, tokenOf } from './testcase-hub.routes';
+import { sendHubError, tokenOf } from './testcase-hub.routes';
+import {
+  HUB_AUDIT_DEFAULT_LIST,
+  actorOf,
+  auditHubModules,
+  modulesImportSchema,
+  requireSource,
+  startModuleImport,
+  toJob,
+} from '../qa-hub-service';
 
 /**
  * QA hub waves (server/integrations/hub-waves.ts): the QA team's test sessions as the hub keeps
@@ -77,18 +82,6 @@ const importSchema = z.object({
   variant: z.enum(['standard', 'reference']).default('standard'),
 });
 
-const modulesImportSchema = z.object({
-  modules: z
-    .array(z.string().trim().min(1).max(200))
-    .min(1)
-    .max(HUB_MODULE_IMPORT_MAX_MODULES)
-    .transform((list) => Array.from(new Set(list))),
-  projectId: z.number().int().positive().nullable().default(null),
-  variant: z.enum(['standard', 'reference']).default('standard'),
-  includeDeprecated: z.boolean().default(false),
-  updateChanged: z.boolean().default(false),
-});
-
 const resultsQuerySchema = z.object({
   module: z.string().trim().max(200).optional(),
   status: statusSchema.optional(),
@@ -113,43 +106,9 @@ const exportQuerySchema = z.object({
   modules: csv(100),
 });
 
-function actorOf(req: Request): WaveActor {
-  const user = req.user!;
-  return {
-    id: user.id,
-    username: user.username,
-    organizationId: user.organizationId,
-    role: user.role,
-    ip: req.ip ?? null,
-  };
-}
-
 function waveIdParam(req: Request): number | null {
   const id = Number(req.params.id);
   return Number.isInteger(id) && id > 0 ? id : null;
-}
-
-async function requireSource() {
-  const source = await currentSource();
-  if (!source) throw new HubSourceError(404, 'no_source', 'No test case hub is configured.');
-  return source;
-}
-
-/** What the client sees of a job. */
-function toJob(row: HubJob) {
-  return {
-    id: row.id,
-    kind: row.kind,
-    status: row.status,
-    params: row.params,
-    progress: row.progress,
-    summary: row.summary,
-    error: row.error,
-    createdAt: row.createdAt,
-    startedAt: row.startedAt,
-    finishedAt: row.finishedAt,
-    cancelRequested: row.cancelRequestedAt != null,
-  };
 }
 
 /** Counts by status of every wave, or of one: one grouped query. */
@@ -569,57 +528,37 @@ router.post(
         .json({ error: 'Invalid data', details: flattenZodError(parsed.error) });
     const params = parsed.data;
     try {
-      const source = await requireSource();
-      const known = await withTenantTransaction(async (tx) => {
-        await editableProject(tx, req, params.projectId);
-        return tx
-          .selectDistinct({ module: hubTestCases.module })
-          .from(hubTestCases)
-          .where(inArray(hubTestCases.module, params.modules));
-      });
-      if (known.length !== params.modules.length)
-        throw new HubSourceError(
-          404,
-          'module_not_found',
-          'One or more modules are not in the catalog.',
-        );
-      const actor = actorOf(req);
-      const job = await startHubJob(
-        actor,
-        source.id,
-        'modules_import',
-        { ...params },
-        async (hooks) => {
-          const summary = await importModules(actor, params, hooks);
-          await withTenantTransaction((tx) =>
-            recordAudit(tx, {
-              action: AUDIT_ACTIONS.TESTCASE_HUB_MODULES_IMPORTED,
-              actor: {
-                id: actor.id,
-                username: actor.username,
-                apiKeyId: null,
-                ipAddress: actor.ip,
-              },
-              targetType: 'testcase_hub',
-              targetId: source.id,
-              metadata: {
-                modules: params.modules,
-                projectId: params.projectId,
-                created: summary.created,
-                updated: summary.updated,
-                skipped: summary.skipped,
-              },
-            }),
-          );
-          return { ...summary };
-        },
-      );
-      res.status(202).json(job);
+      res.status(202).json(await startModuleImport(req, params));
     } catch (error) {
       sendHubError(res, error, 'Failed to start the module import.');
     }
   },
 );
+
+// GET /api/testcase-hub/audit — per module: defined, imported, missing, duplicates, taxonomy
+// differences and tests whose QA id the hub no longer has. Read-only.
+const auditQuerySchema = z.object({
+  projectId: z.coerce.number().int().positive().optional(),
+  modules: csv(100),
+  limit: z.coerce.number().int().min(1).max(1000).default(HUB_AUDIT_DEFAULT_LIST),
+});
+
+router.get('/api/testcase-hub/audit', readLimit, requireRole('viewer'), async (req, res) => {
+  const parsed = auditQuerySchema.safeParse(req.query);
+  if (!parsed.success)
+    return res.status(400).json({ error: 'Invalid data', details: flattenZodError(parsed.error) });
+  try {
+    res.json(
+      await auditHubModules({
+        projectId: parsed.data.projectId ?? null,
+        modules: parsed.data.modules ?? [],
+        limit: parsed.data.limit,
+      }),
+    );
+  } catch (error) {
+    sendHubError(res, error, 'Failed to audit the hub import.');
+  }
+});
 
 // GET /api/testcase-hub/jobs — the latest jobs of the hub.
 router.get('/api/testcase-hub/jobs', readLimit, requireRole('viewer'), async (_req, res) => {

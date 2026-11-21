@@ -2,7 +2,7 @@
 
 Generata dal documento OpenAPI che il server espone in `/api/v1/openapi.json` (versione dell’API 1.2.0) con `npm run docs:api-reference`; non va modificata a mano. Le descrizioni restano in inglese, come nel documento. Autenticazione, scope, convenzioni e flussi completi sono spiegati nella [guida all’API REST](./api). Lo stesso documento si scarica come [openapi.json](/openapi.json) per importarlo in Postman, Insomnia o in un generatore di client.
 
-**71 operazioni.** Ognuna indica lo scope che la chiave API deve avere; una chiave senza riceve 403.
+**74 operazioni.** Ognuna indica lo scope che la chiave API deve avere; una chiave senza riceve 403.
 
 ## Projects
 
@@ -124,11 +124,12 @@ List visible web, manual and BDD tests.
 
 Scope `tests:read` · operation `listTests`
 
-| Parameter   | In    | Type    | Required | Description             |
-| ----------- | ----- | ------- | -------- | ----------------------- |
-| `limit`     | query | integer |          | 1–100, default `20`     |
-| `offset`    | query | integer |          | at least 0, default `0` |
-| `projectId` | query | integer |          | at least 1              |
+| Parameter        | In    | Type    | Required | Description                                                                      |
+| ---------------- | ----- | ------- | -------- | -------------------------------------------------------------------------------- |
+| `limit`          | query | integer |          | 1–100, default `20`                                                              |
+| `offset`         | query | integer |          | at least 0, default `0`                                                          |
+| `projectId`      | query | integer |          | at least 1                                                                       |
+| `externalCaseId` | query | string  |          | The test holding this QA case id, in any spelling (NCC_TC_0134 is NCC_TC_00134). |
 
 | Status | Meaning                                          | Body                                                                                         |
 | ------ | ------------------------------------------------ | -------------------------------------------------------------------------------------------- |
@@ -1591,6 +1592,75 @@ Scope `webhooks:write` · operation `deleteWebhook`
 | 429    | Rate limit or tenant quota exceeded.             | [Error](#schema-error) (`application/json`) |
 | 500    | The operation failed; writes are rolled back.    | [Error](#schema-error) (`application/json`) |
 
+## Qa hub
+
+### `POST /api/v1/qa-hub/import/modules` {#importQaHubModules}
+
+Import (or sync) every case of whole QA hub modules, as a background job.
+
+Idempotent and resumable: a case a live test of the project already holds is reported as already imported and never duplicated, and a re-run only picks up what is left. Poll the job at /api/v1/qa-hub/jobs/&#123;jobId}.
+
+Scope `qa-hub:write` · operation `importQaHubModules`
+
+**Request body** (`application/json`)
+
+[QaHubImportInput](#schema-qahubimportinput)
+
+| Status | Meaning                                          | Body                                              |
+| ------ | ------------------------------------------------ | ------------------------------------------------- |
+| 202    | Success.                                         | [QaHubJob](#schema-qahubjob) (`application/json`) |
+| 400    | Invalid body, identifier or referenced resource. | [Error](#schema-error) (`application/json`)       |
+| 401    | No usable credential.                            | [Error](#schema-error) (`application/json`)       |
+| 403    | Insufficient scope, role or project access.      | [Error](#schema-error) (`application/json`)       |
+| 404    | No such resource visible to this account.        | [Error](#schema-error) (`application/json`)       |
+| 409    | Name conflict or dataset still in use.           | [Error](#schema-error) (`application/json`)       |
+| 429    | Rate limit or tenant quota exceeded.             | [Error](#schema-error) (`application/json`)       |
+| 500    | The operation failed; writes are rolled back.    | [Error](#schema-error) (`application/json`)       |
+
+### `GET /api/v1/qa-hub/jobs/{jobId}` {#getQaHubJob}
+
+Read the progress and the summary of an import job.
+
+Scope `qa-hub:read` · operation `getQaHubJob`
+
+| Parameter | In   | Type   | Required | Description |
+| --------- | ---- | ------ | -------- | ----------- |
+| `jobId`   | path | string | yes      |             |
+
+| Status | Meaning                                          | Body                                              |
+| ------ | ------------------------------------------------ | ------------------------------------------------- |
+| 200    | Success.                                         | [QaHubJob](#schema-qahubjob) (`application/json`) |
+| 400    | Invalid body, identifier or referenced resource. | [Error](#schema-error) (`application/json`)       |
+| 401    | No usable credential.                            | [Error](#schema-error) (`application/json`)       |
+| 403    | Insufficient scope, role or project access.      | [Error](#schema-error) (`application/json`)       |
+| 404    | No such resource visible to this account.        | [Error](#schema-error) (`application/json`)       |
+| 409    | Name conflict or dataset still in use.           | [Error](#schema-error) (`application/json`)       |
+| 429    | Rate limit or tenant quota exceeded.             | [Error](#schema-error) (`application/json`)       |
+| 500    | The operation failed; writes are rolled back.    | [Error](#schema-error) (`application/json`)       |
+
+### `GET /api/v1/qa-hub/audit` {#auditQaHub}
+
+Per hub module: defined, imported, missing, duplicates, taxonomy differences and tests whose QA id the hub no longer has.
+
+Scope `qa-hub:read` · operation `auditQaHub`
+
+| Parameter   | In    | Type    | Required | Description                                         |
+| ----------- | ----- | ------- | -------- | --------------------------------------------------- |
+| `projectId` | query | integer |          | at least 1                                          |
+| `modules`   | query | string  |          | Comma separated module names; absent: every module. |
+| `limit`     | query | integer |          | 1–1000, default `100`                               |
+
+| Status | Meaning                                          | Body                                                  |
+| ------ | ------------------------------------------------ | ----------------------------------------------------- |
+| 200    | Success.                                         | [QaHubAudit](#schema-qahubaudit) (`application/json`) |
+| 400    | Invalid body, identifier or referenced resource. | [Error](#schema-error) (`application/json`)           |
+| 401    | No usable credential.                            | [Error](#schema-error) (`application/json`)           |
+| 403    | Insufficient scope, role or project access.      | [Error](#schema-error) (`application/json`)           |
+| 404    | No such resource visible to this account.        | [Error](#schema-error) (`application/json`)           |
+| 409    | Name conflict or dataset still in use.           | [Error](#schema-error) (`application/json`)           |
+| 429    | Rate limit or tenant quota exceeded.             | [Error](#schema-error) (`application/json`)           |
+| 500    | The operation failed; writes are rolled back.    | [Error](#schema-error) (`application/json`)           |
+
 ## Billing
 
 ### `GET /api/v1/billing` {#getBilling}
@@ -1765,29 +1835,31 @@ Scope `billing:read` · operation `getBilling`
 
 ### AuthoredTest {#schema-authoredtest}
 
-| Field              | Type                                | Required | Description                    |
-| ------------------ | ----------------------------------- | -------- | ------------------------------ |
-| `id`               | integer                             |          | at least 1                     |
-| `name`             | string                              |          | up to 200 characters           |
-| `url`              | string                              |          | up to 4000 characters          |
-| `projectId`        | integer \| null                     |          | at least 1                     |
-| `sequence`         | object[]                            |          | up to 2000 items               |
-| `elements`         | object[]                            |          | up to 2000 items, default `[]` |
-| `bdd`              |                                     |          |                                |
-| `dataset`          |                                     |          |                                |
-| `preconditions`    |                                     |          |                                |
-| `cleanups`         |                                     |          |                                |
-| `dataFixtures`     |                                     |          |                                |
-| `module`           | string \| null                      |          |                                |
-| `featureArea`      | string \| null                      |          |                                |
-| `scenario`         | string \| null                      |          |                                |
-| `component`        | string \| null                      |          |                                |
-| `priority`         | string \| null                      |          |                                |
-| `severity`         | string \| null                      |          |                                |
-| `status`           | one of `draft`, `ready`, `archived` |          |                                |
-| `createdAt`        | string (date-time)                  |          |                                |
-| `updatedAt`        | string (date-time)                  |          |                                |
-| `publishedVersion` | integer \| null                     |          |                                |
+| Field              | Type                                | Required | Description                                                                                                                                                                                                  |
+| ------------------ | ----------------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `id`               | integer                             |          | at least 1                                                                                                                                                                                                   |
+| `name`             | string                              |          | up to 200 characters                                                                                                                                                                                         |
+| `url`              | string                              |          | up to 4000 characters                                                                                                                                                                                        |
+| `projectId`        | integer \| null                     |          | at least 1                                                                                                                                                                                                   |
+| `sequence`         | object[]                            |          | up to 2000 items                                                                                                                                                                                             |
+| `elements`         | object[]                            |          | up to 2000 items, default `[]`                                                                                                                                                                               |
+| `bdd`              |                                     |          |                                                                                                                                                                                                              |
+| `dataset`          |                                     |          |                                                                                                                                                                                                              |
+| `preconditions`    |                                     |          |                                                                                                                                                                                                              |
+| `cleanups`         |                                     |          |                                                                                                                                                                                                              |
+| `dataFixtures`     |                                     |          |                                                                                                                                                                                                              |
+| `module`           | string \| null                      |          |                                                                                                                                                                                                              |
+| `featureArea`      | string \| null                      |          |                                                                                                                                                                                                              |
+| `scenario`         | string \| null                      |          |                                                                                                                                                                                                              |
+| `component`        | string \| null                      |          |                                                                                                                                                                                                              |
+| `priority`         | string \| null                      |          |                                                                                                                                                                                                              |
+| `severity`         | string \| null                      |          |                                                                                                                                                                                                              |
+| `externalCaseId`   | string \| null                      |          | The QA hub case id (NCC_TC_00301), normalised on save. One live test per project may hold a case: a second answers 409 external_case_id_conflict with existingTestId. pattern `^[A-Za-z0-9]+_TC_[0-9]{1,6}$` |
+| `status`           | one of `draft`, `ready`, `archived` |          |                                                                                                                                                                                                              |
+| `externalSource`   | string \| null                      |          | 'qa-hub' when externalCaseId is set.                                                                                                                                                                         |
+| `createdAt`        | string (date-time)                  |          |                                                                                                                                                                                                              |
+| `updatedAt`        | string (date-time)                  |          |                                                                                                                                                                                                              |
+| `publishedVersion` | integer \| null                     |          |                                                                                                                                                                                                              |
 
 ### Billing {#schema-billing}
 
@@ -1998,6 +2070,45 @@ The build that asked for a run. The wfm CLI fills it in from the CI system's env
 | Field  | Type   | Required | Description          |
 | ------ | ------ | -------- | -------------------- |
 | `name` | string | yes      | up to 200 characters |
+
+### QaHubAudit {#schema-qahubaudit}
+
+| Field                 | Type                                                                                         | Required | Description |
+| --------------------- | -------------------------------------------------------------------------------------------- | -------- | ----------- |
+| `projectId`           | integer \| null                                                                              | yes      |             |
+| `modules`             | object { module, defined, deprecated, imported, missing, duplicateCases, taxonomyDiffers }[] | yes      |             |
+| `duplicates`          | object[]                                                                                     | yes      |             |
+| `taxonomyDifferences` | object[]                                                                                     | yes      |             |
+| `orphans`             | object[]                                                                                     | yes      |             |
+| `totals`              | object { duplicates, taxonomyDifferences, orphans }                                          | yes      |             |
+
+### QaHubImportInput {#schema-qahubimportinput}
+
+| Field               | Type                           | Required | Description                                                                                                                                                                                                                                                                    |
+| ------------------- | ------------------------------ | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `modules`           | string[]                       | yes      | up to 50 items                                                                                                                                                                                                                                                                 |
+| `projectId`         | integer \| null                |          | at least 1, default `null`                                                                                                                                                                                                                                                     |
+| `variant`           | one of `standard`, `reference` |          | default `"standard"`                                                                                                                                                                                                                                                           |
+| `includeDeprecated` | boolean                        |          | default `false`                                                                                                                                                                                                                                                                |
+| `updateChanged`     | boolean                        |          | default `false`                                                                                                                                                                                                                                                                |
+| `featureHighlights` | string[]                       |          | Only cases of these feature highlights (pages); absent: all of them. up to 200 items                                                                                                                                                                                           |
+| `sync`              | boolean                        |          | Also refresh tests that exist: module, feature area, scenario, title and manual steps text. A recorded or automated sequence, checkpoints, fixtures, preconditions and cleanups are never touched; deprecated cases are tagged qa-hub-deprecated, not deleted. default `false` |
+
+### QaHubJob {#schema-qahubjob}
+
+| Field             | Type                                                           | Required | Description                                                                                                                                                                                                                  |
+| ----------------- | -------------------------------------------------------------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `id`              | string                                                         | yes      |                                                                                                                                                                                                                              |
+| `kind`            | string                                                         | yes      |                                                                                                                                                                                                                              |
+| `status`          | one of `queued`, `running`, `succeeded`, `failed`, `cancelled` | yes      |                                                                                                                                                                                                                              |
+| `params`          | object                                                         |          |                                                                                                                                                                                                                              |
+| `progress`        | object \| null                                                 |          |                                                                                                                                                                                                                              |
+| `summary`         | object \| null                                                 |          | When finished: modules[] and the totals created, updated, unchanged, skipped, alreadyImported, skippedDeprecated, deprecatedMarked, failed, changes&#123;} and stepsKept; each module also lists failures[] with the reason. |
+| `error`           | string \| null                                                 |          |                                                                                                                                                                                                                              |
+| `createdAt`       | string (date-time)                                             | yes      |                                                                                                                                                                                                                              |
+| `startedAt`       | string (date-time) \| null                                     |          |                                                                                                                                                                                                                              |
+| `finishedAt`      | string (date-time) \| null                                     |          |                                                                                                                                                                                                                              |
+| `cancelRequested` | boolean                                                        | yes      |                                                                                                                                                                                                                              |
 
 ### Quarantine {#schema-quarantine}
 
@@ -2212,47 +2323,49 @@ The build that asked for a run. The wfm CLI fills it in from the CI system's env
 
 ### TestInput {#schema-testinput}
 
-| Field           | Type                                | Required | Description                    |
-| --------------- | ----------------------------------- | -------- | ------------------------------ |
-| `name`          | string                              | yes      | up to 200 characters           |
-| `url`           | string                              | yes      | up to 4000 characters          |
-| `projectId`     | integer \| null                     |          | at least 1                     |
-| `sequence`      | object[]                            | yes      | up to 2000 items               |
-| `elements`      | object[]                            |          | up to 2000 items, default `[]` |
-| `bdd`           |                                     |          |                                |
-| `dataset`       |                                     |          |                                |
-| `preconditions` |                                     |          |                                |
-| `cleanups`      |                                     |          |                                |
-| `dataFixtures`  |                                     |          |                                |
-| `module`        | string \| null                      |          |                                |
-| `featureArea`   | string \| null                      |          |                                |
-| `scenario`      | string \| null                      |          |                                |
-| `component`     | string \| null                      |          |                                |
-| `priority`      | string \| null                      |          |                                |
-| `severity`      | string \| null                      |          |                                |
-| `status`        | one of `draft`, `ready`, `archived` |          |                                |
+| Field            | Type                                | Required | Description                                                                                                                                                                                                  |
+| ---------------- | ----------------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `name`           | string                              | yes      | up to 200 characters                                                                                                                                                                                         |
+| `url`            | string                              | yes      | up to 4000 characters                                                                                                                                                                                        |
+| `projectId`      | integer \| null                     |          | at least 1                                                                                                                                                                                                   |
+| `sequence`       | object[]                            | yes      | up to 2000 items                                                                                                                                                                                             |
+| `elements`       | object[]                            |          | up to 2000 items, default `[]`                                                                                                                                                                               |
+| `bdd`            |                                     |          |                                                                                                                                                                                                              |
+| `dataset`        |                                     |          |                                                                                                                                                                                                              |
+| `preconditions`  |                                     |          |                                                                                                                                                                                                              |
+| `cleanups`       |                                     |          |                                                                                                                                                                                                              |
+| `dataFixtures`   |                                     |          |                                                                                                                                                                                                              |
+| `module`         | string \| null                      |          |                                                                                                                                                                                                              |
+| `featureArea`    | string \| null                      |          |                                                                                                                                                                                                              |
+| `scenario`       | string \| null                      |          |                                                                                                                                                                                                              |
+| `component`      | string \| null                      |          |                                                                                                                                                                                                              |
+| `priority`       | string \| null                      |          |                                                                                                                                                                                                              |
+| `severity`       | string \| null                      |          |                                                                                                                                                                                                              |
+| `externalCaseId` | string \| null                      |          | The QA hub case id (NCC_TC_00301), normalised on save. One live test per project may hold a case: a second answers 409 external_case_id_conflict with existingTestId. pattern `^[A-Za-z0-9]+_TC_[0-9]{1,6}$` |
+| `status`         | one of `draft`, `ready`, `archived` |          |                                                                                                                                                                                                              |
 
 ### TestPatch {#schema-testpatch}
 
-| Field           | Type                                | Required | Description                    |
-| --------------- | ----------------------------------- | -------- | ------------------------------ |
-| `name`          | string                              |          | up to 200 characters           |
-| `url`           | string                              |          | up to 4000 characters          |
-| `projectId`     | integer \| null                     |          | at least 1                     |
-| `sequence`      | object[]                            |          | up to 2000 items               |
-| `elements`      | object[]                            |          | up to 2000 items, default `[]` |
-| `bdd`           |                                     |          |                                |
-| `dataset`       |                                     |          |                                |
-| `preconditions` |                                     |          |                                |
-| `cleanups`      |                                     |          |                                |
-| `dataFixtures`  |                                     |          |                                |
-| `module`        | string \| null                      |          |                                |
-| `featureArea`   | string \| null                      |          |                                |
-| `scenario`      | string \| null                      |          |                                |
-| `component`     | string \| null                      |          |                                |
-| `priority`      | string \| null                      |          |                                |
-| `severity`      | string \| null                      |          |                                |
-| `status`        | one of `draft`, `ready`, `archived` |          |                                |
+| Field            | Type                                | Required | Description                                                                                                                                                                                                  |
+| ---------------- | ----------------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `name`           | string                              |          | up to 200 characters                                                                                                                                                                                         |
+| `url`            | string                              |          | up to 4000 characters                                                                                                                                                                                        |
+| `projectId`      | integer \| null                     |          | at least 1                                                                                                                                                                                                   |
+| `sequence`       | object[]                            |          | up to 2000 items                                                                                                                                                                                             |
+| `elements`       | object[]                            |          | up to 2000 items, default `[]`                                                                                                                                                                               |
+| `bdd`            |                                     |          |                                                                                                                                                                                                              |
+| `dataset`        |                                     |          |                                                                                                                                                                                                              |
+| `preconditions`  |                                     |          |                                                                                                                                                                                                              |
+| `cleanups`       |                                     |          |                                                                                                                                                                                                              |
+| `dataFixtures`   |                                     |          |                                                                                                                                                                                                              |
+| `module`         | string \| null                      |          |                                                                                                                                                                                                              |
+| `featureArea`    | string \| null                      |          |                                                                                                                                                                                                              |
+| `scenario`       | string \| null                      |          |                                                                                                                                                                                                              |
+| `component`      | string \| null                      |          |                                                                                                                                                                                                              |
+| `priority`       | string \| null                      |          |                                                                                                                                                                                                              |
+| `severity`       | string \| null                      |          |                                                                                                                                                                                                              |
+| `externalCaseId` | string \| null                      |          | The QA hub case id (NCC_TC_00301), normalised on save. One live test per project may hold a case: a second answers 409 external_case_id_conflict with existingTestId. pattern `^[A-Za-z0-9]+_TC_[0-9]{1,6}$` |
+| `status`         | one of `draft`, `ready`, `archived` |          |                                                                                                                                                                                                              |
 
 ### UnitAttempt {#schema-unitattempt}
 

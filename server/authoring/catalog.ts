@@ -54,6 +54,7 @@ async function page<T>(
 const uiColumns = {
   id: tests.id,
   name: tests.name,
+  externalCaseId: tests.externalCaseId,
   url: tests.url,
   status: tests.status,
   projectId: tests.projectId,

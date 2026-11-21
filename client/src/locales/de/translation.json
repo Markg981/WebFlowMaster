@@ -3009,6 +3009,20 @@
     "remove": "Daten-Fixture entfernen",
     "moveUp": "Nach oben",
     "moveDown": "Nach unten",
+    "library": {
+      "addTitle": "Aus der Projektbibliothek hinzufügen",
+      "project": "Projekt",
+      "fixture": "Bibliotheks-Fixture",
+      "add": "Aus Bibliothek hinzufügen",
+      "emptyProject": "Dieses Projekt hat noch keine Bibliotheks-Fixtures.",
+      "runsInOrder": "Läuft in dieser Reihenfolge: {{chain}}",
+      "fromLibrary": "Bibliothek {{key}}",
+      "unknown": "Bibliotheks-Fixture #{{id}} (nicht im gewählten Projekt)",
+      "version": "Version",
+      "latest": "Neueste (jetzt v{{version}})",
+      "values": "Werte (leer behält den Standard)",
+      "valueFor": "Wert für {{name}}"
+    },
     "teardown": "Teardown-Skript, nach dem Test",
     "teardownHint": "Entfernt, was das Skript oben angelegt hat. Läuft nach dem Test, zuletzt angelegte Fixture zuerst, und nur für Daten, die dieser Lauf angelegt hat. Die angelegten Werte liest man als {{example}}.",
     "teardownPolicy": "Teardown ausführen",
@@ -3038,20 +3052,6 @@
         "failed": "Fehlgeschlagen",
         "kept": "Behalten"
       }
-    },
-    "library": {
-      "addTitle": "Aus der Projektbibliothek hinzufügen",
-      "project": "Projekt",
-      "fixture": "Bibliotheks-Fixture",
-      "add": "Aus Bibliothek hinzufügen",
-      "emptyProject": "Dieses Projekt hat noch keine Bibliotheks-Fixtures.",
-      "runsInOrder": "Läuft in dieser Reihenfolge: {{chain}}",
-      "fromLibrary": "Bibliothek {{key}}",
-      "unknown": "Bibliotheks-Fixture #{{id}} (nicht im gewählten Projekt)",
-      "version": "Version",
-      "latest": "Neueste (jetzt v{{version}})",
-      "values": "Werte (leer behält den Standard)",
-      "valueFor": "Wert für {{name}}"
     }
   },
   "environments": {
@@ -3401,8 +3401,6 @@
       "data_fixture_created": "Datenfixture erstellt",
       "data_fixture_updated": "Datenfixture aktualisiert",
       "data_fixture_deleted": "Datenfixture gelöscht",
-      "data_fixture_teardown_failed": "Teardown der Datenfixture fehlgeschlagen",
-      "data_fixture_teardown_retried": "Teardown der Datenfixture wiederholt",
       "secret_set": "Geheimnis gesetzt",
       "secret_deleted": "Geheimnis gelöscht",
       "system_settings_changed": "Systemeinstellung geändert",
@@ -3509,7 +3507,9 @@
       "browser_grid_created": "Browser-Grid hinzugefügt",
       "browser_grid_updated": "Browser-Grid geändert",
       "browser_grid_deleted": "Browser-Grid entfernt",
-      "visual_baseline_approved": "Visuelle Baseline freigegeben"
+      "visual_baseline_approved": "Visuelle Baseline freigegeben",
+      "data_fixture_teardown_failed": "Teardown der Datenfixture fehlgeschlagen",
+      "data_fixture_teardown_retried": "Teardown der Datenfixture wiederholt"
     }
   },
   "security": {
@@ -4149,7 +4149,7 @@
     "modules": {
       "open": "Module importieren…",
       "title": "Module importieren",
-      "description": "Jeder Fall der gewählten Module, der noch kein Test ist, wird ein manueller Test in der Suite „QA hub · <Modul>“. Bereits importierte Fälle bleiben unverändert.",
+      "description": "Jeder Fall der gewählten Module, der noch kein Test ist, wird ein manueller Test in der Suite „QA hub · <Modul>“. Ein Fall, dessen QA-ID bereits ein Test des Projekts trägt, wird nie doppelt importiert. Standardmäßig nur aktive Fälle.",
       "modules": "Module",
       "all": "Alle auswählen",
       "none": "Keine auswählen",
@@ -4163,7 +4163,11 @@
       "tooMany": "Importieren Sie höchstens {{max}} Module auf einmal.",
       "submit": "{{count}} Fälle importieren",
       "done": "Module importiert",
-      "doneSummary": "{{modules}} Module: {{created}} Tests erstellt, {{updated}} aktualisiert, {{skipped}} Fälle übersprungen."
+      "doneSummary": "{{modules}} Module: {{created}} Tests erstellt, {{updated}} aktualisiert, {{skipped}} Fälle übersprungen.",
+      "sync": "Vorhandene Tests abgleichen: Modul, Funktionsbereich, Szenario, Titel und Text der manuellen Schritte. Aufgezeichnete oder automatisierte Schritte, Checkpoints, Datenfixtures, Vorbedingungen und Aufräumschritte werden nie geändert; im Hub veraltete Fälle werden markiert, nicht gelöscht.",
+      "pages": "Nur diese Feature-Highlights (Seiten)",
+      "pagesPlaceholder": "Kommagetrennt; leer: alle Seiten",
+      "doneDetail": "{{already}} bereits importiert, {{deprecated}} veraltete ausgelassen, {{failed}} fehlgeschlagen."
     }
   },
   "hubWaves": {
@@ -4534,6 +4538,7 @@
     "editTitle": "Manuellen Test bearbeiten",
     "description": "Die Schritte, die eine Person ausführt, jeweils mit dem erwarteten Ergebnis. In einem Planlauf wartet er im Bericht auf ein Ergebnis.",
     "name": "Name",
+    "caseId": "QA-Fall-ID",
     "step": "Schritt {{n}}",
     "action": "Aktion",
     "expected": "Erwartetes Ergebnis",

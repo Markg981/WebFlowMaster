@@ -50,8 +50,21 @@ import { GherkinImportOptionsSchema } from '@shared/bdd';
 import { BddDefinitionError, prepareBddForSave } from '../../bdd/bdd-definition';
 import { FixtureGraphError, checkTestFixtureRefs } from '../../authoring/fixture-graph';
 import { partialUpdate } from '@shared/partial-update';
+import {
+  ExternalCaseIdError,
+  externalCaseColumns,
+  normaliseExternalCaseId,
+} from '../../authoring/external-case-id';
+import { QA_HUB_SOURCE } from '@shared/testcases-hub';
 
 const router = asyncRouter();
+
+/** 409 for a case another test holds, 400 for a malformed id. */
+function sendExternalCaseIdError(res: Response, error: ExternalCaseIdError) {
+  return res
+    .status(error.code === 'external_case_id_conflict' ? 409 : 400)
+    .json({ error: error.message, code: error.code, existingTestId: error.existingTestId });
+}
 
 /**
  * Answers a change that touched no row: 404 when the test is not there for the requester, 403
@@ -86,11 +99,18 @@ router.get('/api/tests', requireRole('viewer'), async (req, res) => {
     // No organization filter here on purpose: the RLS policy applies it. Adding one would
     // be harmless but would suggest the isolation depends on remembering it.
     const { limit, offset } = listPage(req);
+    // ?externalCaseId=NCC_TC_00301 (any spelling the QA hub uses): the test holding that case.
+    const rawCase = typeof req.query.externalCaseId === 'string' ? req.query.externalCaseId : '';
+    const caseId = normaliseExternalCaseId(rawCase);
+    const byCase = caseId
+      ? and(eq(tests.externalSource, QA_HUB_SOURCE), eq(tests.externalCaseId, caseId))
+      : undefined;
     const { allTests, total } = await withTenantTransaction(async (tx) => {
-      const [counted] = await tx.select({ n: count() }).from(tests);
+      const [counted] = await tx.select({ n: count() }).from(tests).where(byCase);
       const rows = await tx
         .select()
         .from(tests)
+        .where(byCase)
         .orderBy(desc(tests.createdAt), desc(tests.id))
         .limit(limit)
         .offset(offset);
@@ -108,6 +128,7 @@ router.get('/api/tests', requireRole('viewer'), async (req, res) => {
   } catch (error: any) {
     const quota = quotaErrorBody(error);
     if (quota) return res.status(429).json(quota);
+    if (error instanceof ExternalCaseIdError) return sendExternalCaseIdError(res, error);
     logger.error({ message: 'Error fetching tests', error: error.message });
     res.status(500).json({ error: 'Failed to fetch tests' });
   }
@@ -147,11 +168,22 @@ router.post('/api/tests', requireRole('editor'), async (req, res) => {
 
       if (existing) return { conflict: existing.id };
 
+      // The QA case id, when given: one live test per case and project.
+      const caseColumns = await externalCaseColumns(tx, {
+        externalCaseId: definition.externalCaseId,
+        projectId: definition.projectId ?? null,
+      });
+
       const rows = await tx
         .insert(tests)
         // Both derived from the session, never from the body — the same treatment the API
         // test route beside this one already gave them.
-        .values({ ...definition, userId: req.user!.id, organizationId: req.user!.organizationId })
+        .values({
+          ...definition,
+          ...caseColumns,
+          userId: req.user!.id,
+          organizationId: req.user!.organizationId,
+        })
         .returning();
 
       // Version 1, in the same transaction as the insert: a history that can begin at version
@@ -188,6 +220,7 @@ router.post('/api/tests', requireRole('editor'), async (req, res) => {
     if (quota) return res.status(429).json(quota);
     if (error instanceof BddDefinitionError || error instanceof FixtureGraphError)
       return res.status(400).json({ error: error.message });
+    if (error instanceof ExternalCaseIdError) return sendExternalCaseIdError(res, error);
     if (isForeignKeyError(error))
       return res.status(400).json({ error: 'Invalid project ID or project does not exist.' });
     logger.error({ message: 'Error creating test', error: error.message });
@@ -248,12 +281,26 @@ router.put('/api/tests/:id', requireRole('editor'), async (req, res) => {
           definition.dataFixtures !== undefined ? definition.dataFixtures : existing.dataFixtures,
           definition.projectId !== undefined ? definition.projectId : existing.projectId,
         );
+      // The case id is checked again when it or the project changes: moving a test into a
+      // project that already holds the case must not slip past the index.
+      const caseColumns =
+        definition.externalCaseId !== undefined || definition.projectId !== undefined
+          ? await externalCaseColumns(tx, {
+              externalCaseId:
+                definition.externalCaseId !== undefined
+                  ? definition.externalCaseId
+                  : existing.externalCaseId,
+              projectId:
+                definition.projectId !== undefined ? definition.projectId : existing.projectId,
+              testId: id,
+            })
+          : {};
       const rows = await tx
         .update(tests)
         // userId is not touched: the test keeps its author. organizationId is not in the
         // payload at all, and RLS decides which rows this statement can see — so another
         // organization's test simply is not found, which is the 404 below.
-        .set({ ...definition, updatedAt: new Date() })
+        .set({ ...definition, ...caseColumns, updatedAt: new Date() })
         .where(eq(tests.id, id))
         .returning();
 
@@ -295,6 +342,7 @@ router.put('/api/tests/:id', requireRole('editor'), async (req, res) => {
       return res.status(400).json({ error: 'Invalid project ID or project does not exist.' });
     if (error instanceof BddDefinitionError || error instanceof FixtureGraphError)
       return res.status(400).json({ error: error.message });
+    if (error instanceof ExternalCaseIdError) return sendExternalCaseIdError(res, error);
     // Two saves that raced to the same version number: the unique index refused the second.
     if ((error?.cause?.code ?? error?.code) === '23505')
       return res.status(409).json({
@@ -1109,6 +1157,23 @@ router.post('/api/tests/import-bundle', requireRole('editor'), async (req, res) 
             outcome: 'invalid',
             reason: (error as Error).message,
           });
+          continue;
+        }
+        // A file without the field leaves a test's QA case id alone; one with it sets it, and a
+        // case another test of the project holds is refused for this test only.
+        try {
+          if (candidate.data.externalCaseId !== undefined)
+            Object.assign(
+              candidate.data,
+              await externalCaseColumns(tx, {
+                externalCaseId: candidate.data.externalCaseId,
+                projectId: existing ? existing.projectId : projectId,
+                testId: existing?.id,
+              }),
+            );
+        } catch (error) {
+          if (!(error instanceof ExternalCaseIdError)) throw error;
+          results.push({ kind: 'test', name, outcome: 'invalid', reason: error.message });
           continue;
         }
         if (

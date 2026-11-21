@@ -29,6 +29,20 @@ node wfm.mjs run 12 --wait --junit junit.xml
 | `wfm compare --plan PLAN_ID --baseline ENV_ID --candidate ENV_ID`                   | Runs the plan on two environments, or two addresses with `--baseline-url`/`--candidate-url` (and `--recorded-url`), and compares them test by test; `--html`/`--pdf` write the parity report. `--mode`, `--candidate-delay`, `--policy <file>` (a JSON comparison policy), `--name` and `--fail-on` (default `different,outcome_mismatch`) as in [Gating a migration on run parity](../integrations/ci#comparison); `--fail-on`, `--html` and `--pdf` imply `--wait`. |
 | `wfm help`                                                                          | Prints the usage.                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
 
+## QA hub import
+
+Needs an API key with `qa-hub:write` (import) or `qa-hub:read` (audit, job), or a full-access key. The import is a background job: idempotent (a case whose QA id a test of the project already holds is reported as already imported and never created twice), resumable (a re-run only takes what is left) and batched, so a module of 4,000+ cases is fine.
+
+```bash
+wfm hub import "DMO Core,DMO Sales" --project 7 --wait          # whole modules, active cases
+wfm hub import "DMO Core" --feature-highlights "Weighing,Labels"  # only some pages
+wfm hub import "DMO Core" --sync --wait                          # also refresh the tests that exist
+wfm hub audit "DMO Core" --project 7                             # defined, imported, missing, duplicates
+wfm hub job JOB_ID --wait
+```
+
+`--sync` refreshes module, feature area, scenario, title and the text of manual steps. It never changes a recorded or automated sequence, checkpoints, data fixtures, preconditions or cleanups; a case deprecated in the hub is tagged `qa-hub-deprecated`, not deleted. `--include-deprecated` also imports deprecated cases. Exit code `1` when a case failed. The same over REST: `POST /api/v1/qa-hub/import/modules`, `GET /api/v1/qa-hub/jobs/{jobId}`, `GET /api/v1/qa-hub/audit?modules=a,b&projectId=7`; tests by QA id: `GET /api/v1/tests?externalCaseId=NCC_TC_00301`.
+
 ## Options
 
 | Option                  | Default                | Meaning                                                                                                                                                                                                   |

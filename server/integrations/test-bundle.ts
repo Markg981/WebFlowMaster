@@ -38,6 +38,7 @@ const TEST_FIELDS = [
   'component',
   'priority',
   'severity',
+  'externalCaseId',
   'status',
   'sequence',
   'preconditions',
