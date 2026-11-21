@@ -498,7 +498,7 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 
 ## tests {#tests}
 
-`tests` — `shared/schema/authoring.ts:31`
+`tests` — `shared/schema/authoring.ts:32`
 
 | TS property        | SQL column          | Declaration                                                                     |
 | ------------------ | ------------------- | ------------------------------------------------------------------------------- |
@@ -528,7 +528,7 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 
 ## test_runs {#test-runs}
 
-`testRuns` — `shared/schema/authoring.ts:89`
+`testRuns` — `shared/schema/authoring.ts:90`
 
 | TS property      | SQL column        | Declaration                                                                 |
 | ---------------- | ----------------- | --------------------------------------------------------------------------- |
@@ -542,7 +542,7 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 
 ## detected_elements {#detected-elements}
 
-`detectedElements` — `shared/schema/authoring.ts:110`
+`detectedElements` — `shared/schema/authoring.ts:111`
 
 | TS property        | SQL column          | Declaration                                                                          |
 | ------------------ | ------------------- | ------------------------------------------------------------------------------------ |
@@ -560,7 +560,7 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 
 ## excel_sequences_map {#excel-sequences-map}
 
-`excelSequencesMap` — `shared/schema/authoring.ts:137`
+`excelSequencesMap` — `shared/schema/authoring.ts:138`
 
 | TS property       | SQL column           | Declaration                                                                          |
 | ----------------- | -------------------- | ------------------------------------------------------------------------------------ |
@@ -572,7 +572,7 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 
 ## step_groups {#step-groups}
 
-`stepGroups` — `shared/schema/authoring.ts:173`
+`stepGroups` — `shared/schema/authoring.ts:174`
 
 | TS property      | SQL column        | Declaration                                                                     |
 | ---------------- | ----------------- | ------------------------------------------------------------------------------- |
@@ -588,7 +588,7 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 
 ## custom_actions {#custom-actions}
 
-`customActions` — `shared/schema/authoring.ts:206`
+`customActions` — `shared/schema/authoring.ts:207`
 
 | TS property      | SQL column        | Declaration                                                                  |
 | ---------------- | ----------------- | ---------------------------------------------------------------------------- |
@@ -604,7 +604,7 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 
 ## test_data_sets {#test-data-sets}
 
-`testDataSets` — `shared/schema/authoring.ts:236`
+`testDataSets` — `shared/schema/authoring.ts:237`
 
 | TS property      | SQL column        | Declaration                                                                 |
 | ---------------- | ----------------- | --------------------------------------------------------------------------- |
@@ -619,7 +619,7 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 
 ## project_elements {#project-elements}
 
-`projectElements` — `shared/schema/authoring.ts:269`
+`projectElements` — `shared/schema/authoring.ts:270`
 
 | TS property        | SQL column          | Declaration                                                                                |
 | ------------------ | ------------------- | ------------------------------------------------------------------------------------------ |
@@ -641,7 +641,7 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 
 ## healing_proposals {#healing-proposals}
 
-`healingProposals` — `shared/schema/authoring.ts:317`
+`healingProposals` — `shared/schema/authoring.ts:318`
 
 | TS property         | SQL column           | Declaration                                                                                                 |
 | ------------------- | -------------------- | ----------------------------------------------------------------------------------------------------------- |
@@ -672,7 +672,7 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 
 ## tags {#tags}
 
-`tags` — `shared/schema/authoring.ts:382`
+`tags` — `shared/schema/authoring.ts:383`
 
 | TS property      | SQL column        | Declaration                                                                 |
 | ---------------- | ----------------- | --------------------------------------------------------------------------- |
@@ -683,7 +683,7 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 
 ## test_tags {#test-tags}
 
-`testTags` — `shared/schema/authoring.ts:406`
+`testTags` — `shared/schema/authoring.ts:407`
 
 | TS property      | SQL column        | Declaration                                                                     |
 | ---------------- | ----------------- | ------------------------------------------------------------------------------- |
@@ -698,7 +698,7 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 
 ## test_versions {#test-versions}
 
-`testVersions` — `shared/schema/authoring.ts:451`
+`testVersions` — `shared/schema/authoring.ts:452`
 
 | TS property           | SQL column              | Declaration                                                                                         |
 | --------------------- | ----------------------- | --------------------------------------------------------------------------------------------------- |
@@ -725,7 +725,7 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 
 ## test_publications {#test-publications}
 
-`testPublications` — `shared/schema/authoring.ts:516`
+`testPublications` — `shared/schema/authoring.ts:517`
 
 | TS property      | SQL column        | Declaration                                                                                         |
 | ---------------- | ----------------- | --------------------------------------------------------------------------------------------------- |
@@ -742,7 +742,7 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 
 ## test_reviews {#test-reviews}
 
-`testReviews` — `shared/schema/authoring.ts:560`
+`testReviews` — `shared/schema/authoring.ts:561`
 
 | TS property       | SQL column         | Declaration                                                                                         |
 | ----------------- | ------------------ | --------------------------------------------------------------------------------------------------- |
@@ -762,7 +762,7 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 
 ## mobile_tests {#mobile-tests}
 
-`mobileTests` — `shared/schema/authoring.ts:607`
+`mobileTests` — `shared/schema/authoring.ts:608`
 
 | TS property        | SQL column          | Declaration                                                                     |
 | ------------------ | ------------------- | ------------------------------------------------------------------------------- |
@@ -784,7 +784,7 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 
 ## mobile_step_groups {#mobile-step-groups}
 
-`mobileStepGroups` — `shared/schema/authoring.ts:637`
+`mobileStepGroups` — `shared/schema/authoring.ts:638`
 
 | TS property      | SQL column        | Declaration                                                                     |
 | ---------------- | ----------------- | ------------------------------------------------------------------------------- |
@@ -801,7 +801,7 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 
 ## load_tests {#load-tests}
 
-`loadTests` — `shared/schema/authoring.ts:672`
+`loadTests` — `shared/schema/authoring.ts:673`
 
 | TS property      | SQL column        | Declaration                                                                          |
 | ---------------- | ----------------- | ------------------------------------------------------------------------------------ |
