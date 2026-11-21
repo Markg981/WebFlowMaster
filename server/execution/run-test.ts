@@ -7,7 +7,13 @@ import type { DataRunner } from '../runtime/data-setup/data-runner';
 import type { Test, ApiTest, Precondition, Cleanup } from '@shared/schema';
 import { runPreconditions } from '../runtime/precondition-runner';
 import { cleanupReportStep, runCleanups } from '../runtime/cleanup-runner';
-import { fixtureReportSteps, runDataFixtures } from '../runtime/data-setup/fixture-runner';
+import {
+  fixtureReportSteps,
+  runDataFixtures,
+  type AppliedFixture,
+} from '../runtime/data-setup/fixture-runner';
+import { runFixtureTeardowns, teardownReportSteps } from '../runtime/data-setup/fixture-teardown';
+import { createRunLedger } from '../runtime/data-setup/fixture-ledger';
 import type { TestDataFixture } from '@shared/schema';
 import { expandFromLibrary } from '../authoring/fixture-graph';
 import type { StepResult } from '../web/playwright-service';
@@ -195,6 +201,16 @@ export async function runTest(
     const uiTest = test as Test;
     // The variables each run of the steps ended with (one per dataset row), for the cleanup.
     const variableSets: Array<Record<string, string>> = [];
+    // The fixtures this run applied that have a teardown, in apply order (fixture-runner.ts).
+    let appliedFixtures: AppliedFixture[] = [];
+    const fixtureLedger = environment
+      ? createRunLedger({
+          organizationId: environment.organizationId,
+          runId,
+          testId,
+          environmentId: environment.environmentId,
+        })
+      : undefined;
     /**
      * The test's cleanup (server/runtime/cleanup-runner.ts), after the test whatever became of it — passed,
      * failed, blocked by a precondition that may have created half of what it meant to. Shown as the
@@ -203,26 +219,56 @@ export async function runTest(
     const withCleanup = async (
       result: IndividualTestRunResult,
     ): Promise<IndividualTestRunResult> => {
+      let out = result;
       const cleanups = (uiTest as unknown as { cleanups?: Cleanup[] | null }).cleanups;
-      if (!cleanups || cleanups.length === 0) return result;
-      const cleanup = await runCleanups(
-        cleanups,
-        variableSets.length > 0 ? variableSets : [vars],
-        options?.http,
-      );
-      for (const step of cleanup.steps.filter(
-        (s) => s.status === 'failed' || s.status === 'skipped',
-      )) {
-        getWsEmitter().emitExecutionLog(runId, {
-          level: 'warn',
-          source: 'system',
-          message: `"${uiTest.name}": cleanup "${step.name}" ${step.status === 'failed' ? 'failed' : 'was skipped'}: ${step.detail}`,
-          timestamp: new Date().toISOString(),
-        });
+      if (cleanups && cleanups.length > 0) {
+        const cleanup = await runCleanups(
+          cleanups,
+          variableSets.length > 0 ? variableSets : [vars],
+          options?.http,
+        );
+        for (const step of cleanup.steps.filter(
+          (s) => s.status === 'failed' || s.status === 'skipped',
+        )) {
+          getWsEmitter().emitExecutionLog(runId, {
+            level: 'warn',
+            source: 'system',
+            message: `"${uiTest.name}": cleanup "${step.name}" ${step.status === 'failed' ? 'failed' : 'was skipped'}: ${step.detail}`,
+            timestamp: new Date().toISOString(),
+          });
+        }
+        out = {
+          ...out,
+          steps: [...(out.steps ?? []), cleanupReportStep(cleanup) as StepResult],
+        };
       }
+      // The data the fixtures made goes last: after the test and the cleanup that may still need it.
+      if (appliedFixtures.length === 0) return out;
+      const teardown = await runFixtureTeardowns(
+        appliedFixtures,
+        { passed: result.status === 'passed' },
+        vars,
+        {
+          ...(options?.data
+            ? { openSession: options.data.openSession, vet: options.data.vet }
+            : {}),
+          ...(fixtureLedger ? { ledger: fixtureLedger } : {}),
+          onStep: (step) => {
+            if (step.status === 'failed')
+              getWsEmitter().emitExecutionLog(runId, {
+                level: 'warn',
+                source: 'system',
+                message: `"${uiTest.name}": data fixture teardown "${step.name}" failed, the data it made is still in the database: ${step.detail}`,
+                timestamp: new Date().toISOString(),
+              });
+          },
+        },
+      );
+      appliedFixtures = [];
+      // Only the steps change: the verdict is the test's, whatever became of the teardown.
       return {
-        ...result,
-        steps: [...(result.steps ?? []), cleanupReportStep(cleanup) as StepResult],
+        ...out,
+        steps: [...(out.steps ?? []), ...(teardownReportSteps(teardown) as StepResult[])],
       };
     };
     // The attempt's own directory when the run's manifest named this unit: every browser,
@@ -297,7 +343,16 @@ export async function runTest(
             ? { openSession: options.data.openSession, vet: options.data.vet }
             : {}),
           expand: expandFromLibrary((uiTest as { projectId?: number | null }).projectId),
+          ...(fixtureLedger
+            ? {
+                onApplying: (a: AppliedFixture) => fixtureLedger.reserve(a),
+                onApplyAborted: (a: AppliedFixture) => fixtureLedger.abort(a),
+                onApplied: (a: AppliedFixture) => fixtureLedger.confirm(a),
+              }
+            : {}),
         });
+        // Even when a later fixture failed: what an earlier one made still has to be removed.
+        appliedFixtures = fx.applied;
         setupSteps.push(...(fixtureReportSteps(fx) as StepResult[]));
         vars = { ...vars, ...fx.variables };
         if (!fx.ok && options?.onPreconditionFailure === 'continue')

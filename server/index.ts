@@ -251,6 +251,12 @@ app.use(express.urlencoded({ extended: false }));
   const stopArtifactRetention =
     process.env.NODE_ENV === 'test' ? () => {} : startArtifactRetention();
 
+  // Runs the teardown of fixtures a crashed run applied and never took back — see
+  // server/runtime/data-setup/fixture-ledger.ts. WFM_FIXTURE_TEARDOWN_STALE_MINUTES sets how old.
+  const { startFixtureTeardownSweep } = await import('./runtime/data-setup/fixture-ledger');
+  const stopFixtureTeardownSweep =
+    process.env.NODE_ENV === 'test' ? () => {} : startFixtureTeardownSweep();
+
   // Optional: AUDIT_LOG_RETENTION_DAYS / EVIDENCE_RETENTION_DAYS (off when unset) — see
   // server/tenancy/data-retention.ts.
   const { startDataRetention } = await import('./tenancy/data-retention');
@@ -329,6 +335,7 @@ app.use(express.urlencoded({ extended: false }));
         stopOutboxDispatcher();
         stopDeliverySweep();
         stopArtifactRetention();
+        stopFixtureTeardownSweep();
         stopDataRetention();
         stopBillingSweep();
         stopComparisonSweep();

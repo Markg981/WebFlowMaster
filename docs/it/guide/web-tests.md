@@ -641,6 +641,64 @@ Un [export come file](./organizing#test-come-file) porta con sé i riferimenti d
 in un'altra organizzazione, richiamano fixture che lì non esistono, e l'esecuzione resta bloccata
 finché i riferimenti non vengono aggiunti di nuovo dalla libreria di quell'organizzazione.
 
+### Riprendersi i dati: teardown {#fixture-teardown}
+
+Una fixture può avere un **teardown**, uno script SQL che toglie ciò che il suo `apply` ha creato,
+così il database dell'applicazione non si riempie di dati di test. Viene validato come l'`apply`:
+può usare <code v-pre>{{params.x}}</code> e <code v-pre>{{fx.alias.column}}</code> (anche i propri
+output, come <code v-pre>{{fx.self.id}}</code> nella libreria), ma non i generatori come
+<code v-pre>{{$uuid}}</code>, che indicherebbero ogni volta una riga diversa.
+
+Il teardown gira dopo il test, comunque sia andato, e:
+
+- **in ordine inverso** rispetto alle fixture, così un ordine sparisce prima del cliente che richiede;
+- **solo per le fixture il cui `apply` è girato in questa esecuzione.** I dati che la verifica ha
+  trovato già presenti sono di altri e restano dove sono;
+- **sulla connessione usata dal setup**, con lo stesso controllo di identità, e separatamente su
+  ciascun lato di un confronto, con il database di quel lato;
+- anche per un piano su un pool di agent locali, tramite l'agent.
+
+Ogni voce ha una **politica di teardown** (`teardownPolicy`): `always` (default), `onSuccess` (i dati
+di un test fallito restano, per poterli guardare) oppure `never`. Una fixture della libreria richiamata
+come dipendenza segue la politica della voce che l'ha richiesta.
+
+Un teardown che fallisce non cambia mai l'esito del test. Compare come step **cleanup** fallito nel
+report, come avviso nel log dell'esecuzione e nell'audit log (`data_fixture.teardown_failed`), e gli
+altri teardown girano comunque.
+
+**Un'esecuzione che muore prima del teardown.** Ogni fixture con un teardown viene scritta in un
+registro _prima_ dell'`apply` (stato `applying`) e confermata (`pending`) dopo il commit dell'`apply`:
+un crash non lascia mai dati applicati senza una riga. Se l'`apply` fa rollback, la riga viene
+eliminata. I **teardown in sospeso** si vedono nella pagina della libreria di fixture (con il pulsante
+**Esegui teardown** per gli editor), oppure con `GET /api/data-fixture-ledger?status=applying,pending,running,failed`,
+e si eseguono con `POST /api/data-fixture-ledger/{id}/teardown` (audit `data_fixture.teardown_retried`).
+Una riga ferma in `applying` o `running` si può rieseguire dopo dieci minuti. Un'operazione periodica
+esegue anche le righe `always` più vecchie di due ore (`WFM_FIXTURE_TEARDOWN_STALE_MINUTES`) e segna le
+altre come conservate; le righe `failed` non vengono mai riprovate dall'operazione periodica. Il registro
+contiene lo script di teardown e i valori che legge, mai l'indirizzo o la password del database:
+l'indirizzo viene riletto dall'ambiente.
+
+Da API e in un bundle YAML una fixture porta gli stessi campi:
+
+```json
+{
+  "id": "fx-customer",
+  "name": "Customer",
+  "alias": "customer",
+  "params": [{ "name": "email", "type": "string", "value": "ann@shop.test" }],
+  "check": "SELECT id FROM customers WHERE email = {{params.email}}",
+  "apply": "INSERT INTO customers (email) VALUES ({{params.email}})",
+  "teardown": "DELETE FROM customers WHERE email = {{params.email}}",
+  "teardownPolicy": "onSuccess",
+  "outputs": ["id"]
+}
+```
+
+Limiti: se un'esecuzione si interrompe prima che la verifica della fixture giri di nuovo, i suoi output
+non sono noti, quindi un teardown che legge <code v-pre>{{fx.self.x}}</code> fallisce con "no value" al
+nuovo tentativo. Le esecuzioni BDD e Playwright ad hoc non hanno il registro, quindi un crash lì non si
+recupera.
+
 ## Precondizioni
 
 Le **precondizioni** sono chiamate API eseguite prima degli step, per portare l'applicazione nello

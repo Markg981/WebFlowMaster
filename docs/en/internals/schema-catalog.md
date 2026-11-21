@@ -4,7 +4,7 @@ Generated from `shared/schema/` (one file per domain) with `node scripts/generat
 
 Read the [domain schema](./database-schema) for explanations and relationships, then find the table here. Each row lists the TypeScript property, SQL name and complete builder: type, nullability, default and references declared on the column. Table callback constraints are not expanded here.
 
-**93 tables / 1142 declared columns.**
+**94 tables / 1158 declared columns.**
 
 ## Index
 
@@ -80,6 +80,7 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 | [comparison_known_differences](#comparison-known-differences) | `comparisonKnownDifferences` | 12      |
 | [data_fixture_library](#data-fixture-library)                 | `dataFixtureLibrary`         | 12      |
 | [data_fixture_versions](#data-fixture-versions)               | `dataFixtureVersions`        | 8       |
+| [fixture_ledger](#fixture-ledger)                             | `fixtureLedger`              | 16      |
 | [runners](#runners)                                           | `runners`                    | 12      |
 | [environments](#environments)                                 | `environments`               | 11      |
 | [secrets](#secrets)                                           | `secrets`                    | 10      |
@@ -488,7 +489,7 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 
 ## sessions {#sessions}
 
-`sessions` — `shared/schema/identity.ts:911`
+`sessions` — `shared/schema/identity.ts:914`
 
 | TS property | SQL column | Declaration                     |
 | ----------- | ---------- | ------------------------------- |
@@ -1398,6 +1399,29 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 | `note`           | `note`            | `text('note')`                                                                                       |
 | `createdBy`      | `created_by`      | `integer('created_by').references(() => users.id, { onDelete: 'set null' })`                         |
 | `createdAt`      | `created_at`      | `timestamp('created_at').defaultNow().notNull()`                                                     |
+
+## fixture_ledger {#fixture-ledger}
+
+`fixtureLedger` — `shared/schema/data-fixtures.ts:105`
+
+| TS property      | SQL column        | Declaration                                                                 |
+| ---------------- | ----------------- | --------------------------------------------------------------------------- |
+| `id`             | `id`              | `serial('id').primaryKey()`                                                 |
+| `organizationId` | `organization_id` | `integer('organization_id') .notNull() .references(() => organizations.id)` |
+| `runId`          | `run_id`          | `text('run_id').notNull()`                                                  |
+| `testId`         | `test_id`         | `integer('test_id')`                                                        |
+| `environmentId`  | `environment_id`  | `integer('environment_id')`                                                 |
+| `alias`          | `alias`           | `text('alias').notNull()`                                                   |
+| `name`           | `name`            | `text('name').notNull()`                                                    |
+| `policy`         | `policy`          | `text('policy').notNull().default('always')`                                |
+| `entry`          | `entry`           | `jsonb('entry').$type<LedgerEntry>().notNull()`                             |
+| `bindings`       | `bindings`        | `jsonb('bindings').$type<Record<string, string>>().notNull().default({})`   |
+| `status`         | `status`          | `text('status').notNull().default('pending')`                               |
+| `attempts`       | `attempts`        | `integer('attempts').notNull().default(0)`                                  |
+| `detail`         | `detail`          | `text('detail')`                                                            |
+| `appliedAt`      | `applied_at`      | `timestamp('applied_at').defaultNow().notNull()`                            |
+| `claimedAt`      | `claimed_at`      | `timestamp('claimed_at')`                                                   |
+| `settledAt`      | `settled_at`      | `timestamp('settled_at')`                                                   |
 
 ## runners {#runners}
 

@@ -311,3 +311,39 @@ version: 'latest' | n, params }`, in the same `data_fixtures` column: no new col
   agent install command now includes `pg`, `mysql2` and `mssql` (the Docker image already had them).
 - Not done: Try it stays on the server, also for a project whose plans run on a pool; the mobile
   runner keeps running its SQL from the server.
+
+## Release 4 as built
+
+- `teardown` is a SQL script on the fixture body (inline and library), validated like `apply`
+  (`checkFixtureParams`): `{{params.x}}` must be declared, `{{fx.*}}` follows the same alias rules
+  (`fx.self` and the own alias are readable), generators `{{$…}}` are refused. The policy is
+  `teardownPolicy: 'always' | 'onSuccess' | 'never'` (default `always`), on the inline fixture and on
+  the reference. It is not called `teardown`, which is the script field. A dependency inherits the
+  policy of the entry that pulled it in.
+- `runDataFixtures` returns `applied`: only the fixtures whose `apply` ran in this run
+  (`status === 'applied'`, mode `run`) and that have a teardown. A fixture whose check found the data
+  is not in it. The ledger row is reserved inside the apply transaction (`onApplying`, after the lock
+  and the re-check, before the apply batches), dropped on rollback (`onApplyAborted`) and confirmed
+  after commit (`onApplied`), so a crash never leaves committed data without a row; the outcome is
+  also recorded when the check after the commit fails. Each item freezes only the parameters the teardown references (text substituted) and the
+  bindings it reads; `db.*` values are never stored, the address is read again from the environment.
+- `runFixtureTeardowns` (`fixture-teardown.ts`) runs last first, on a session of its own opened with
+  the same factory as the setup (so the agent path works through `options.data`), with the identity
+  guard and a timeout, begin/commit per teardown. It never throws; each result is `done | failed | kept`
+  and a failure does not stop the others. `run-test.ts` calls it from `withCleanup`, so the three UI
+  return paths and both comparison sides, which are separate `runTest` calls, tear down on their own.
+  The steps are appended as `cleanup` steps; the verdict is not touched. BDD
+  (`bdd-execution.ts`) and the ad-hoc Playwright runner call it in their `finally`.
+- Ledger: table `fixture_ledger` (migration `0119_fixture_ledger`), tenant table with RLS. Statuses
+  `applying | pending | running | done | failed | kept` (`applying` = reserved, not yet confirmed). Routes `GET /api/data-fixture-ledger` and
+  `POST /api/data-fixture-ledger/:id/teardown` (atomic claim; a `running` or `applying` row is claimable again after 10 minutes).
+  `startFixtureTeardownSweep` (advisory key 7, every 15 minutes) retries `always` rows (`pending` or stale `applying`) older than
+  `WFM_FIXTURE_TEARDOWN_STALE_MINUTES` (default 120) and marks the other policies `kept`.
+  Audit: `data_fixture.teardown_failed`, `data_fixture.teardown_retried`.
+- No foreign key from the ledger to environments: the guard test for organization-scoped links
+  asks for a composite same-org key, and the row has to outlive the environment anyway.
+- UI: teardown field and policy select in the test editor and the library fixture editor; the library
+  page lists the open ledger rows with a "Run teardown" action (en, it, fr, de).
+- Not done: row scope; if a run crashes before the check runs again, outputs the teardown reads are
+  missing and a retry fails with "no value"; BDD and ad-hoc runs have no ledger (no run or
+  environment id there), and ad-hoc has no agent path.
