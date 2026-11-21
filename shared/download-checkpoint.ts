@@ -34,6 +34,60 @@ export interface DownloadCheckpointValue {
   contentMask?: RegExp;
 }
 
+/** The longest mask accepted: a mask is a short expression, not a program. */
+export const MAX_DOWNLOAD_MASK_LENGTH = 500;
+
+/** The value read but its masks still as text, so that checking a value never compiles them. */
+export interface DownloadCheckpointValueParts {
+  name: string;
+  rows: number;
+  cols: number;
+  fileMask?: string;
+  contentMask?: string;
+}
+
+/**
+ * The parts of a value, or what is wrong with them. The masks are compiled only by the run
+ * (parseDownloadCheckpointValue), where a bad expression fails the step.
+ */
+export function splitDownloadCheckpointValue(
+  raw: string,
+): DownloadCheckpointValueParts | { error: string } {
+  const at = raw.indexOf('|');
+  const [head, ...options] = (at < 0 ? raw : raw.slice(0, at)).split(';');
+  const name = head.trim();
+  if (name === '') return { error: 'the name of the checkpoint comes first' };
+  let rows = DEFAULT_DOWNLOAD_ROWS;
+  let cols = DEFAULT_DOWNLOAD_COLS;
+  for (const option of options) {
+    if (option.trim() === '') continue;
+    const m = /^\s*(rows|cols)\s*=\s*(\d+)\s*$/i.exec(option);
+    if (!m) return { error: `"${option.trim()}" is not rows=<number> or cols=<number>` };
+    const n = Number(m[2]);
+    const isRows = m[1].toLowerCase() === 'rows';
+    const max = isRows ? MAX_DOWNLOAD_ROWS : MAX_DOWNLOAD_COLS;
+    if (n < 1 || n > max)
+      return { error: `${isRows ? 'rows' : 'cols'} must be between 1 and ${max}` };
+    if (isRows) rows = n;
+    else cols = n;
+  }
+  const parts: DownloadCheckpointValueParts = { name, rows, cols };
+  if (at < 0) return parts;
+  const rest = raw.slice(at + 1);
+  const maskAt = rest.indexOf('|');
+  const fileSource = (maskAt < 0 ? rest : rest.slice(0, maskAt)).trim();
+  if (fileSource !== '') parts.fileMask = fileSource;
+  if (maskAt >= 0) {
+    const contentSource = rest.slice(maskAt + 1).trim();
+    if (contentSource === '') return { error: 'the content mask after the second | is empty' };
+    parts.contentMask = contentSource;
+  }
+  for (const mask of [parts.fileMask, parts.contentMask])
+    if (mask && mask.length > MAX_DOWNLOAD_MASK_LENGTH)
+      return { error: `a mask is longer than ${MAX_DOWNLOAD_MASK_LENGTH} characters` };
+  return parts;
+}
+
 function regexOf(source: string, which: string): RegExp | { error: string } {
   try {
     return new RegExp(source, 'g');
@@ -42,41 +96,20 @@ function regexOf(source: string, which: string): RegExp | { error: string } {
   }
 }
 
+/** The value as the run uses it, masks compiled. */
 export function parseDownloadCheckpointValue(
   raw: string,
 ): DownloadCheckpointValue | { error: string } {
-  const at = raw.indexOf('|');
-  const [head, ...options] = (at < 0 ? raw : raw.slice(0, at)).split(';');
-  const name = head.trim();
-  if (name === '') return { error: 'the name of the checkpoint comes first' };
-  const value: DownloadCheckpointValue = {
-    name,
-    rows: DEFAULT_DOWNLOAD_ROWS,
-    cols: DEFAULT_DOWNLOAD_COLS,
-  };
-  for (const option of options) {
-    if (option.trim() === '') continue;
-    const m = /^\s*(rows|cols)\s*=\s*(\d+)\s*$/i.exec(option);
-    if (!m) return { error: `"${option.trim()}" is not rows=<number> or cols=<number>` };
-    const n = Number(m[2]);
-    const key = m[1].toLowerCase() as 'rows' | 'cols';
-    const max = key === 'rows' ? MAX_DOWNLOAD_ROWS : MAX_DOWNLOAD_COLS;
-    if (n < 1 || n > max) return { error: `${key} must be between 1 and ${max}` };
-    value[key] = n;
-  }
-  if (at < 0) return value;
-  const rest = raw.slice(at + 1);
-  const maskAt = rest.indexOf('|');
-  const fileSource = (maskAt < 0 ? rest : rest.slice(0, maskAt)).trim();
-  if (fileSource !== '') {
-    const re = regexOf(fileSource, 'file-name');
+  const parts = splitDownloadCheckpointValue(raw);
+  if ('error' in parts) return parts;
+  const value: DownloadCheckpointValue = { name: parts.name, rows: parts.rows, cols: parts.cols };
+  if (parts.fileMask) {
+    const re = regexOf(parts.fileMask, 'file-name');
     if ('error' in re) return re;
     value.fileMask = re;
   }
-  if (maskAt >= 0) {
-    const contentSource = rest.slice(maskAt + 1).trim();
-    if (contentSource === '') return { error: 'the content mask after the second | is empty' };
-    const re = regexOf(contentSource, 'content');
+  if (parts.contentMask) {
+    const re = regexOf(parts.contentMask, 'content');
     if ('error' in re) return re;
     value.contentMask = re;
   }
@@ -102,7 +135,7 @@ export function downloadCheckpointProblem(sequence: unknown): string | null {
     if (s.action?.id !== 'checkpointDownload') continue;
     if (!s.targetElement)
       return `Step ${index + 1}: checkpointDownload needs the element whose click downloads the file.`;
-    const parsed = parseDownloadCheckpointValue(typeof s.value === 'string' ? s.value : '');
+    const parsed = splitDownloadCheckpointValue(typeof s.value === 'string' ? s.value : '');
     if ('error' in parsed) return `Step ${index + 1}: checkpointDownload value: ${parsed.error}.`;
   }
   return null;

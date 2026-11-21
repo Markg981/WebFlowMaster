@@ -22,7 +22,7 @@ import type { MobilePlatform, MobileStep, MobileDeviceTarget } from '../mobile';
 import type { LoadDataMode, LoadStage, LoadStep, LoadThresholds } from '../load-test';
 import { BddTestSchema, type BddTest } from '../bdd';
 import { forbiddenNavigationScheme } from '../browser-navigation';
-import { parseDownloadCheckpointValue } from '../download-checkpoint';
+import { splitDownloadCheckpointValue } from '../download-checkpoint';
 import { placeholderNames, placeholderProblems } from '../sql-template';
 import type { HealingOrigin, HealingProposalStatus, HealingTargetKind } from '../healing';
 import { apiTests } from './api-testing';
@@ -1188,7 +1188,7 @@ export const AdhocTestStepSchema = z
   })
   .superRefine((data, ctx) => {
     if (data.action.id !== 'checkpointDownload' || !data.value?.trim()) return;
-    const parsed = parseDownloadCheckpointValue(data.value);
+    const parsed = splitDownloadCheckpointValue(data.value);
     if ('error' in parsed)
       ctx.addIssue({
         code: z.ZodIssueCode.custom,

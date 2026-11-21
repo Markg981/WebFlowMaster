@@ -5,6 +5,7 @@ import {
   applyMask,
   downloadCheckpointProblem,
   parseDownloadCheckpointValue,
+  splitDownloadCheckpointValue,
 } from './download-checkpoint';
 import { AdhocTestStepSchema } from './schema';
 
@@ -81,13 +82,27 @@ describe('checkpointDownload step validation', () => {
     expect(downloadCheckpointProblem([step('summary')])).toBeNull();
   });
 
-  it('refuses a step without a target, without a value or with a broken mask', () => {
+  it('refuses a step without a target, without a value or with a malformed value', () => {
     expect(AdhocTestStepSchema.safeParse(step('summary', '')).success).toBe(false);
     expect(AdhocTestStepSchema.safeParse(step(undefined)).success).toBe(false);
-    const broken = AdhocTestStepSchema.safeParse(step('summary | (unclosed'));
+    const broken = AdhocTestStepSchema.safeParse(step('summary; rows=0'));
     expect(broken.success).toBe(false);
     expect(broken.error?.issues[0]).toMatchObject({ path: ['value'] });
-    expect(broken.error?.issues[0].message).toContain('file-name mask');
+    expect(broken.error?.issues[0].message).toContain('rows must be between');
+    expect(
+      AdhocTestStepSchema.safeParse(step(`summary | ${'a'.repeat(501)}`)).error?.issues[0].message,
+    ).toContain('longer than 500');
+  });
+
+  it('leaves the masks uncompiled when it only checks a value: the run reports a bad one', () => {
+    expect(splitDownloadCheckpointValue('x | (unclosed | \\d+')).toEqual({
+      name: 'x',
+      rows: 500,
+      cols: 50,
+      fileMask: '(unclosed',
+      contentMask: '\\d+',
+    });
+    expect(AdhocTestStepSchema.safeParse(step('summary | (unclosed')).success).toBe(true);
   });
 
   it('explains the first wrong step of a sequence, as the API reports it', () => {
