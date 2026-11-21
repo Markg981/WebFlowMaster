@@ -113,7 +113,9 @@ describe('teardown in the expansion', () => {
       library([withTeardown]),
     ))!;
     expect(nodes).toHaveLength(1);
-    expect(nodes[0].teardown).toBe('DELETE FROM T WHERE Id = {{fx.top.id}} AND Code = {{params.code}}');
+    expect(nodes[0].teardown).toBe(
+      'DELETE FROM T WHERE Id = {{fx.top.id}} AND Code = {{params.code}}',
+    );
     expect(nodes[0].teardownPolicy).toBe('onSuccess');
   });
   it('refuses a teardown with a generator, an undeclared parameter, or a later alias', () => {

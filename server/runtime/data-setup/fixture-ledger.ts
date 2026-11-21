@@ -276,9 +276,13 @@ export async function retryLedgerRow(
   let detail: string;
   try {
     if (!row.environmentId)
-      throw new Error('the environment it was applied to has been deleted; remove the data by hand');
+      throw new Error(
+        'the environment it was applied to has been deleted; remove the data by hand',
+      );
     if (!(await environmentAllowsDataSetup(organizationId, row.environmentId)))
-      throw new Error('the environment no longer allows data setup (turn it on to remove the data)');
+      throw new Error(
+        'the environment no longer allows data setup (turn it on to remove the data)',
+      );
     const vars = await resolveVariables({
       userId: options.userId,
       organizationId,
@@ -330,7 +334,11 @@ export interface SweepReport {
  * A `failed` row is never retried here (it failed once for a reason a person should read).
  */
 export async function sweepStaleTeardowns(
-  options: Pick<TeardownOptions, 'openSession' | 'vet'> & { now?: Date; minutes?: number; batch?: number } = {},
+  options: Pick<TeardownOptions, 'openSession' | 'vet'> & {
+    now?: Date;
+    minutes?: number;
+    batch?: number;
+  } = {},
 ): Promise<SweepReport> {
   const now = options.now ?? new Date();
   const cutoff = new Date(now.getTime() - (options.minutes ?? staleMinutes()) * 60_000);
@@ -344,7 +352,10 @@ export async function sweepStaleTeardowns(
     .from(fixtureLedger)
     .where(
       or(
-        and(inArray(fixtureLedger.status, ['pending', 'applying']), lt(fixtureLedger.appliedAt, cutoff)),
+        and(
+          inArray(fixtureLedger.status, ['pending', 'applying']),
+          lt(fixtureLedger.appliedAt, cutoff),
+        ),
         and(
           eq(fixtureLedger.status, 'running'),
           lt(fixtureLedger.claimedAt, new Date(now.getTime() - LEDGER_CLAIM_TTL_MS)),
@@ -373,7 +384,11 @@ export async function sweepStaleTeardowns(
       }
       // The sweep has no user: the environment's secrets are the organization's, read as its owner
       // would. userId 0 reaches nothing user-specific.
-      const result = await retryLedgerRow(item.organizationId, item.id, { ...options, userId: 0, now });
+      const result = await retryLedgerRow(item.organizationId, item.id, {
+        ...options,
+        userId: 0,
+        now,
+      });
       if (result.outcome === 'done') report.retried += 1;
       else if (result.outcome === 'failed') report.failed += 1;
     } catch (error) {

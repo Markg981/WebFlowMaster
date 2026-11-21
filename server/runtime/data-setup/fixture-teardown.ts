@@ -17,11 +17,7 @@
  * report, a warning in the run log and a row in the ledger, and the teardowns after it still run.
  */
 
-import {
-  bindSql,
-  splitBatches,
-  type BoundSql,
-} from '@shared/sql-template';
+import { bindSql, splitBatches, type BoundSql } from '@shared/sql-template';
 import {
   DATABASE_TIMEOUT_MS,
   databaseKind,
@@ -76,7 +72,8 @@ export function policyRunsTeardown(
   policy: AppliedFixture['policy'],
   testPassed: boolean,
 ): { run: boolean; why?: string } {
-  if (policy === 'never') return { run: false, why: 'the fixture asks to keep its data (teardown policy: never)' };
+  if (policy === 'never')
+    return { run: false, why: 'the fixture asks to keep its data (teardown policy: never)' };
   if (policy === 'onSuccess' && !testPassed)
     return {
       run: false,
@@ -99,7 +96,9 @@ export async function runOneTeardown(
   const connection = fixtureConnection(applied.connection, scope);
   if (!connection) {
     const base = applied.connection ? `db.${applied.connection}` : 'db';
-    throw new Error(`no database: the environment has no ${base}.url secret (or ${base}.setup.url)`);
+    throw new Error(
+      `no database: the environment has no ${base}.url secret (or ${base}.setup.url)`,
+    );
   }
   const kind = databaseKind(connection.url);
   if (!kind) throw new Error(`${connection.variable} is not a database address`);
@@ -110,7 +109,10 @@ export async function runOneTeardown(
     if (param) {
       const frozen = applied.params.find((p) => p.name === param[1]);
       if (!frozen) return undefined;
-      const typed = typedValue({ name: frozen.name, type: frozen.type, value: frozen.value }, frozen.value);
+      const typed = typedValue(
+        { name: frozen.name, type: frozen.type, value: frozen.value },
+        frozen.value,
+      );
       if (typeof typed === 'object' && typed !== null && 'error' in typed) {
         resolveError.value ??= (typed as { error: string }).error;
         return null;
@@ -175,7 +177,9 @@ export async function runOneTeardown(
     ]);
     return `removed from ${redactUrl(connection.url).replace(/\?.*$/, '')}`;
   } catch (error) {
-    throw new Error(redactMessage(error instanceof Error ? error.message : String(error), connection.url));
+    throw new Error(
+      redactMessage(error instanceof Error ? error.message : String(error), connection.url),
+    );
   } finally {
     clearTimeout(timer);
     await (session as SqlSession | null)?.close().catch(() => undefined);

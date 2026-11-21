@@ -621,10 +621,15 @@ export function FixtureLedger() {
   const queryClient = useQueryClient();
   const { data: rows = [] } = useFixtureLedger();
   const run = useMutation({
-    mutationFn: (row: LedgerRow) => libraryCall('POST', `/api/data-fixture-ledger/${row.id}/teardown`),
+    mutationFn: (row: LedgerRow) =>
+      libraryCall('POST', `/api/data-fixture-ledger/${row.id}/teardown`),
     onSuccess: () => toast({ title: t('dataFixtures.ledger.done') }),
     onError: (e: Error) =>
-      toast({ variant: 'destructive', title: t('dataFixtures.ledger.failed'), description: e.message }),
+      toast({
+        variant: 'destructive',
+        title: t('dataFixtures.ledger.failed'),
+        description: e.message,
+      }),
     onSettled: () => queryClient.invalidateQueries({ queryKey: ledgerKey }),
   });
   const runnable = (row: LedgerRow) => ['pending', 'failed', 'applying'].includes(row.status);
@@ -651,8 +656,8 @@ export function FixtureLedger() {
                     </Badge>
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    {t('dataFixtures.ledger.run')}: {row.runId} · {t('dataFixtures.ledger.applied')}:{' '}
-                    {new Date(row.appliedAt).toLocaleString()}
+                    {t('dataFixtures.ledger.run')}: {row.runId} · {t('dataFixtures.ledger.applied')}
+                    : {new Date(row.appliedAt).toLocaleString()}
                   </p>
                   {row.detail && <p className="text-xs text-muted-foreground">{row.detail}</p>}
                 </div>

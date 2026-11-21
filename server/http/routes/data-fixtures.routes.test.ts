@@ -285,7 +285,12 @@ describe('the data fixture library', () => {
     // A teardown that reads a parameter nobody declared is refused like an apply would be.
     const bad = await request(app)
       .put(`/api/data-fixtures/${created.body.id}`)
-      .send({ definition: { ...customer().definition, teardown: 'DELETE FROM t WHERE c = {{params.nope}}' } });
+      .send({
+        definition: {
+          ...customer().definition,
+          teardown: 'DELETE FROM t WHERE c = {{params.nope}}',
+        },
+      });
     expect(bad.status).toBe(400);
 
     const { body: second } = await create(order);
@@ -327,7 +332,10 @@ describe('the data fixture library', () => {
       .where(eq(testsTable.id, saved.body.id));
     const read = { body: stored as unknown as { dataFixtures: Array<Record<string, unknown>> } };
     expect(read.body.dataFixtures[0].teardownPolicy).toBe('onSuccess');
-    expect(read.body.dataFixtures[1]).toMatchObject({ teardown: 'SELECT 2', teardownPolicy: 'never' });
+    expect(read.body.dataFixtures[1]).toMatchObject({
+      teardown: 'SELECT 2',
+      teardownPolicy: 'never',
+    });
 
     const { freezeDataFixtures } = await import('../../authoring/fixture-graph');
     const { runWithTenant, withTenantTransaction } =
@@ -397,12 +405,21 @@ describe('the data fixture library', () => {
     expect(list.body.map((r: { id: number }) => r.id)).toContain(row.id);
     expect(JSON.stringify(list.body)).not.toMatch(/secret|db\./);
 
-    expect((await request(app).post('/api/data-fixture-ledger/999999999/teardown')).status).toBe(404);
-    currentUser = { id: otherUserId, username: 'other', organizationId: otherOrganizationId, role: 'editor' };
+    expect((await request(app).post('/api/data-fixture-ledger/999999999/teardown')).status).toBe(
+      404,
+    );
+    currentUser = {
+      id: otherUserId,
+      username: 'other',
+      organizationId: otherOrganizationId,
+      role: 'editor',
+    };
     const stranger = await request(app).post(`/api/data-fixture-ledger/${row.id}/teardown`);
     expect(stranger.status).toBe(404);
     currentUser = { id: userId, username: 'fixture-library-user', organizationId, role: 'viewer' };
-    expect((await request(app).post(`/api/data-fixture-ledger/${row.id}/teardown`)).status).toBe(403);
+    expect((await request(app).post(`/api/data-fixture-ledger/${row.id}/teardown`)).status).toBe(
+      403,
+    );
 
     // An editor of the right organization: the environment is gone, so the teardown cannot run (502),
     // the row says why, and a second request finds it failed (retryable) rather than running twice.
@@ -411,12 +428,20 @@ describe('the data fixture library', () => {
     expect(failed.status).toBe(502);
     expect(failed.body.outcome).toBe('failed');
     expect(failed.body.detail).toMatch(/environment/);
-    const [after] = await privilegedDb.select().from(fixtureLedger).where(eq(fixtureLedger.id, row.id));
+    const [after] = await privilegedDb
+      .select()
+      .from(fixtureLedger)
+      .where(eq(fixtureLedger.id, row.id));
     expect(after.status).toBe('failed');
     expect(after.attempts).toBe(1);
 
     // A settled or in-flight apply is refused with 409.
-    await privilegedDb.update(fixtureLedger).set({ status: 'done' }).where(eq(fixtureLedger.id, row.id));
-    expect((await request(app).post(`/api/data-fixture-ledger/${row.id}/teardown`)).status).toBe(409);
+    await privilegedDb
+      .update(fixtureLedger)
+      .set({ status: 'done' })
+      .where(eq(fixtureLedger.id, row.id));
+    expect((await request(app).post(`/api/data-fixture-ledger/${row.id}/teardown`)).status).toBe(
+      409,
+    );
   });
 });
