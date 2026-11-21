@@ -264,3 +264,4 @@ Release 3 adds `POST /api/v1/plans/:planId/comparisons` (`runs:write`) and `GET 
 
 - Visual masks: recording the rectangles of masked selectors with each screenshot would allow regions to be ignored; decide after release 1.
 - Windows integrated authentication of the application under test from a local agent: to be verified outside this feature.
+- Cross-product comparison (DMO NextGen, raised 2026-11-16): legacy DMO and Connect NG differ in screens, flows and API calls, so one frozen snapshot cannot run on both sides. That case needs two different tests paired by a scenario key, compared only on checkpoints with the same name and on persisted data; step outcome, network and visual dimensions do not apply. Out of scope for releases 1 to 3: keep the pairing key of `pairing.ts` in one place so a scenario key can be added later.
