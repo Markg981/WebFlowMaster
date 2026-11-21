@@ -84,7 +84,11 @@ export async function recoverAbandonedRuns(options: RecoveryOptions = {}): Promi
       and(
         inArray(testPlanExecutions.status, [...LIVE_EXECUTION_STATUSES]),
         or(
-          sql`${lastSignOfLife} < ${staleBefore}`,
+          // The limit is bound through a column, so it is encoded as the stored values were. A Date
+          // bound to a raw sql fragment is sent in the server's local time zone: on a machine ahead of
+          // UTC every live run looked quiet, and since its heartbeat was in fact fresh it was ended as
+          // timed out a second after it started.
+          sql`${lastSignOfLife} < ${sql.param(staleBefore, testPlanExecutions.heartbeatAt)}`,
           lt(testPlanExecutions.startedAt, overdueBefore),
         ),
       ),
