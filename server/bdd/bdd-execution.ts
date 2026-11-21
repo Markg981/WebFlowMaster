@@ -9,7 +9,12 @@ import { AgentHttp } from '../runtime/agents/agent-fetch';
 import { agentDataRunner } from '../runtime/agents/agent-database';
 import { runPreconditions } from '../runtime/precondition-runner';
 import { runCleanups } from '../runtime/cleanup-runner';
-import { fixtureReportSteps, runDataFixtures } from '../runtime/data-setup/fixture-runner';
+import {
+  fixtureReportSteps,
+  runDataFixtures,
+  type AppliedFixture,
+} from '../runtime/data-setup/fixture-runner';
+import { runFixtureTeardowns, teardownReportSteps } from '../runtime/data-setup/fixture-teardown';
 import { redactHistoryEntry } from '../runtime/history-redaction';
 import { redactString } from '../platform/utils/log-redactor';
 import type { IndividualTestRunResult, RunTestOptions } from '../execution/test-execution-service';
@@ -23,6 +28,9 @@ export async function runDedicatedBddTest(
   const steps: NonNullable<IndividualTestRunResult['steps']> = [];
   const runs: BddAgentResult[] = [];
   let agentHttp: AgentHttp | undefined;
+  // What the fixtures applied and the way to reach their database again, for the teardown in `finally`.
+  let appliedFixtures: AppliedFixture[] = [];
+  let teardownData: ReturnType<typeof agentDataRunner> | undefined;
   let redactionValues = { ...variables };
   const result: IndividualTestRunResult = {
     testId: test.id,
@@ -52,6 +60,7 @@ export async function runDedicatedBddTest(
     if (!organizationId) throw new Error('BDD execution requires an organization context.');
     const target = { organizationId, pool: profile.pool };
     const agentData = agentDataRunner(target, { signal: options?.signal });
+    teardownData = agentData;
     // The data the scenario needs in the application's database, once for the test as a UI run
     // does it (server/execution/run-test.ts), through an agent of the profile's pool: the
     // database is where that network reaches (server/runtime/agents/agent-database.ts).
@@ -65,6 +74,7 @@ export async function runDedicatedBddTest(
         openSession: agentData.openSession,
         vet: agentData.vet,
       });
+      appliedFixtures = fx.applied;
       steps.push(
         ...fixtureReportSteps(fx).map((step) => ({
           ...step,
@@ -211,6 +221,26 @@ export async function runDedicatedBddTest(
     result.status = 'error';
   } finally {
     await agentHttp?.close();
+    // Last: after the scenario and its cleanup, whatever became of them. The verdict is not touched.
+    if (appliedFixtures.length > 0 && teardownData) {
+      try {
+        const teardown = await runFixtureTeardowns(
+          appliedFixtures,
+          { passed: result.status === 'passed' },
+          variables,
+          { openSession: teardownData.openSession, vet: teardownData.vet },
+        );
+        steps.push(
+          ...teardownReportSteps(teardown).map((step) => ({
+            ...step,
+            details: sanitize(step.details, variables),
+            ...(step.error ? { error: sanitize(step.error, variables) } : {}),
+          })),
+        );
+      } catch {
+        // runFixtureTeardowns does not throw; a report that cannot be built is not worth a verdict.
+      }
+    }
   }
   result.durationMs = Date.now() - start;
   const safeResult = {

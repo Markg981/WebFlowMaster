@@ -107,6 +107,20 @@ describe('DataFixturesPanel', () => {
     expect(last[0]).toMatchObject({ check: 'SELECT id FROM t', outputs: ['id', 'code'] });
   });
 
+  it('keeps the teardown script, and offers a policy only once there is a script', () => {
+    const seen = vi.fn();
+    render(<Harness initial={[valid]} seen={seen} />);
+    expect(screen.queryByLabelText('dataFixtures.teardownPolicy')).toBeNull();
+    fireEvent.change(screen.getByLabelText('dataFixtures.teardown'), {
+      target: { value: 'DELETE FROM customers WHERE id = {{fx.customer.id}}' },
+    });
+    const last = seen.mock.calls.at(-1)![0] as DataFixture[];
+    expect(last[0].teardown).toBe('DELETE FROM customers WHERE id = {{fx.customer.id}}');
+    expect(screen.getByLabelText('dataFixtures.teardownPolicy')).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText('dataFixtures.teardown'), { target: { value: '' } });
+    expect(screen.queryByLabelText('dataFixtures.teardownPolicy')).toBeNull();
+  });
+
   it('shows what the server would refuse', () => {
     render(
       <Harness

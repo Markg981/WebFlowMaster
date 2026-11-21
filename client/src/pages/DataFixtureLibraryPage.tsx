@@ -40,10 +40,13 @@ import {
   dependencyChain,
   libraryCall,
   libraryKey,
+  ledgerKey,
+  useFixtureLedger,
   useFixtureDetail,
   useFixtureLibrary,
   useFixtureReferences,
   type FixtureTryResult,
+  type LedgerRow,
   type LibraryFixtureReferences,
   type LibraryFixtureSummary,
 } from '@/hooks/use-data-fixture-library';
@@ -380,6 +383,19 @@ function FixtureEditor({
               {t('dataFixtures.applyHint', { param: '{{params.name}}', variable: '{{variable}}' })}
             </p>
           </div>
+          <div className="space-y-1">
+            <Label htmlFor="fixture-teardown">{t('dataFixtures.teardown')}</Label>
+            <Textarea
+              id="fixture-teardown"
+              rows={4}
+              className="font-mono text-xs"
+              value={def.teardown ?? ''}
+              onChange={(e) => setDef({ teardown: e.target.value || null })}
+            />
+            <p className="text-xs text-muted-foreground">
+              {t('dataFixtures.teardownHint', { example: `{{fx.self.${def.outputs[0] || 'id'}}}` })}
+            </p>
+          </div>
           <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
             <div className="space-y-1">
               <Label htmlFor="fixture-outputs">{t('dataFixtures.outputs')}</Label>
@@ -595,6 +611,72 @@ function TryIt({ fixture }: { fixture: LibraryFixtureSummary }) {
   );
 }
 
+/**
+ * The data runs applied and have not taken back: a killed run, a teardown that failed or that the
+ * policy kept. An editor runs the teardown from here, on the environment the data was applied to.
+ */
+export function FixtureLedger() {
+  const { t } = useTranslation();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const { data: rows = [] } = useFixtureLedger();
+  const run = useMutation({
+    mutationFn: (row: LedgerRow) => libraryCall('POST', `/api/data-fixture-ledger/${row.id}/teardown`),
+    onSuccess: () => toast({ title: t('dataFixtures.ledger.done') }),
+    onError: (e: Error) =>
+      toast({ variant: 'destructive', title: t('dataFixtures.ledger.failed'), description: e.message }),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ledgerKey }),
+  });
+  const runnable = (row: LedgerRow) => ['pending', 'failed', 'applying'].includes(row.status);
+
+  return (
+    <section className="mt-8 space-y-2" aria-labelledby="fixture-ledger-title">
+      <h2 id="fixture-ledger-title" className="text-lg font-semibold">
+        {t('dataFixtures.ledger.title')}
+      </h2>
+      <p className="text-sm text-muted-foreground">{t('dataFixtures.ledger.description')}</p>
+      {rows.length === 0 ? (
+        <p className="text-sm text-muted-foreground">{t('dataFixtures.ledger.empty')}</p>
+      ) : (
+        <div className="grid gap-2">
+          {rows.map((row) => (
+            <Card key={row.id}>
+              <CardContent className="flex items-start justify-between gap-4 p-3">
+                <div className="space-y-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="font-semibold">{row.name}</span>
+                    <span className="font-mono text-xs text-muted-foreground">{row.alias}</span>
+                    <Badge variant={row.status === 'failed' ? 'destructive' : 'secondary'}>
+                      {t(`dataFixtures.ledger.statuses.${row.status}`)}
+                    </Badge>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {t('dataFixtures.ledger.run')}: {row.runId} · {t('dataFixtures.ledger.applied')}:{' '}
+                    {new Date(row.appliedAt).toLocaleString()}
+                  </p>
+                  {row.detail && <p className="text-xs text-muted-foreground">{row.detail}</p>}
+                </div>
+                {runnable(row) && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={run.isPending}
+                    aria-label={t('dataFixtures.ledger.runTeardownFor', { name: row.name })}
+                    onClick={() => run.mutate(row)}
+                  >
+                    <Play className="mr-2 h-4 w-4" />
+                    {t('dataFixtures.ledger.runTeardown')}
+                  </Button>
+                )}
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
 export default function DataFixtureLibraryPage() {
   const { t } = useTranslation();
   const { user } = useAuth();
@@ -742,6 +824,7 @@ export default function DataFixtureLibraryPage() {
           );
         })}
       </div>
+      {canEdit && <FixtureLedger />}
       {open && projectId && (
         <FixtureEditor
           projectId={projectId}

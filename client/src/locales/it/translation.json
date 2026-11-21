@@ -3022,6 +3022,36 @@
       "latest": "Ultima (ora v{{version}})",
       "values": "Valori (vuoto mantiene il default)",
       "valueFor": "Valore per {{name}}"
+    },
+    "teardown": "Script di teardown, dopo il test",
+    "teardownHint": "Rimuove quanto creato dallo script sopra. Gira dopo il test, dall'ultima fixture alla prima, e solo per i dati applicati da questa esecuzione. I valori creati si leggono come {{example}}.",
+    "teardownPolicy": "Esegui il teardown",
+    "policy": {
+      "always": "Dopo ogni esecuzione",
+      "onSuccess": "Solo dopo un'esecuzione riuscita",
+      "never": "Mai (conserva i dati)"
+    },
+    "ledger": {
+      "title": "Dati lasciati dalle esecuzioni",
+      "description": "Fixture applicate da un'esecuzione il cui teardown non e' stato completato (esecuzione interrotta, teardown fallito o conservato). Da qui si puo' eseguire il teardown.",
+      "empty": "Nessun teardown in attesa.",
+      "fixture": "Fixture",
+      "run": "Esecuzione",
+      "applied": "Applicata",
+      "status": "Stato",
+      "detail": "Dettaglio",
+      "runTeardown": "Esegui teardown",
+      "runTeardownFor": "Esegui il teardown di {{name}}",
+      "done": "Teardown completato",
+      "failed": "Teardown fallito",
+      "statuses": {
+        "applying": "In applicazione",
+        "pending": "In attesa",
+        "running": "In corso",
+        "done": "Completato",
+        "failed": "Fallito",
+        "kept": "Conservato"
+      }
     }
   },
   "environments": {
@@ -3477,7 +3507,9 @@
       "browser_grid_created": "Browser grid aggiunto",
       "browser_grid_updated": "Browser grid modificato",
       "browser_grid_deleted": "Browser grid rimosso",
-      "visual_baseline_approved": "Baseline visiva approvata"
+      "visual_baseline_approved": "Baseline visiva approvata",
+      "data_fixture_teardown_failed": "Teardown della fixture dati fallito",
+      "data_fixture_teardown_retried": "Teardown della fixture dati rieseguito"
     }
   },
   "security": {
@@ -4505,7 +4537,7 @@
     "newTitle": "Nuovo test manuale",
     "editTitle": "Modifica test manuale",
     "description": "Gli step che una persona esegue, ciascuno con il risultato atteso. In un run di un piano attende un esito nel report.",
-    "name": "Nome",
+    "name": "Nome",
     "caseId": "Id caso QA",
     "step": "Step {{n}}",
     "action": "Azione",

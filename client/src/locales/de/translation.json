@@ -3022,6 +3022,36 @@
       "latest": "Neueste (jetzt v{{version}})",
       "values": "Werte (leer behält den Standard)",
       "valueFor": "Wert für {{name}}"
+    },
+    "teardown": "Teardown-Skript, nach dem Test",
+    "teardownHint": "Entfernt, was das Skript oben angelegt hat. Läuft nach dem Test, zuletzt angelegte Fixture zuerst, und nur für Daten, die dieser Lauf angelegt hat. Die angelegten Werte liest man als {{example}}.",
+    "teardownPolicy": "Teardown ausführen",
+    "policy": {
+      "always": "Nach jedem Lauf",
+      "onSuccess": "Nur nach einem bestandenen Lauf",
+      "never": "Nie (Daten behalten)"
+    },
+    "ledger": {
+      "title": "Von Läufen hinterlassene Daten",
+      "description": "Fixtures, die ein Lauf angelegt hat und deren Teardown nicht abgeschlossen ist (Lauf abgebrochen, Teardown fehlgeschlagen oder behalten). Von hier aus lässt sich der Teardown starten.",
+      "empty": "Kein Teardown wartet.",
+      "fixture": "Fixture",
+      "run": "Lauf",
+      "applied": "Angelegt",
+      "status": "Status",
+      "detail": "Detail",
+      "runTeardown": "Teardown starten",
+      "runTeardownFor": "Teardown von {{name}} starten",
+      "done": "Teardown abgeschlossen",
+      "failed": "Teardown fehlgeschlagen",
+      "statuses": {
+        "applying": "Wird angelegt",
+        "pending": "Wartet",
+        "running": "Läuft",
+        "done": "Erledigt",
+        "failed": "Fehlgeschlagen",
+        "kept": "Behalten"
+      }
     }
   },
   "environments": {
@@ -3477,7 +3507,9 @@
       "browser_grid_created": "Browser-Grid hinzugefügt",
       "browser_grid_updated": "Browser-Grid geändert",
       "browser_grid_deleted": "Browser-Grid entfernt",
-      "visual_baseline_approved": "Visuelle Baseline freigegeben"
+      "visual_baseline_approved": "Visuelle Baseline freigegeben",
+      "data_fixture_teardown_failed": "Teardown der Datenfixture fehlgeschlagen",
+      "data_fixture_teardown_retried": "Teardown der Datenfixture wiederholt"
     }
   },
   "security": {
@@ -4505,7 +4537,7 @@
     "newTitle": "Neuer manueller Test",
     "editTitle": "Manuellen Test bearbeiten",
     "description": "Die Schritte, die eine Person ausführt, jeweils mit dem erwarteten Ergebnis. In einem Planlauf wartet er im Bericht auf ein Ergebnis.",
-    "name": "Name",
+    "name": "Name",
     "caseId": "QA-Fall-ID",
     "step": "Schritt {{n}}",
     "action": "Aktion",

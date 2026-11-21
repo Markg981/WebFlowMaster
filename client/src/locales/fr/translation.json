@@ -3022,6 +3022,36 @@
       "latest": "Dernière (actuellement v{{version}})",
       "values": "Valeurs (vide garde la valeur par défaut)",
       "valueFor": "Valeur pour {{name}}"
+    },
+    "teardown": "Script de teardown, après le test",
+    "teardownHint": "Supprime ce que le script ci-dessus a créé. Il s'exécute après le test, de la dernière fixture à la première, et seulement pour les données appliquées par cette exécution. Les valeurs créées se lisent comme {{example}}.",
+    "teardownPolicy": "Exécuter le teardown",
+    "policy": {
+      "always": "Après chaque exécution",
+      "onSuccess": "Seulement après une exécution réussie",
+      "never": "Jamais (conserver les données)"
+    },
+    "ledger": {
+      "title": "Données laissées par les exécutions",
+      "description": "Fixtures appliquées par une exécution dont le teardown n'est pas terminé (exécution interrompue, teardown en échec ou conservé). Lancez le teardown depuis cet écran.",
+      "empty": "Aucun teardown en attente.",
+      "fixture": "Fixture",
+      "run": "Exécution",
+      "applied": "Appliquée",
+      "status": "Statut",
+      "detail": "Détail",
+      "runTeardown": "Lancer le teardown",
+      "runTeardownFor": "Lancer le teardown de {{name}}",
+      "done": "Teardown terminé",
+      "failed": "Teardown en échec",
+      "statuses": {
+        "applying": "Application",
+        "pending": "En attente",
+        "running": "En cours",
+        "done": "Terminé",
+        "failed": "En échec",
+        "kept": "Conservé"
+      }
     }
   },
   "environments": {
@@ -3477,7 +3507,9 @@
       "browser_grid_created": "Grille de navigateurs ajouté",
       "browser_grid_updated": "Grille de navigateurs modifié",
       "browser_grid_deleted": "Grille de navigateurs supprimé",
-      "visual_baseline_approved": "Baseline visuelle approuvée"
+      "visual_baseline_approved": "Baseline visuelle approuvée",
+      "data_fixture_teardown_failed": "Échec du nettoyage de la fixture de données",
+      "data_fixture_teardown_retried": "Nettoyage de la fixture de données relancé"
     }
   },
   "security": {
@@ -4505,7 +4537,7 @@
     "newTitle": "Nouveau test manuel",
     "editTitle": "Modifier le test manuel",
     "description": "Les étapes qu’une personne exécute, chacune avec le résultat attendu. Dans une exécution de plan, il attend un verdict dans le rapport.",
-    "name": "Nom",
+    "name": "Nom",
     "caseId": "Identifiant de cas QA",
     "step": "Étape {{n}}",
     "action": "Action",

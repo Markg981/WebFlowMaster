@@ -819,6 +819,13 @@ export type Cleanup = z.infer<typeof CleanupSchema>;
  */
 export const DATA_FIXTURE_PARAM_TYPES = ['string', 'int', 'decimal', 'bool', 'date'] as const;
 export const DATA_FIXTURE_MAX_TIMEOUT_MS = 300_000;
+/**
+ * When a fixture's `teardown` runs, per use of the fixture in a test: after any outcome (the
+ * default), only after a test that passed (keep the data to look into a failure), or never.
+ */
+export const DATA_FIXTURE_TEARDOWN_POLICIES = ['always', 'onSuccess', 'never'] as const;
+export type DataFixtureTeardownPolicy = (typeof DATA_FIXTURE_TEARDOWN_POLICIES)[number];
+const teardownPolicy = z.enum(DATA_FIXTURE_TEARDOWN_POLICIES);
 
 const sqlScript = (max: number) =>
   z
@@ -857,6 +864,14 @@ const fixtureBody = {
   params: z.array(DataFixtureParamSchema).max(30).default([]),
   check: sqlScript(20_000),
   apply: sqlScript(200_000),
+  /**
+   * Removes what `apply` created, after the test (server/runtime/data-setup/fixture-teardown.ts).
+   * Runs only when this run's `apply` ran, never for data found already there. It may read
+   * {{params.x}} and the outputs captured at apply time as {{fx.<alias>.<column>}} (in a library
+   * fixture the fixture's own is `fx.self`). A generator ({{$uuid}} and the like) is refused: it
+   * would make another value than the one `apply` used.
+   */
+  teardown: sqlScript(200_000).optional().nullable(),
   outputs: z
     .array(z.string().regex(/^[\w]+$/, 'An output is a column name'))
     .max(30)
@@ -866,7 +881,12 @@ const fixtureBody = {
 
 /** Parameters declared once, and every {{params.x}} of the SQL one of them. */
 function checkFixtureParams(
-  fixture: { params: DataFixtureParam[]; check: string; apply: string },
+  fixture: {
+    params: DataFixtureParam[];
+    check: string;
+    apply: string;
+    teardown?: string | null;
+  },
   ctx: z.RefinementCtx,
 ) {
   const names = fixture.params.map((p) => p.name);
@@ -880,8 +900,15 @@ function checkFixtureParams(
   for (const [field, sql] of [
     ['check', fixture.check],
     ['apply', fixture.apply],
+    ['teardown', fixture.teardown],
   ] as const) {
-    for (const name of placeholderNames(sql)) {
+    for (const name of placeholderNames(sql ?? '')) {
+      if (field === 'teardown' && name.startsWith('$'))
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: [field],
+          message: `{{${name}}} cannot be used in a teardown: it would make a new value, not the one apply made`,
+        });
       const param = /^params\.(\w+)$/.exec(name);
       if (param && !names.includes(param[1]))
         ctx.addIssue({
@@ -900,6 +927,8 @@ export const DataFixtureSchema = z
     /** The name its outputs go under: {{fx.<alias>.<column>}}. */
     alias: fixtureAlias,
     ...fixtureBody,
+    /** When `teardown` runs for this use of the fixture. Absent: `always`. */
+    teardownPolicy: teardownPolicy.optional(),
     /**
      * Set when the fixture was expanded from the library at enqueue
      * (server/authoring/fixture-graph.ts): which fixture and version it is, for the report.
@@ -949,10 +978,11 @@ export const LibraryFixtureDefinitionSchema = z
     for (const [field, sql] of [
       ['check', fixture.check],
       ['apply', fixture.apply],
+      ['teardown', fixture.teardown],
     ] as const)
-      for (const name of placeholderNames(sql)) {
+      for (const name of placeholderNames(sql ?? '')) {
         const fx = /^fx\.(\w+)\./.exec(name);
-        if (fx && !aliases.includes(fx[1]))
+        if (fx && !aliases.includes(fx[1]) && !(field === 'teardown' && fx[1] === 'self'))
           ctx.addIssue({
             code: z.ZodIssueCode.custom,
             path: [field],
@@ -976,6 +1006,8 @@ export const DataFixtureRefSchema = z
     version: z.union([z.literal('latest'), z.number().int().positive()]).default('latest'),
     /** Values that replace the fixture's defaults, by parameter name. */
     params: z.record(z.string(), z.string().max(2000)).default({}),
+    /** When the fixture's `teardown` (and its dependencies') runs. Absent: `always`. */
+    teardownPolicy: teardownPolicy.optional(),
   })
   .strict();
 export type DataFixtureRef = z.infer<typeof DataFixtureRefSchema>;
@@ -1018,10 +1050,14 @@ export const DataFixturesSchema = z
       }
       if (isDataFixtureRef(fixture)) return;
       const earlier = new Set(fixtures.slice(0, index).map((f) => f?.alias));
-      for (const sql of [fixture.check, fixture.apply])
-        for (const name of placeholderNames(sql)) {
+      for (const [field, sql] of [
+        ['check', fixture.check],
+        ['apply', fixture.apply],
+        ['teardown', fixture.teardown],
+      ] as const)
+        for (const name of placeholderNames(sql ?? '')) {
           const fx = /^fx\.(\w+)\./.exec(name);
-          if (fx && !earlier.has(fx[1]))
+          if (fx && !earlier.has(fx[1]) && !(field === 'teardown' && fx[1] === fixture.alias))
             ctx.addIssue({
               code: z.ZodIssueCode.custom,
               path: [index],

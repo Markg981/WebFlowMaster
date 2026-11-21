@@ -96,6 +96,40 @@ const contract = entry(
   2,
 );
 
+describe('teardown in the expansion', () => {
+  const withTeardown = entry(5, 'tidy', {
+    1: def({
+      params: [{ name: 'code', type: 'string', value: 'T-1' }],
+      check: 'SELECT Id AS id FROM T WHERE Code = {{params.code}}',
+      apply: 'INSERT INTO T (Code) VALUES ({{params.code}})',
+      teardown: 'DELETE FROM T WHERE Id = {{fx.self.id}} AND Code = {{params.code}}',
+      outputs: ['id'],
+    }),
+  });
+  it('carries the teardown with the alias renamed, and the policy of the entry that asked', async () => {
+    const nodes = (await expandDataFixtures(
+      [ref({ alias: 'top', fixtureId: 5, teardownPolicy: 'onSuccess' })],
+      7,
+      library([withTeardown]),
+    ))!;
+    expect(nodes).toHaveLength(1);
+    expect(nodes[0].teardown).toBe('DELETE FROM T WHERE Id = {{fx.top.id}} AND Code = {{params.code}}');
+    expect(nodes[0].teardownPolicy).toBe('onSuccess');
+  });
+  it('refuses a teardown with a generator, an undeclared parameter, or a later alias', () => {
+    const parse = (teardown: string) =>
+      LibraryFixtureDefinitionSchema.safeParse({
+        check: 'SELECT 1 AS one',
+        apply: 'SELECT 1',
+        teardown,
+      });
+    expect(parse('DELETE FROM t WHERE c = {{$uuid}}').success).toBe(false);
+    expect(parse('DELETE FROM t WHERE c = {{params.nope}}').success).toBe(false);
+    expect(parse('DELETE FROM t WHERE c = {{fx.other.id}}').success).toBe(false);
+    expect(parse('DELETE FROM t').success).toBe(true);
+  });
+});
+
 describe('expandDataFixtures', () => {
   it('leaves a list without references as it is', async () => {
     const inline = [
