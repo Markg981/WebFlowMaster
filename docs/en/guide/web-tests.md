@@ -611,179 +611,58 @@ An [export as files](./organizing#tests-as-files) carries a test's references, n
 another organization, they name fixtures it does not have, and the run is blocked until the
 references are added again from that organization's library.
 
-## Preconditions
+### Taking the data back: teardown {#fixture-teardown}
 
-**Preconditions** are API calls that run before the steps, to put the application in the state the
-test needs — create a customer, empty a cart. Pick them from your saved
-[API tests](./api-tests); they run in the order listed. A test whose precondition fails is reported
-as blocked, not as failed.
+A fixture can have a **teardown**, a SQL script that removes what its `apply` created, so the
+application's database does not fill with test data. It is validated like `apply`: it may use
+<code v-pre>{{params.x}}</code> and <code v-pre>{{fx.alias.column}}</code> (the fixture's own outputs
+included, as <code v-pre>{{fx.self.id}}</code> in the library), but not generators such as
+<code v-pre>{{$uuid}}</code>, which would name a different row each time.
 
-## Cleanup {#cleanup}
+The teardown runs after the test, whatever became of it, and:
 
-**Cleanup** calls are API calls made after the test, whether it passed, failed or was blocked by
-a precondition, to remove the data it created — the order it placed, the customer a precondition
-made — so the next run starts from the same state and the application under test does not fill up
-with test data. Pick them from your saved [API tests](./api-tests), usually `DELETE` requests; they
-run in the order listed.
+- **in the reverse order** of the fixtures, so an order is removed before the customer it needs;
+- **only for fixtures whose `apply` ran in this run.** Data the check found already there belongs to
+  somebody else and is left alone;
+- **on the connection the setup used**, with the same identity check, and on each side of a
+  comparison run separately, with that side's own database;
+- also for a plan on a local agent pool, through the agent.
 
-- They can use the values the steps stored: <code v-pre>DELETE {{baseUrl}}/orders/{{orderId}}</code>
-  after a **Store text in variable** step that kept the order number as `orderId`. A call naming a variable the run
-  never set — the test failed before the step that stores it — is not made, and the report says
-  it was skipped.
-- Every call is attempted, even after one fails. `404` and `410` count as **already gone**, so a
-  cleanup can be run again safely.
-- With a [dataset](#datasets), the cleanup runs once for each row, after all the rows, with that
-  row's values; what a precondition created is deleted by the first row and already gone for the
-  others.
-- The cleanup never changes the test's result. The report shows it as a **Cleanup** line after the
-  steps, failed when a call failed — data may have been left behind — and the run log names the
-  call.
+Each entry has a **teardown policy** (`teardownPolicy`): `always` (the default), `onSuccess` (the data
+of a failed test is kept so you can look at it) or `never`. A library fixture pulled in as a
+dependency follows the policy of the entry that needed it.
 
-**Execute Test** in the builder runs the cleanup too. The debugger does not: a session paused halfway
-would delete what you are looking at.
+A teardown that fails never changes the test's verdict. It appears as a failed **cleanup** step in the
+report, as a warning in the run log and in the audit log (`data_fixture.teardown_failed`), and the
+other teardowns still run.
 
-## Datasets
+**A run that dies before the teardown.** Each fixture with a teardown is written to a ledger _before_
+its `apply` runs (status `applying`) and confirmed (`pending`) after the apply commits, so a crash never
+leaves applied data without a row. If the apply rolls back, the row is dropped. **Pending teardowns**
+are listed on the fixture library page (with a **Run teardown** button for editors), or with
+`GET /api/data-fixture-ledger?status=applying,pending,running,failed` and run with
+`POST /api/data-fixture-ledger/{id}/teardown` (audited as `data_fixture.teardown_retried`). A row
+that stays `applying` or `running` can be run again once it is older than ten minutes. A sweep also runs
+the `always` rows older than two hours (`WFM_FIXTURE_TEARDOWN_STALE_MINUTES`) and marks the others as
+kept; failed rows are never retried by the sweep. The ledger stores the teardown script and the values
+it reads, never a database address or password: the address is read again from the environment.
 
-To run the same test over several inputs, give it a **dataset**: a table whose column names become
-variables. The test runs once per row. Build it by adding columns and rows, or **Paste from a
-spreadsheet**: copy the block from Excel or Google Sheets, header row included.
+Through the API and in a YAML bundle a fixture carries the same fields:
 
-When the rows are shared with other tests, keep them in a [shared data set](./organizing#test-data)
-and choose it in **Use a shared data set** instead: the test keeps only a link, runs over the
-set's rows as they are at the time of the run, and follows the set if it is renamed. **Use a copy
-as this test's own rows** turns the link back into rows of its own.
-
-## Step groups
-
-A sequence used by many tests — signing in, choosing a customer — can be saved with **Save as
-group**. It then appears under **Step groups** in the palette, and any test can include it. A test
-that is not published runs the group as it is when the run is queued, so changing the group
-changes every such test from its next run; a published version runs the group as it was when that
-version was saved (see [What a version runs](#what-a-version-runs)).
-
-The gear beside **Step groups** in the palette opens their management: **Where used** names the
-tests that call a group, **Edit** changes its name and description — and, with the box ticked,
-replaces its steps with those now in the builder, after **Open in builder** has put them there to
-be changed — and **Delete** removes a group no test calls; one still called is refused, naming the
-tests.
-
-## Custom actions {#custom-actions}
-
-When no built-in action does what a test needs, an editor can write one: **Settings → Custom
-actions → New custom action**, with a name, parameters and a script. The action appears under
-**Custom actions** in the palette, and a test uses it like any other step.
-
-- **Parameters** are listed separated by commas; a trailing `?` makes one optional
-  (`code, qty?`). In the test, the step's value gives the arguments: `code=4711; qty=2`. Write
-  `\;` for a semicolon inside a value. Arguments may contain <code v-pre>{{variables}}</code> and
-  generated values. A missing or unknown argument, or a value without `=`, fails the test before
-  the browser opens — in the builder's **Execute Test** as in a plan — naming the argument.
-- **The script** is the body of an async function that runs in the page under test. It reads
-  its arguments as `args` (`args.code`) and, when the step has an element, that element as
-  `element` (found with `document.querySelector`, so a CSS selector). It fails the step by
-  throwing an error or returning `false`; whatever else it returns is shown in the report.
-
-```js
-const row = [...document.querySelectorAll('tr')].find((r) => r.textContent.includes(args.code));
-if (!row) throw new Error(`No order ${args.code}`);
-row.querySelector('button.open').click();
+```json
+{
+  "id": "fx-customer",
+  "name": "Customer",
+  "alias": "customer",
+  "params": [{ "name": "email", "type": "string", "value": "ann@shop.test" }],
+  "check": "SELECT id FROM customers WHERE email = {{params.email}}",
+  "apply": "INSERT INTO customers (email) VALUES ({{params.email}})",
+  "teardown": "DELETE FROM customers WHERE email = {{params.email}}",
+  "teardownPolicy": "onSuccess",
+  "outputs": ["id"]
+}
 ```
 
-A custom action has the powers of a **Run JavaScript** step and no others: it runs in the
-browser page, never on the server or the runner. Tests refer to the action rather than copying
-it, so editing it changes every unpublished test that uses it on its next run (a published
-version keeps the action it was saved with); an action still used by a test
-or a step group cannot be deleted, and the message names what uses it. Creating, changing and
-deleting one is recorded in the audit log, without the script.
-
-## Element repository {#element-repository}
-
-When the same element is used by many tests, **keep** it: the bookmark on a detected element saves
-it to a project with a name. Tests that use it read its selector from the project, so when the
-application changes, correcting the selector once in **Settings → Element repository** fixes every
-test.
-
-When a click, fill or select cannot find its element, the run may **heal** the step: it tries
-another locator and, if that one works, the step passes and the test goes on. Assertions after it
-still run. The run tries, in this order:
-
-1. **Known fallbacks**: the element's recorded test id (`data-testid`, `data-test`, `data-qa`,
-   `data-cy`), `id`, `name` or `aria-label`. A value with a `{{variable}}` is skipped.
-2. **The AI's suggestion**, only when the installation has an AI key (`GEMINI_API_KEY`). The model
-   sees the page without its scripts, styles, form values, hidden tokens or meta content.
-
-Either one is used only if it is a valid locator that matches **exactly one** element on the page.
-The model's own confidence is never used.
-
-### Runtime use, approval and publishing {#healing-approval}
-
-Healing has three separate steps, and only the first one happens during a run:
-
-| Step            | Who       | What changes                                                                                                               |
-| --------------- | --------- | -------------------------------------------------------------------------------------------------------------------------- |
-| **Runtime use** | the run   | Nothing persistent. The step passes on the repaired locator for this run, and a **proposal** is recorded.                  |
-| **Approval**    | an editor | The source the step is written in: the working copy of the test (as a new version), the step group, or the kept element.   |
-| **Publishing**  | as before | Only the existing publish (or review) step puts the new version live. Plans keep running the published version until then. |
-
-A proposal records the run, unit and attempt, where the step is written, a fingerprint of the step
-as the run read it, the locator before (as written, with `{{variables}}` unresolved) and after, and
-whether a fallback or the AI found it. Approving and rejecting are on the report's step details
-(see [Results](./results#healed-steps)) and need the editor role on the test's project.
-
-Where an approved repair goes is decided by where the step is written, never by the AI:
-
-| The step that healed           | Approval writes to                                          |
-| ------------------------------ | ----------------------------------------------------------- |
-| names a kept element           | the element in the repository, for every test that uses it  |
-| belongs to a step group        | that step of the group, for every test that calls it        |
-| is one of the test's own steps | that step of the test, as a new version of the working copy |
-
-A step after a group, or a group called twice, is never mixed up. An approval writes only if that
-step (or element) is still exactly what the run read. If it was edited in the meantime, or another
-proposal for it was approved first, the proposal becomes **stale**: nothing is written, and it can
-no longer be approved. Approving twice is one approval. Each decision is in the organization's audit
-log with who made it.
-
-To take back an approved repair of a test step, restore the version before it in the test's history
-(see [Organizing tests](./organizing#history-and-versions)). For a step group or a kept element,
-edit the selector back: the proposal keeps the selector it replaced.
-
-### Locator variants per environment {#element-variants}
-
-When an environment's build renders an element differently (a migrated front end compared with
-production, say), give the element a **variant** instead of a second element. In **Settings →
-Element repository**, **Add variant** on the element and fill in **Variant (uiVariant)** (letters,
-digits, `_`, `-` or `.`, up to 40 characters; at most 20 variants per element) and **Selector in
-that variant**.
-
-A run uses a variant when its `uiVariant` [variable](#variables-and-environments) has that name;
-set `uiVariant` on the environment and every run on it, a comparison's candidate included, uses
-the variant's selector. An element without that variant, and a run without `uiVariant`, use the
-element's own selector, so a variant changes only the environments that ask for it.
-
-Healing never repairs a variant: when a step found its element through a variant, no proposal is
-made for the element's default locator. The step's proposal says to correct the variant in the
-element repository by hand.
-
-## Saving
-
-**Save Test** asks for a name and, optionally, a project (you can create one there). Saving again
-under the same name offers to overwrite. Every save is a new **version** in the test's history
-(see [Organizing tests](./organizing#history-and-versions)).
-
-### What a version runs {#what-a-version-runs}
-
-A version records, besides the steps, the step groups, kept elements and custom actions the test
-calls, as they are at the moment of saving, including those a group uses. What a reviewer approves
-and what a plan runs is that version with those dependencies: editing or deleting a group after the
-review, or while a run waits in the queue, does not change what the published version does.
-
-To adopt a changed group, element or action, save the test again: the save creates a new version
-even when the steps are the same, with a summary such as _Step group "Login" changed_, and that
-version is reviewed and published like any other. A version saved before this existed records its
-dependencies on the next save; until then, a plan uses the ones current when the run is queued.
-
-A run queued from a test that is not published uses the dependencies as they are at that moment,
-and keeps them while it waits. Running the test from the builder always uses the current ones.
-Environment variables and secrets, the browser and the application itself are always current: a
-version fixes what the test does, not the world it runs against.
+Limits: if a run crashes before the fixture's check runs again, its outputs are not known, so a
+teardown that reads <code v-pre>{{fx.self.x}}</code> fails with "no value" when retried. The BDD and
+ad-hoc Playwright runs have no ledger, so a crash there is not recovered.

@@ -12,7 +12,15 @@ import { FlowCursor } from '../../runtime/flow-cursor';
 import { recordRunnerFailure } from '../../platform/observability/taps/runner';
 import { requestVariables, substituteVariables } from '../../platform/outbound-http';
 import { runPreconditions } from '../../runtime/precondition-runner';
-import { fixtureReportSteps, runDataFixtures } from '../../runtime/data-setup/fixture-runner';
+import {
+  fixtureReportSteps,
+  runDataFixtures,
+  type AppliedFixture,
+} from '../../runtime/data-setup/fixture-runner';
+import {
+  runFixtureTeardowns,
+  teardownReportSteps,
+} from '../../runtime/data-setup/fixture-teardown';
 import { resolveSequenceForRun } from '../../authoring/step-elements';
 import { executeStep } from '../step-executor';
 import { expandSequenceForRun } from '../../authoring/step-groups';
@@ -127,6 +135,10 @@ export class AdhocRunner {
     resolvedLogger.debug({ message: 'PS:executeAdhocSequence - Initial state', testName, userId });
     const stepResults: StepResult[] = [];
     let overallSuccess = true;
+    // The fixtures this run applied that have a teardown, and whether the steps passed, for the
+    // teardown in `finally` (policy `onSuccess` keeps the data of a run that did not pass).
+    let appliedFixtures: AppliedFixture[] = [];
+    let outcomePassed = false;
     /** Why a debug session ended the run early, when it did. */
     let debugStopped: string | undefined;
 
@@ -166,6 +178,7 @@ export class AdhocRunner {
             ? await environmentAllowsDataSetup(payload.organizationId, payload.environmentId)
             : false,
         });
+        appliedFixtures = fx.applied;
         stepResults.push(...(fixtureReportSteps(fx) as StepResult[]));
         if (!fx.ok)
           return {
@@ -604,6 +617,7 @@ export class AdhocRunner {
           });
         }
       }
+      outcomePassed = overallSuccess && !debugStopped;
       return {
         success: overallSuccess,
         steps: stepResults,
@@ -658,6 +672,16 @@ export class AdhocRunner {
       };
     } finally {
       await session?.close();
+      // What the fixtures made goes last, whatever became of the run. The steps array is the one the
+      // return carries, so the lines show in the result; the verdict is not touched.
+      if (appliedFixtures.length > 0) {
+        const teardown = await runFixtureTeardowns(
+          appliedFixtures,
+          { passed: outcomePassed },
+          vars,
+        );
+        stepResults.push(...(teardownReportSteps(teardown) as StepResult[]));
+      }
     }
   }
 }

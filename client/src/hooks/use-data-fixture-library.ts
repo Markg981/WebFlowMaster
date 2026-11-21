@@ -116,6 +116,41 @@ export function useFixtureReferences(id: number | null) {
   });
 }
 
+/** One fixture a run applied, and where its teardown stands (GET /api/data-fixture-ledger). */
+export interface LedgerRow {
+  id: number;
+  runId: string;
+  testId: number | null;
+  alias: string;
+  name: string;
+  policy: string;
+  status: 'applying' | 'pending' | 'running' | 'done' | 'failed' | 'kept';
+  attempts: number;
+  detail: string | null;
+  appliedAt: string;
+  settledAt: string | null;
+}
+
+export const LEDGER_OPEN_STATUSES = ['applying', 'pending', 'running', 'failed', 'kept'] as const;
+export const ledgerKey = ['dataFixtureLedger'] as const;
+
+/** The fixtures whose teardown has not completed, newest first. */
+export function useFixtureLedger(enabled = true) {
+  return useQuery<LedgerRow[]>({
+    queryKey: ledgerKey,
+    enabled,
+    queryFn: async ({ signal }) => {
+      const data = await libraryCall<unknown>(
+        'GET',
+        `/api/data-fixture-ledger?status=${LEDGER_OPEN_STATUSES.join(',')}`,
+        undefined,
+        signal,
+      );
+      return Array.isArray(data) ? (data as LedgerRow[]) : [];
+    },
+  });
+}
+
 /** The keys a fixture needs, in the order they run, from the project's list. */
 export function dependencyChain(key: string, library: LibraryFixtureSummary[]): string[] {
   const byKey = new Map(library.map((f) => [f.key, f]));

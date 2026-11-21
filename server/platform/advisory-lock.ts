@@ -19,6 +19,8 @@ export const ADVISORY_KEYS = {
   migrator: 3,
   dataRetention: 4,
   comparisonSweep: 5,
+  // 6 is left for the parallel release; teardown recovery takes 7.
+  fixtureTeardownSweep: 7,
 } as const;
 
 const localHeld = new Set<number>();

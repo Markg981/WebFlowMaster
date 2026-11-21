@@ -71,6 +71,13 @@ beforeEach(() => {
 });
 afterEach(() => vi.restoreAllMocks());
 
+/** The ledger of leftover data is its own request: answer it empty unless a test says otherwise. */
+const LEDGER = '/api/data-fixture-ledger';
+const withLedger =
+  (handler: (url: string, init?: RequestInit) => unknown, ledger: unknown[] = []) =>
+  (url: string, init?: RequestInit) =>
+    String(url).startsWith(LEDGER) && init?.method !== 'POST' ? reply(ledger) : handler(url, init);
+
 const renderPage = () =>
   render(
     <QueryClientProvider
@@ -82,17 +89,19 @@ const renderPage = () =>
 
 describe('DataFixtureLibraryPage', () => {
   it('lists the project fixtures with the order their dependencies run in', async () => {
-    fetchMock.mockImplementation(() => reply([customer, order]));
+    fetchMock.mockImplementation(withLedger(() => reply([customer, order])));
     renderPage();
     expect(await screen.findByText('An order')).toBeTruthy();
-    expect(fetchMock.mock.calls[0][0]).toBe('/api/projects/7/data-fixtures');
+    expect(fetchMock.mock.calls.map(([url]) => url)).toContain('/api/projects/7/data-fixtures');
     expect(screen.getByText('v2')).toBeTruthy();
     expect(screen.getByText(/customer → order/)).toBeTruthy();
   });
 
   it('creates a fixture with its key and definition', async () => {
-    fetchMock.mockImplementation((url: string, init?: RequestInit) =>
-      init?.method === 'POST' ? reply({ ...customer, id: 9 }, 201) : reply([]),
+    fetchMock.mockImplementation(
+      withLedger((_url, init) =>
+        init?.method === 'POST' ? reply({ ...customer, id: 9 }, 201) : reply([]),
+      ),
     );
     renderPage();
     fireEvent.click(await screen.findByRole('button', { name: /New fixture/ }));
@@ -106,6 +115,9 @@ describe('DataFixtureLibraryPage', () => {
     fireEvent.change(screen.getByLabelText('dataFixtures.apply'), {
       target: { value: 'SELECT 1' },
     });
+    fireEvent.change(screen.getByLabelText('dataFixtures.teardown'), {
+      target: { value: 'DELETE FROM customers WHERE id = {{fx.self.id}}' },
+    });
     fireEvent.click(screen.getByRole('button', { name: 'Save' }));
     await waitFor(() =>
       expect(fetchMock.mock.calls.some(([, init]) => init?.method === 'POST')).toBe(true),
@@ -115,21 +127,95 @@ describe('DataFixtureLibraryPage', () => {
     expect(JSON.parse(init.body)).toMatchObject({
       key: 'customer',
       name: 'A customer',
-      definition: { check: 'SELECT 1 AS id', apply: 'SELECT 1', dependsOn: [] },
+      definition: {
+        check: 'SELECT 1 AS id',
+        apply: 'SELECT 1',
+        teardown: 'DELETE FROM customers WHERE id = {{fx.self.id}}',
+        dependsOn: [],
+      },
     });
   });
 
   it('says which tests and fixtures still name a fixture it could not delete', async () => {
-    fetchMock.mockImplementation((_url: string, init?: RequestInit) =>
-      init?.method === 'DELETE'
-        ? reply({ error: 'in use', tests: [{ id: 3, name: 'Checkout' }], fixtures: [] }, 409)
-        : reply([customer]),
+    fetchMock.mockImplementation(
+      withLedger((_url, init) =>
+        init?.method === 'DELETE'
+          ? reply({ error: 'in use', tests: [{ id: 3, name: 'Checkout' }], fixtures: [] }, 409)
+          : reply([customer]),
+      ),
     );
     renderPage();
     fireEvent.click(await screen.findByRole('button', { name: 'Delete A customer' }));
     fireEvent.click(await screen.findByRole('button', { name: /confirm|delete|ok/i }));
     await waitFor(() => expect(toast).toHaveBeenCalled());
     expect(toast.mock.calls[0][0].description).toMatch(/Checkout/);
+  });
+
+  it('lists the data runs left behind and runs a teardown from there', async () => {
+    const left = {
+      id: 41,
+      runId: 'run-9',
+      testId: null,
+      alias: 'customer',
+      name: 'Customer Ann',
+      policy: 'always',
+      status: 'pending',
+      attempts: 0,
+      detail: null,
+      appliedAt: '2026-11-20T10:00:00Z',
+      settledAt: null,
+    };
+    let ledger: unknown[] = [left];
+    fetchMock.mockImplementation((url: string, init?: RequestInit) => {
+      if (init?.method === 'POST') {
+        ledger = [];
+        return reply({ outcome: 'done', detail: 'ok' });
+      }
+      return withLedger(() => reply([customer]), ledger)(url, init);
+    });
+    renderPage();
+    expect(await screen.findByText('Customer Ann')).toBeTruthy();
+    expect(screen.getByText('dataFixtures.ledger.statuses.pending')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: /dataFixtures.ledger.runTeardownFor/ }));
+    await waitFor(() =>
+      expect(
+        fetchMock.mock.calls.some(
+          ([u, i]) => u === '/api/data-fixture-ledger/41/teardown' && i?.method === 'POST',
+        ),
+      ).toBe(true),
+    );
+    await waitFor(() => expect(screen.queryByText('Customer Ann')).toBeNull());
+    expect(toast.mock.calls[0][0].title).toBe('dataFixtures.ledger.done');
+  });
+
+  it('reports a teardown that failed, with the server reason', async () => {
+    const left = {
+      id: 42,
+      runId: 'run-10',
+      testId: null,
+      alias: 'c',
+      name: 'Customer Bob',
+      policy: 'always',
+      status: 'failed',
+      attempts: 1,
+      detail: 'boom',
+      appliedAt: '2026-11-20T10:00:00Z',
+      settledAt: null,
+    };
+    fetchMock.mockImplementation((url: string, init?: RequestInit) =>
+      init?.method === 'POST'
+        ? reply({ error: 'the environment it was applied to has been deleted' }, 502)
+        : withLedger(() => reply([customer]), [left])(url, init),
+    );
+    renderPage();
+    fireEvent.click(
+      await screen.findByRole('button', { name: /dataFixtures.ledger.runTeardownFor/ }),
+    );
+    await waitFor(() => expect(toast).toHaveBeenCalled());
+    expect(toast.mock.calls[0][0]).toMatchObject({
+      variant: 'destructive',
+      description: expect.stringMatching(/environment/),
+    });
   });
 });
 

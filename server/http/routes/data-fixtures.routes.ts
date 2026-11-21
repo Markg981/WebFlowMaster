@@ -6,6 +6,7 @@ import { v4 as uuidv4 } from 'uuid';
 import {
   AUDIT_ACTIONS,
   DATA_FIXTURE_KEY_PATTERN,
+  FIXTURE_LEDGER_STATUSES,
   LibraryFixtureDefinitionSchema,
   dataFixtureLibrary,
   dataFixtureVersions,
@@ -13,6 +14,7 @@ import {
   testVersions,
   tests,
   type DataFixtureRef,
+  type FixtureLedgerStatus,
   type LibraryFixture,
 } from '@shared/schema';
 import { partialUpdate } from '@shared/partial-update';
@@ -29,6 +31,7 @@ import {
 import { environmentAllowsDataSetup, resolveVariables } from '../../runtime/variables';
 import { runVariables } from '../../execution/plan-run/inputs';
 import { runDataFixtures } from '../../runtime/data-setup/fixture-runner';
+import { listLedger, retryLedgerRow } from '../../runtime/data-setup/fixture-ledger';
 import logger from '../../platform/logger';
 
 /**
@@ -418,6 +421,68 @@ router.post(
       mode: body.mode,
     });
     res.json(result);
+  },
+);
+
+/**
+ * GET /api/data-fixture-ledger — the fixtures runs applied and have a teardown for, with where
+ * each stands. The default (`applying,pending,running,failed`) shows what is still to be removed;
+ * `applying` is a fixture whose apply has not confirmed (in flight, or its worker died).
+ */
+router.get('/api/data-fixture-ledger', fixturesLimit, requireRole('editor'), async (req, res) => {
+  const wanted = String(req.query.status ?? 'applying,pending,running,failed')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
+  const status = wanted.filter((s): s is FixtureLedgerStatus =>
+    (FIXTURE_LEDGER_STATUSES as readonly string[]).includes(s),
+  );
+  if (status.length !== wanted.length)
+    return res
+      .status(400)
+      .json({ error: `status is one or more of ${FIXTURE_LEDGER_STATUSES.join(', ')}.` });
+  const rows = await listLedger(req.user!.organizationId, { status });
+  res.json(
+    rows.map((r) => ({
+      id: r.id,
+      runId: r.runId,
+      testId: r.testId,
+      environmentId: r.environmentId,
+      name: r.name,
+      alias: r.alias,
+      policy: r.policy,
+      status: r.status,
+      attempts: r.attempts,
+      detail: r.detail,
+      appliedAt: r.appliedAt,
+      settledAt: r.settledAt,
+    })),
+  );
+});
+
+/**
+ * POST /api/data-fixture-ledger/:id/teardown — runs the teardown a crashed run left pending, on
+ * the environment the data was applied to. 409 when another request has it or it is settled.
+ */
+router.post(
+  '/api/data-fixture-ledger/:id/teardown',
+  sharedHeavyRateLimit(),
+  requireRole('editor'),
+  async (req, res) => {
+    const id = idOf(req.params.id);
+    if (!id) return res.status(400).json({ error: 'Invalid ledger id.' });
+    const { id: userId, organizationId } = req.user!;
+    const result = await retryLedgerRow(organizationId, id, {
+      userId,
+      actor: auditActor(req),
+    });
+    if (result.outcome === 'not-found')
+      return res.status(404).json({ error: 'Ledger entry not found.' });
+    if (result.outcome === 'not-claimable')
+      return res.status(409).json({
+        error: `This entry is ${result.status}: only a pending or failed one, or one stuck for over ten minutes, can be run.`,
+      });
+    res.status(result.outcome === 'done' ? 200 : 502).json(result);
   },
 );
 

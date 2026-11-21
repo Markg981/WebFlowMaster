@@ -58,6 +58,10 @@ export const JSONB_PAYLOADS: Record<string, JsonbStrategy> = {
   // Where a unit runs (shared/execution-identity.ts): written once with the manifest and never
   // rewritten — the unit id is a hash of it.
   'execution_units.coordinates': 'snapshot',
+  // What a run applied and the teardown it froze (migration 0119): written once when the fixture
+  // is applied, read back by a retry, never rewritten. The bindings are the values it read.
+  'fixture_ledger.entry': 'snapshot',
+  'fixture_ledger.bindings': 'snapshot',
   // The group calls that led to a healed step, as the run read them (migration 0094): a record of
   // that run, never rewritten.
   'healing_proposals.call_path': 'snapshot',

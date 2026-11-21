@@ -3009,6 +3009,36 @@
     "remove": "Daten-Fixture entfernen",
     "moveUp": "Nach oben",
     "moveDown": "Nach unten",
+    "teardown": "Teardown-Skript, nach dem Test",
+    "teardownHint": "Entfernt, was das Skript oben angelegt hat. Läuft nach dem Test, zuletzt angelegte Fixture zuerst, und nur für Daten, die dieser Lauf angelegt hat. Die angelegten Werte liest man als {{example}}.",
+    "teardownPolicy": "Teardown ausführen",
+    "policy": {
+      "always": "Nach jedem Lauf",
+      "onSuccess": "Nur nach einem bestandenen Lauf",
+      "never": "Nie (Daten behalten)"
+    },
+    "ledger": {
+      "title": "Von Läufen hinterlassene Daten",
+      "description": "Fixtures, die ein Lauf angelegt hat und deren Teardown nicht abgeschlossen ist (Lauf abgebrochen, Teardown fehlgeschlagen oder behalten). Von hier aus lässt sich der Teardown starten.",
+      "empty": "Kein Teardown wartet.",
+      "fixture": "Fixture",
+      "run": "Lauf",
+      "applied": "Angelegt",
+      "status": "Status",
+      "detail": "Detail",
+      "runTeardown": "Teardown starten",
+      "runTeardownFor": "Teardown von {{name}} starten",
+      "done": "Teardown abgeschlossen",
+      "failed": "Teardown fehlgeschlagen",
+      "statuses": {
+        "applying": "Wird angelegt",
+        "pending": "Wartet",
+        "running": "Läuft",
+        "done": "Erledigt",
+        "failed": "Fehlgeschlagen",
+        "kept": "Behalten"
+      }
+    },
     "library": {
       "addTitle": "Aus der Projektbibliothek hinzufügen",
       "project": "Projekt",
@@ -3371,6 +3401,8 @@
       "data_fixture_created": "Datenfixture erstellt",
       "data_fixture_updated": "Datenfixture aktualisiert",
       "data_fixture_deleted": "Datenfixture gelöscht",
+      "data_fixture_teardown_failed": "Teardown der Datenfixture fehlgeschlagen",
+      "data_fixture_teardown_retried": "Teardown der Datenfixture wiederholt",
       "secret_set": "Geheimnis gesetzt",
       "secret_deleted": "Geheimnis gelöscht",
       "system_settings_changed": "Systemeinstellung geändert",

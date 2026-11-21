@@ -3009,6 +3009,36 @@
     "remove": "Remove data fixture",
     "moveUp": "Move up",
     "moveDown": "Move down",
+    "teardown": "Teardown script, after the test",
+    "teardownHint": "Removes what the script above made. Runs after the test, last fixture first, and only for data this run applied. Read the values it made as {{example}}.",
+    "teardownPolicy": "Run the teardown",
+    "policy": {
+      "always": "After every run",
+      "onSuccess": "Only after a passing run",
+      "never": "Never (keep the data)"
+    },
+    "ledger": {
+      "title": "Data left by runs",
+      "description": "Fixtures a run applied whose teardown has not completed (the run was killed, or the teardown failed or was kept). Run the teardown from here.",
+      "empty": "Nothing is waiting for a teardown.",
+      "fixture": "Fixture",
+      "run": "Run",
+      "applied": "Applied",
+      "status": "Status",
+      "detail": "Detail",
+      "runTeardown": "Run teardown",
+      "runTeardownFor": "Run the teardown of {{name}}",
+      "done": "Teardown done",
+      "failed": "Teardown failed",
+      "statuses": {
+        "applying": "Applying",
+        "pending": "Waiting",
+        "running": "Running",
+        "done": "Done",
+        "failed": "Failed",
+        "kept": "Kept"
+      }
+    },
     "library": {
       "addTitle": "Add from the project library",
       "project": "Project",
@@ -3371,6 +3401,8 @@
       "data_fixture_created": "Data fixture created",
       "data_fixture_updated": "Data fixture updated",
       "data_fixture_deleted": "Data fixture deleted",
+      "data_fixture_teardown_failed": "Data fixture teardown failed",
+      "data_fixture_teardown_retried": "Data fixture teardown retried",
       "secret_set": "Secret set",
       "secret_deleted": "Secret deleted",
       "system_settings_changed": "System setting changed",

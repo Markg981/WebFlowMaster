@@ -24,6 +24,7 @@ import {
   isDataFixtureRef,
   LibraryFixtureDefinitionSchema,
   type DataFixture,
+  type DataFixtureTeardownPolicy,
   type LibraryFixtureDefinition,
   type TestDataFixture,
 } from '@shared/schema';
@@ -77,7 +78,7 @@ async function expandNode(
   fixture: LoadedLibraryFixture,
   version: number,
   passed: Record<string, string>,
-  place: { id: string; alias: string; top: boolean },
+  place: { id: string; alias: string; top: boolean; policy?: DataFixtureTeardownPolicy },
   chain: LoadedLibraryFixture[],
   override?: Override,
 ): Promise<string> {
@@ -141,6 +142,8 @@ async function expandNode(
         id: `${place.id}/${dependency.as}`.slice(0, 100),
         alias: `${place.alias}__${dependency.as}`,
         top: false,
+        // A dependency is torn down by the policy of what asked for it.
+        policy: place.policy,
       },
       [...chain, fixture],
       override,
@@ -160,6 +163,16 @@ async function expandNode(
     params: params.map((p) => ({ ...p, value: renameFixtureReads(p.value, aliases) })),
     check: renameFixtureReads(definition.check, aliases),
     apply: renameFixtureReads(definition.apply, aliases),
+    ...(definition.teardown
+      ? {
+          // `fx.self` is the fixture's own outputs, under the alias it runs as.
+          teardown: renameFixtureReads(
+            definition.teardown,
+            new Map([...aliases, ['self', place.alias]]),
+          ),
+          ...(place.policy ? { teardownPolicy: place.policy } : {}),
+        }
+      : {}),
     outputs: definition.outputs,
     timeoutMs: definition.timeoutMs ?? null,
     source: { fixtureId: fixture.id, key: fixture.key, version },
@@ -201,7 +214,7 @@ export async function expandDataFixtures(
       fixture,
       version,
       entry.params,
-      { id: entry.id, alias: entry.alias, top: true },
+      { id: entry.id, alias: entry.alias, top: true, policy: entry.teardownPolicy },
       [],
     );
   }
