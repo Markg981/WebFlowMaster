@@ -476,11 +476,12 @@ router.post(
       userId,
       actor: auditActor(req),
     });
-    if (result.outcome === 'not-found') return res.status(404).json({ error: 'Ledger entry not found.' });
+    if (result.outcome === 'not-found')
+      return res.status(404).json({ error: 'Ledger entry not found.' });
     if (result.outcome === 'not-claimable')
-      return res
-        .status(409)
-        .json({ error: `This entry is ${result.status}: only a pending or failed one, or one stuck for over ten minutes, can be run.` });
+      return res.status(409).json({
+        error: `This entry is ${result.status}: only a pending or failed one, or one stuck for over ten minutes, can be run.`,
+      });
     res.status(result.outcome === 'done' ? 200 : 502).json(result);
   },
 );

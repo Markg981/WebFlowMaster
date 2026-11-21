@@ -667,7 +667,7 @@ report, come avviso nel log dell'esecuzione e nell'audit log (`data_fixture.tear
 altri teardown girano comunque.
 
 **Un'esecuzione che muore prima del teardown.** Ogni fixture con un teardown viene scritta in un
-registro *prima* dell'`apply` (stato `applying`) e confermata (`pending`) dopo il commit dell'`apply`:
+registro _prima_ dell'`apply` (stato `applying`) e confermata (`pending`) dopo il commit dell'`apply`:
 un crash non lascia mai dati applicati senza una riga. Se l'`apply` fa rollback, la riga viene
 eliminata. I **teardown in sospeso** si vedono nella pagina della libreria di fixture (con il pulsante
 **Esegui teardown** per gli editor), oppure con `GET /api/data-fixture-ledger?status=applying,pending,running,failed`,
@@ -682,7 +682,9 @@ Da API e in un bundle YAML una fixture porta gli stessi campi:
 
 ```json
 {
-  "id": "fx-customer", "name": "Customer", "alias": "customer",
+  "id": "fx-customer",
+  "name": "Customer",
+  "alias": "customer",
   "params": [{ "name": "email", "type": "string", "value": "ann@shop.test" }],
   "check": "SELECT id FROM customers WHERE email = {{params.email}}",
   "apply": "INSERT INTO customers (email) VALUES ({{params.email}})",

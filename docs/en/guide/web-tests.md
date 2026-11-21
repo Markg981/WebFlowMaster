@@ -636,7 +636,7 @@ A teardown that fails never changes the test's verdict. It appears as a failed *
 report, as a warning in the run log and in the audit log (`data_fixture.teardown_failed`), and the
 other teardowns still run.
 
-**A run that dies before the teardown.** Each fixture with a teardown is written to a ledger *before*
+**A run that dies before the teardown.** Each fixture with a teardown is written to a ledger _before_
 its `apply` runs (status `applying`) and confirmed (`pending`) after the apply commits, so a crash never
 leaves applied data without a row. If the apply rolls back, the row is dropped. **Pending teardowns**
 are listed on the fixture library page (with a **Run teardown** button for editors), or with
@@ -651,7 +651,9 @@ Through the API and in a YAML bundle a fixture carries the same fields:
 
 ```json
 {
-  "id": "fx-customer", "name": "Customer", "alias": "customer",
+  "id": "fx-customer",
+  "name": "Customer",
+  "alias": "customer",
   "params": [{ "name": "email", "type": "string", "value": "ann@shop.test" }],
   "check": "SELECT id FROM customers WHERE email = {{params.email}}",
   "apply": "INSERT INTO customers (email) VALUES ({{params.email}})",

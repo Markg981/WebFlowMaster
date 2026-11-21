@@ -78,7 +78,11 @@ export interface LedgerEntry {
   /** The teardown script, as frozen in the run. */
   teardown: string;
   /** Each parameter with the text it had when `apply` ran (generators already resolved). */
-  params: Array<{ name: string; type: 'string' | 'int' | 'decimal' | 'bool' | 'date'; value: string }>;
+  params: Array<{
+    name: string;
+    type: 'string' | 'int' | 'decimal' | 'bool' | 'date';
+    value: string;
+  }>;
   /** `library-key vN` when the fixture came from the library. */
   source?: string;
 }

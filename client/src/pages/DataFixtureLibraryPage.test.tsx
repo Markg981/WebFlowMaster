@@ -99,7 +99,9 @@ describe('DataFixtureLibraryPage', () => {
 
   it('creates a fixture with its key and definition', async () => {
     fetchMock.mockImplementation(
-      withLedger((_url, init) => (init?.method === 'POST' ? reply({ ...customer, id: 9 }, 201) : reply([]))),
+      withLedger((_url, init) =>
+        init?.method === 'POST' ? reply({ ...customer, id: 9 }, 201) : reply([]),
+      ),
     );
     renderPage();
     fireEvent.click(await screen.findByRole('button', { name: /New fixture/ }));
@@ -176,7 +178,11 @@ describe('DataFixtureLibraryPage', () => {
     expect(screen.getByText('dataFixtures.ledger.statuses.pending')).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: /dataFixtures.ledger.runTeardownFor/ }));
     await waitFor(() =>
-      expect(fetchMock.mock.calls.some(([u, i]) => u === '/api/data-fixture-ledger/41/teardown' && i?.method === 'POST')).toBe(true),
+      expect(
+        fetchMock.mock.calls.some(
+          ([u, i]) => u === '/api/data-fixture-ledger/41/teardown' && i?.method === 'POST',
+        ),
+      ).toBe(true),
     );
     await waitFor(() => expect(screen.queryByText('Customer Ann')).toBeNull());
     expect(toast.mock.calls[0][0].title).toBe('dataFixtures.ledger.done');
@@ -184,8 +190,17 @@ describe('DataFixtureLibraryPage', () => {
 
   it('reports a teardown that failed, with the server reason', async () => {
     const left = {
-      id: 42, runId: 'run-10', testId: null, alias: 'c', name: 'Customer Bob', policy: 'always',
-      status: 'failed', attempts: 1, detail: 'boom', appliedAt: '2026-11-20T10:00:00Z', settledAt: null,
+      id: 42,
+      runId: 'run-10',
+      testId: null,
+      alias: 'c',
+      name: 'Customer Bob',
+      policy: 'always',
+      status: 'failed',
+      attempts: 1,
+      detail: 'boom',
+      appliedAt: '2026-11-20T10:00:00Z',
+      settledAt: null,
     };
     fetchMock.mockImplementation((url: string, init?: RequestInit) =>
       init?.method === 'POST'
@@ -193,7 +208,9 @@ describe('DataFixtureLibraryPage', () => {
         : withLedger(() => reply([customer]), [left])(url, init),
     );
     renderPage();
-    fireEvent.click(await screen.findByRole('button', { name: /dataFixtures.ledger.runTeardownFor/ }));
+    fireEvent.click(
+      await screen.findByRole('button', { name: /dataFixtures.ledger.runTeardownFor/ }),
+    );
     await waitFor(() => expect(toast).toHaveBeenCalled());
     expect(toast.mock.calls[0][0]).toMatchObject({
       variant: 'destructive',

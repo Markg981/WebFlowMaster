@@ -249,7 +249,9 @@ export async function runTest(
         { passed: result.status === 'passed' },
         vars,
         {
-          ...(options?.data ? { openSession: options.data.openSession, vet: options.data.vet } : {}),
+          ...(options?.data
+            ? { openSession: options.data.openSession, vet: options.data.vet }
+            : {}),
           ...(fixtureLedger ? { ledger: fixtureLedger } : {}),
           onStep: (step) => {
             if (step.status === 'failed')

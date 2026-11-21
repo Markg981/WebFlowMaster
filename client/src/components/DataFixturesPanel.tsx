@@ -435,7 +435,10 @@ function TeardownPolicySelect({
       <Label htmlFor={id} className="text-xs">
         {t('dataFixtures.teardownPolicy')}
       </Label>
-      <Select value={value ?? 'always'} onValueChange={(v) => onChange(v as DataFixtureTeardownPolicy)}>
+      <Select
+        value={value ?? 'always'}
+        onValueChange={(v) => onChange(v as DataFixtureTeardownPolicy)}
+      >
         <SelectTrigger id={id} className="w-64" aria-label={t('dataFixtures.teardownPolicy')}>
           <SelectValue />
         </SelectTrigger>

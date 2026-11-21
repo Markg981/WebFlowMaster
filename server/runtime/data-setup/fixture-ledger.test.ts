@@ -96,21 +96,30 @@ describe('the fixture ledger', () => {
   });
 
   const customers = async () =>
-    Number(((await db.query('SELECT count(*)::int AS n FROM customers')).rows[0] as { n: number }).n);
+    Number(
+      ((await db.query('SELECT count(*)::int AS n FROM customers')).rows[0] as { n: number }).n,
+    );
   const newRun = () => {
     const runId = `run-ledger-${Date.now()}-${++runCounter}`;
-    return { runId, ledger: createRunLedger({ organizationId, runId, testId: null, environmentId }) };
+    return {
+      runId,
+      ledger: createRunLedger({ organizationId, runId, testId: null, environmentId }),
+    };
   };
   const rowsOf = (runId: string) =>
     privilegedDb.select().from(fixtureLedger).where(eq(fixtureLedger.runId, runId));
   const apply = async (fixtures: DataFixture[], ledger: ReturnType<typeof createRunLedger>) =>
-    runDataFixtures(fixtures, { 'db.url': url }, {
-      dataSetup: true,
-      vet,
-      onApplying: (a) => ledger.reserve(a),
-      onApplyAborted: (a) => ledger.abort(a),
-      onApplied: (a) => ledger.confirm(a),
-    });
+    runDataFixtures(
+      fixtures,
+      { 'db.url': url },
+      {
+        dataSetup: true,
+        vet,
+        onApplying: (a) => ledger.reserve(a),
+        onApplyAborted: (a) => ledger.abort(a),
+        onApplied: (a) => ledger.confirm(a),
+      },
+    );
 
   it('writes the row before the apply, confirms it after the commit and settles it as done', async () => {
     const { runId, ledger } = newRun();
@@ -134,10 +143,15 @@ describe('the fixture ledger', () => {
     expect(confirmed.status).toBe('pending');
     expect(confirmed.bindings['fx.customer.id']).toBeDefined();
 
-    const td = await runFixtureTeardowns(result.applied, { passed: true }, { 'db.url': url, ...result.variables }, {
-      vet,
-      ledger,
-    });
+    const td = await runFixtureTeardowns(
+      result.applied,
+      { passed: true },
+      { 'db.url': url, ...result.variables },
+      {
+        vet,
+        ledger,
+      },
+    );
     expect(td.steps.map((s) => s.status)).toEqual(['done']);
     const [settled] = await rowsOf(runId);
     expect(settled.status).toBe('done');
@@ -157,15 +171,23 @@ describe('the fixture ledger', () => {
   it('keeps the row when the teardown is skipped by policy, or fails', async () => {
     const skipped = newRun();
     const first = await apply([customer({ teardown: 'DELETE FROM customers' })], skipped.ledger);
-    await runFixtureTeardowns(first.applied.map((a) => ({ ...a, policy: 'never' as const })), { passed: true }, first.variables, {
-      vet,
-      ledger: skipped.ledger,
-    });
+    await runFixtureTeardowns(
+      first.applied.map((a) => ({ ...a, policy: 'never' as const })),
+      { passed: true },
+      first.variables,
+      {
+        vet,
+        ledger: skipped.ledger,
+      },
+    );
     expect((await rowsOf(skipped.runId))[0].status).not.toBe('done');
 
     await db.exec('DELETE FROM customers');
     const failing = newRun();
-    const second = await apply([customer({ teardown: 'DELETE FROM missing_table' })], failing.ledger);
+    const second = await apply(
+      [customer({ teardown: 'DELETE FROM missing_table' })],
+      failing.ledger,
+    );
     const td = await runFixtureTeardowns(second.applied, { passed: true }, second.variables, {
       vet,
       ledger: failing.ledger,
@@ -175,7 +197,12 @@ describe('the fixture ledger', () => {
     expect(row.status).toBe('failed');
     expect(row.detail).toBeTruthy();
     const audits = await privilegedDb.select().from(auditLog).where(eq(auditLog.targetId, row.id));
-    expect(audits.some((a) => a.action === 'DATA_FIXTURE_TEARDOWN_FAILED' || /TEARDOWN_FAILED/i.test(String(a.action)))).toBe(true);
+    expect(
+      audits.some(
+        (a) =>
+          a.action === 'DATA_FIXTURE_TEARDOWN_FAILED' || /TEARDOWN_FAILED/i.test(String(a.action)),
+      ),
+    ).toBe(true);
   }, 30_000);
 
   it('retries a pending row to done, and reports a failure without claiming twice', async () => {
@@ -277,7 +304,9 @@ describe('the fixture ledger', () => {
 
     describe('the timer', () => {
       beforeEach(() => {
-        vi.useFakeTimers({ toFake: ['setTimeout', 'setInterval', 'clearTimeout', 'clearInterval'] });
+        vi.useFakeTimers({
+          toFake: ['setTimeout', 'setInterval', 'clearTimeout', 'clearInterval'],
+        });
       });
       afterEach(() => {
         vi.useRealTimers();
@@ -292,7 +321,9 @@ describe('the fixture ledger', () => {
             expect(await statusOf(id)).toBe('pending');
           });
           await vi.advanceTimersByTimeAsync(60_000);
-          await vi.waitFor(async () => expect(await statusOf(id)).toBe('kept'), { timeout: 10_000 });
+          await vi.waitFor(async () => expect(await statusOf(id)).toBe('kept'), {
+            timeout: 10_000,
+          });
         } finally {
           stop();
         }
