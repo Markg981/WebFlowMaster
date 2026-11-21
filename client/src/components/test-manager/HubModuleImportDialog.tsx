@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
   Dialog,
@@ -52,7 +53,10 @@ export function pendingCases(
   row: HubModuleCoverage,
   includeDeprecated: boolean,
   updateChanged: boolean,
+  sync = false,
 ): number {
+  // A sync looks at every case of the module, the imported ones too.
+  if (sync) return includeDeprecated ? row.total : row.active;
   const missing = includeDeprecated ? row.total - row.imported : row.active - row.importedActive;
   return Math.max(0, missing) + (updateChanged ? row.changed : 0);
 }
@@ -65,6 +69,8 @@ const HubModuleImportDialog: React.FC<Props> = ({ open, onOpenChange, modules, o
   const [variant, setVariant] = useState<'standard' | 'reference'>('standard');
   const [includeDeprecated, setIncludeDeprecated] = useState(false);
   const [updateChanged, setUpdateChanged] = useState(false);
+  const [sync, setSync] = useState(false);
+  const [pages, setPages] = useState('');
   const [formError, setFormError] = useState('');
 
   const { data: projects = [] } = useQuery<ProjectOption[]>({
@@ -77,13 +83,17 @@ const HubModuleImportDialog: React.FC<Props> = ({ open, onOpenChange, modules, o
     if (open) {
       setFormError('');
       setSelected(new Set());
+      setSync(false);
+      setPages('');
     }
   }, [open]);
 
   const pending = useMemo(
     () =>
-      new Map(modules.map((m) => [m.module, pendingCases(m, includeDeprecated, updateChanged)])),
-    [modules, includeDeprecated, updateChanged],
+      new Map(
+        modules.map((m) => [m.module, pendingCases(m, includeDeprecated, updateChanged, sync)]),
+      ),
+    [modules, includeDeprecated, updateChanged, sync],
   );
   const selectable = modules.filter((m) => (pending.get(m.module) ?? 0) > 0);
   const chosen = Array.from(selected).filter((m) => (pending.get(m) ?? 0) > 0);
@@ -101,6 +111,10 @@ const HubModuleImportDialog: React.FC<Props> = ({ open, onOpenChange, modules, o
 
   const submit = () => {
     setFormError('');
+    const featureHighlights = pages
+      .split(',')
+      .map((page) => page.trim())
+      .filter(Boolean);
     importModules.mutate(
       {
         modules: chosen,
@@ -108,6 +122,8 @@ const HubModuleImportDialog: React.FC<Props> = ({ open, onOpenChange, modules, o
         variant,
         includeDeprecated,
         updateChanged,
+        ...(featureHighlights.length > 0 ? { featureHighlights } : {}),
+        sync,
       },
       {
         onSuccess: (job) => {
@@ -127,7 +143,7 @@ const HubModuleImportDialog: React.FC<Props> = ({ open, onOpenChange, modules, o
           <DialogDescription>
             {t(
               'testCaseHub.modules.description',
-              'Every case of the chosen modules that is not a test yet becomes a manual test, in the suite “QA hub · <module>”. Cases already imported are left as they are.',
+              'Every case of the chosen modules that is not a test yet becomes a manual test, in the suite “QA hub · <module>”. A case whose QA id a test of the project already holds is never imported twice. Active cases by default.',
             )}
           </DialogDescription>
         </DialogHeader>
@@ -237,6 +253,35 @@ const HubModuleImportDialog: React.FC<Props> = ({ open, onOpenChange, modules, o
                   'Also update the tests whose case changed in the hub',
                 )}
               </Label>
+            </div>
+            <div className="flex items-start gap-2">
+              <Checkbox
+                id="hubModuleSync"
+                checked={sync}
+                onCheckedChange={(value) => setSync(value === true)}
+                data-testid="hub-module-import-sync"
+              />
+              <Label htmlFor="hubModuleSync" className="font-normal">
+                {t(
+                  'testCaseHub.modules.sync',
+                  'Sync the tests that exist: module, feature area, scenario, title and manual steps text. Recorded or automated steps, checkpoints, data fixtures, preconditions and cleanups are never changed; cases deprecated in the hub are tagged, not deleted.',
+                )}
+              </Label>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="hubModulePages">
+                {t('testCaseHub.modules.pages', 'Only these feature highlights (pages)')}
+              </Label>
+              <Input
+                id="hubModulePages"
+                value={pages}
+                onChange={(event) => setPages(event.target.value)}
+                placeholder={t(
+                  'testCaseHub.modules.pagesPlaceholder',
+                  'Comma separated; empty: all pages',
+                )}
+                data-testid="hub-module-import-pages"
+              />
             </div>
           </div>
 

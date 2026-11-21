@@ -45,6 +45,7 @@ import { comparisonUrlFor, reportUrlFor } from '../../platform/report-links';
 import logger from '../../platform/logger';
 import { registerAuthoringRoutes } from '../api-v1/authoring';
 import { registerManagementRoutes } from '../api-v1/management';
+import { registerQaHubRoutes } from '../api-v1/qa-hub';
 import { sessionRateLimit, sharedHeavyRateLimit } from '../middleware/rate-limits';
 
 /**
@@ -508,6 +509,7 @@ router.get(
 
 registerAuthoringRoutes(router);
 registerManagementRoutes(router);
+registerQaHubRoutes(router);
 
 // Anything else under /api/v1 is an unknown endpoint, said in this API's own words rather
 // than falling through to the web application's.

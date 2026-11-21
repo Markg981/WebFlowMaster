@@ -4117,7 +4117,7 @@
     "modules": {
       "open": "Importa moduli…",
       "title": "Importa moduli",
-      "description": "Ogni caso dei moduli scelti che non è ancora un test diventa un test manuale, nella suite “QA hub · <modulo>”. I casi già importati restano come sono.",
+      "description": "Ogni caso dei moduli scelti che non è ancora un test diventa un test manuale, nella suite “QA hub · <modulo>”. Un caso il cui id QA è già in un test del progetto non viene mai importato due volte. Di default solo i casi attivi.",
       "modules": "Moduli",
       "all": "Seleziona tutti",
       "none": "Deseleziona tutti",
@@ -4131,7 +4131,11 @@
       "tooMany": "Importa al massimo {{max}} moduli alla volta.",
       "submit": "Importa {{count}} casi",
       "done": "Moduli importati",
-      "doneSummary": "{{modules}} moduli: {{created}} test creati, {{updated}} aggiornati, {{skipped}} casi saltati."
+      "doneSummary": "{{modules}} moduli: {{created}} test creati, {{updated}} aggiornati, {{skipped}} casi saltati.",
+      "sync": "Sincronizza i test esistenti: modulo, area funzionale, scenario, titolo e testo dei passi manuali. Passi registrati o automatici, checkpoint, data fixture, precondizioni e cleanup non vengono mai modificati; i casi deprecati nell’hub vengono etichettati, non eliminati.",
+      "pages": "Solo queste feature highlight (pagine)",
+      "pagesPlaceholder": "Separate da virgola; vuoto: tutte le pagine",
+      "doneDetail": "{{already}} già importati, {{deprecated}} deprecati esclusi, {{failed}} falliti."
     }
   },
   "hubWaves": {
@@ -4501,7 +4505,8 @@
     "newTitle": "Nuovo test manuale",
     "editTitle": "Modifica test manuale",
     "description": "Gli step che una persona esegue, ciascuno con il risultato atteso. In un run di un piano attende un esito nel report.",
-    "name": "Nome",
+    "name": "Nome",
+    "caseId": "Id caso QA",
     "step": "Step {{n}}",
     "action": "Azione",
     "expected": "Risultato atteso",

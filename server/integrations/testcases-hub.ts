@@ -15,10 +15,14 @@ import path from 'path';
 import { createHash } from 'crypto';
 import { inflateRawSync } from 'zlib';
 import type { Request } from 'express';
+import { isDeepStrictEqual } from 'util';
+import { randomUUID } from 'crypto';
 import { and, eq, inArray, isNull, sql } from 'drizzle-orm';
 import {
   AUDIT_ACTIONS,
   hubTestCases,
+  tags,
+  testTags,
   testSuiteItems,
   testSuites,
   tests,
@@ -33,6 +37,7 @@ import {
   hubCaseToManualSteps,
   hubPriorityToWfm,
   hubTestName,
+  QA_HUB_SOURCE,
   parseHubDefinition,
   type HubCaseDefinition,
   type HubStepsOptions,
@@ -41,6 +46,7 @@ import { isManualSequence, toSequence } from '@shared/manual-tests';
 import type { TenantTx } from '../platform/middleware/tenancy';
 import { fetchTarget } from '../platform/outbound-http';
 import { recordTestVersion } from '../authoring/test-version-store';
+import { testsByExternalCaseIds } from '../authoring/external-case-id';
 import { auditActor, recordAudit } from '../tenancy/audit';
 import logger from '../platform/logger';
 
@@ -938,9 +944,16 @@ export interface ImportInput {
   /** …or to a new static suite of this name in the project. */
   newSuiteName?: string | null;
   variant?: HubStepsOptions['variant'];
+  /**
+   * Opt-in refresh of tests that exist already (found by their link or by their QA case id):
+   * module, feature area, scenario, title and the manual steps text. A recorded or automated
+   * sequence, checkpoints, data fixtures, preconditions and cleanups are never touched. A case
+   * deprecated in the hub is tagged `qa-hub-deprecated`, never deleted.
+   */
+  sync?: boolean;
 }
 
-export type ImportOutcome = 'created' | 'updated' | 'unchanged' | 'skipped';
+export type ImportOutcome = 'created' | 'updated' | 'unchanged' | 'skipped' | 'already_imported';
 
 export interface ImportedCase {
   caseId: string;
@@ -948,6 +961,12 @@ export interface ImportedCase {
   testId: number | null;
   /** For `skipped`: why. */
   reason?: 'name_conflict' | 'not_manual' | 'missing_in_hub' | 'not_in_catalog';
+  /** For a sync that changed the test: which of module, featureArea, scenario, name, steps. */
+  changed?: string[];
+  /** The sync left the steps alone because the test is not a manual one. */
+  stepsKept?: boolean;
+  /** The case is deprecated in the hub and the test was tagged. */
+  deprecated?: boolean;
 }
 
 export interface ImportResult {
@@ -956,7 +975,36 @@ export interface ImportResult {
   updated: number;
   unchanged: number;
   skipped: number;
+  /** Cases a live test of the project already holds by QA id: nothing was created. */
+  alreadyImported: number;
+  deprecatedMarked: number;
   suiteId: number | null;
+}
+
+export const HUB_DEPRECATED_TAG = 'qa-hub-deprecated';
+
+/** Tags the test as deprecated in the hub, once. */
+async function tagDeprecated(tx: TenantTx, organizationId: number, testId: number) {
+  let [tag] = await tx
+    .select({ id: tags.id })
+    .from(tags)
+    .where(and(eq(tags.name, HUB_DEPRECATED_TAG), eq(tags.organizationId, organizationId)))
+    .limit(1);
+  if (!tag)
+    [tag] = await tx
+      .insert(tags)
+      .values({ id: randomUUID(), organizationId, name: HUB_DEPRECATED_TAG })
+      .returning();
+  const [tagged] = await tx
+    .select({ id: testTags.id })
+    .from(testTags)
+    .where(and(eq(testTags.tagId, tag.id), eq(testTags.testId, testId)))
+    .limit(1);
+  if (tagged) return false;
+  await tx
+    .insert(testTags)
+    .values({ organizationId, tagId: tag.id, testId, testType: 'ui' });
+  return true;
 }
 
 function definitionOf(row: HubTestCase): HubCaseDefinition {
@@ -1018,10 +1066,14 @@ export async function importCases(
     updated: 0,
     unchanged: 0,
     skipped: 0,
+    alreadyImported: 0,
+    deprecatedMarked: 0,
     suiteId: null,
   };
   const createdIds: number[] = [];
   const now = new Date();
+  // Who holds each case already, by QA id, in one query: the guard against a second test.
+  const heldByCase = await testsByExternalCaseIds(tx, input.projectId ?? null, wanted);
   for (const caseId of wanted) {
     const row = byCase.get(caseId);
     if (!row) {
@@ -1037,9 +1089,110 @@ export async function importCases(
       scenario: definition.executionGroup,
       priority: hubPriorityToWfm(definition.priority),
     };
-    const [existing] = row.testId
+    let [existing] = row.testId
       ? await tx.select().from(tests).where(eq(tests.id, row.testId)).limit(1)
       : [];
+    // Not linked, but the project holds the case: never a second test. Link it and say so.
+    let foundById = false;
+    if (!existing) {
+      const held = heldByCase.get(caseId);
+      if (held) {
+        foundById = true;
+        await tx
+          .update(hubTestCases)
+          .set({ testId: held.id })
+          .where(eq(hubTestCases.id, row.id));
+        if (!input.sync) {
+          result.cases.push({ caseId, outcome: 'already_imported', testId: held.id });
+          result.alreadyImported++;
+          continue;
+        }
+        [existing] = await tx.select().from(tests).where(eq(tests.id, held.id)).limit(1);
+      }
+    }
+    if (existing && input.sync) {
+      const manual = isManualSequence(existing.sequence);
+      const patch: Record<string, unknown> = {};
+      const changed: string[] = [];
+      for (const key of ['module', 'featureArea', 'scenario'] as const) {
+        if ((existing[key] ?? null) !== (fields[key] ?? null)) {
+          patch[key] = fields[key];
+          changed.push(key);
+        }
+      }
+      const name = hubTestName(definition);
+      if (existing.name !== name) {
+        const [taken] = await tx
+          .select({ id: tests.id })
+          .from(tests)
+          .where(eq(tests.name, name))
+          .limit(1);
+        if (!taken) {
+          patch.name = name;
+          changed.push('name');
+        }
+      }
+      // The steps: only a manual test, and only when the hub changed them since the last import.
+      let stepsKept = false;
+      if (!manual) stepsKept = true;
+      else if (foundById || row.importedHash !== row.contentHash) {
+        const next = toSequence(steps);
+        if (!isDeepStrictEqual(existing.sequence, next)) {
+          patch.sequence = next;
+          changed.push('steps');
+        }
+      }
+      if (existing.externalCaseId !== caseId) {
+        patch.externalCaseId = caseId;
+        patch.externalSource = QA_HUB_SOURCE;
+      }
+      let entry: ImportedCase = {
+        caseId,
+        outcome: 'unchanged',
+        testId: existing.id,
+        ...(stepsKept ? { stepsKept } : {}),
+      };
+      if (Object.keys(patch).length > 0) {
+        const [updatedRow] = await tx
+          .update(tests)
+          .set({ ...patch, updatedAt: now })
+          .where(eq(tests.id, existing.id))
+          .returning();
+        await recordTestVersion(tx, {
+          testId: updatedRow.id,
+          organizationId,
+          userId,
+          test: updatedRow,
+        });
+        await recordAudit(tx, {
+          action: AUDIT_ACTIONS.TEST_UPDATED,
+          actor: auditActor(req),
+          targetType: 'test',
+          targetId: updatedRow.id,
+          metadata: { name: updatedRow.name, importedFrom: caseId, sync: changed },
+        });
+      }
+      if (changed.length > 0) {
+        entry = { ...entry, outcome: 'updated', changed };
+        result.updated++;
+      } else {
+        result.unchanged++;
+      }
+      // The hash moves only when the steps were looked at; a kept (not manual) test stays pending.
+      await tx
+        .update(hubTestCases)
+        .set({
+          testId: existing.id,
+          ...(manual ? { importedHash: row.contentHash, importedAt: now, importedBy: userId } : {}),
+        })
+        .where(eq(hubTestCases.id, row.id));
+      if (row.status !== 'active' && (await tagDeprecated(tx, organizationId, existing.id))) {
+        entry.deprecated = true;
+        result.deprecatedMarked++;
+      }
+      result.cases.push(entry);
+      continue;
+    }
     if (existing) {
       if (row.importedHash === row.contentHash) {
         result.cases.push({ caseId, outcome: 'unchanged', testId: existing.id });
@@ -1109,6 +1262,8 @@ export async function importCases(
         projectId: input.projectId ?? null,
         userId,
         organizationId,
+        externalCaseId: caseId,
+        externalSource: QA_HUB_SOURCE,
         ...fields,
       })
       .returning();

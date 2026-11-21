@@ -4117,7 +4117,7 @@
     "modules": {
       "open": "Import modules…",
       "title": "Import modules",
-      "description": "Every case of the chosen modules that is not a test yet becomes a manual test, in the suite “QA hub · <module>”. Cases already imported are left as they are.",
+      "description": "Every case of the chosen modules that is not a test yet becomes a manual test, in the suite “QA hub · <module>”. A case whose QA id a test of the project already holds is never imported twice. Active cases by default.",
       "modules": "Modules",
       "all": "Select all",
       "none": "Select none",
@@ -4131,7 +4131,11 @@
       "tooMany": "Import at most {{max}} modules at a time.",
       "submit": "Import {{count}} cases",
       "done": "Modules imported",
-      "doneSummary": "{{modules}} modules: {{created}} tests created, {{updated}} updated, {{skipped}} cases skipped."
+      "doneSummary": "{{modules}} modules: {{created}} tests created, {{updated}} updated, {{skipped}} cases skipped.",
+      "sync": "Sync the tests that exist: module, feature area, scenario, title and manual steps text. Recorded or automated steps, checkpoints, data fixtures, preconditions and cleanups are never changed; cases deprecated in the hub are tagged, not deleted.",
+      "pages": "Only these feature highlights (pages)",
+      "pagesPlaceholder": "Comma separated; empty: all pages",
+      "doneDetail": "{{already}} already imported, {{deprecated}} deprecated left out, {{failed}} failed."
     }
   },
   "hubWaves": {
@@ -4501,7 +4505,8 @@
     "newTitle": "New manual test",
     "editTitle": "Edit manual test",
     "description": "The steps a person performs, each with the result to expect. In a plan run it waits for a verdict in the report.",
-    "name": "Name",
+    "name": "Name",
+    "caseId": "QA case id",
     "step": "Step {{n}}",
     "action": "Action",
     "expected": "Expected result",

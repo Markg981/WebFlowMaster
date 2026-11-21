@@ -58,7 +58,24 @@ export interface HubModuleImportParams {
   includeDeprecated: boolean;
   /** Also rewrite tests whose case changed in the hub since they were imported. */
   updateChanged: boolean;
+  /** Only cases of these feature highlights (pages); empty or absent: all of them. */
+  featureHighlights?: string[];
+  /**
+   * Opt-in sync of the tests that exist already (found by link or QA id): taxonomy, title and the
+   * manual steps text. Never a recorded or automated sequence, checkpoints, fixtures,
+   * preconditions or cleanups. Deprecated cases are tagged, not deleted.
+   */
+  sync?: boolean;
 }
+
+/** Why one case of a module import failed. */
+export interface HubModuleImportFailure {
+  caseId: string;
+  reason: string;
+}
+
+/** At most this many failures are kept in a job summary; the count is exact. */
+export const HUB_MODULE_IMPORT_MAX_FAILURES = 100;
 
 /** What a module import did to one module. */
 export interface HubModuleImportCounts {
@@ -69,6 +86,19 @@ export interface HubModuleImportCounts {
   updated: number;
   unchanged: number;
   skipped: number;
+  /** A live test of the project already held the case (by QA id): nothing was created. */
+  alreadyImported: number;
+  /** Deprecated in the hub and left out because the import was not asked to include them. */
+  skippedDeprecated: number;
+  /** Sync only: tests tagged because their case is deprecated in the hub. */
+  deprecatedMarked: number;
+  failed: number;
+  /** The first failures, with the reason; `failed` is the exact count. */
+  failures: HubModuleImportFailure[];
+  /** Sync only: how many tests changed, by field (module, featureArea, scenario, name, steps). */
+  changes: Record<string, number>;
+  /** Sync only: tests whose steps were kept because the sequence is not a manual one. */
+  stepsKept: number;
 }
 
 /** A case as the catalog keeps it: the definition's fields that matter here, normalised. */
@@ -113,6 +143,21 @@ export function normaliseHubCaseId(raw: string): string {
   const match = ID_PATTERN.exec(trimmed);
   if (!match) return trimmed.toUpperCase();
   return `${match[1].toUpperCase()}_TC_${match[2].padStart(5, '0')}`;
+}
+
+/** The `tests.external_source` of a case that came from the QA hub. */
+export const QA_HUB_SOURCE = 'qa-hub';
+
+const NAME_ID_PATTERN = /^\s*\[?([A-Za-z0-9]+)_TC_(\d{1,6})\]?(?=\s|$|—|–|:|-)/i;
+
+/**
+ * The QA case id a test name starts with, normalised: `[NCC_TC_00301] Title` and the legacy
+ * `NCC_TC_0134 — Title` both give an id. Null for any other name. Migration 0120 backfills with
+ * the same rule in SQL; keep the two in step.
+ */
+export function externalCaseIdFromName(name: string): string | null {
+  const match = NAME_ID_PATTERN.exec(String(name ?? ''));
+  return match ? normaliseHubCaseId(`${match[1]}_TC_${match[2]}`) : null;
 }
 
 function text(value: unknown): string {

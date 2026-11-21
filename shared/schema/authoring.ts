@@ -78,9 +78,27 @@ export const tests = pgTable(
     component: text('component'),
     priority: text('priority').default('Medium'), // enum is handled by app logic/zod
     severity: text('severity').default('Major'),
+    /**
+     * The id of the case in an external catalogue, normalised (QA hub: `NCC_TC_00301`), and the
+     * catalogue it belongs to. Migration 0120. Unique per project among non-archived tests.
+     */
+    externalCaseId: text('external_case_id'),
+    externalSource: text('external_source'),
   },
   (table) => [
     index('tests_user_id_idx').on(table.userId),
+    uniqueIndex('tests_external_case_uniq')
+      .on(
+        table.organizationId,
+        sql`coalesce(${table.projectId}, 0)`,
+        table.externalSource,
+        table.externalCaseId,
+      )
+      .where(sql`${table.externalCaseId} is not null and ${table.status} <> 'archived'`),
+    check(
+      'tests_external_source_check',
+      sql`${table.externalCaseId} is null or ${table.externalSource} is not null`,
+    ),
     index('tests_project_id_idx').on(table.projectId),
     index('tests_status_idx').on(table.status),
     index('tests_organization_id_idx').on(table.organizationId),
@@ -1035,7 +1053,10 @@ export const insertTestSchema = createInsertSchema(tests, {
     .nullable(),
   priority: z.enum(['Critical', 'High', 'Medium', 'Low']).optional().nullable(),
   severity: z.enum(['Blocker', 'Critical', 'Major', 'Minor']).optional().nullable(),
+  externalCaseId: z.string().trim().min(1).max(64).optional().nullable(),
 }).omit({
+  // Set by the server from externalCaseId (server/authoring/external-case-id.ts), never sent.
+  externalSource: true,
   id: true,
   createdAt: true,
   updatedAt: true,

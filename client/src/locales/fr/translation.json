@@ -4117,7 +4117,7 @@
     "modules": {
       "open": "Importer des modules…",
       "title": "Importer des modules",
-      "description": "Chaque cas des modules choisis qui n’est pas encore un test devient un test manuel, dans la suite « QA hub · <module> ». Les cas déjà importés restent tels quels.",
+      "description": "Chaque cas des modules choisis qui n’est pas encore un test devient un test manuel, dans la suite « QA hub · <module> ». Un cas dont l’identifiant QA est déjà porté par un test du projet n’est jamais importé deux fois. Par défaut, seuls les cas actifs.",
       "modules": "Modules",
       "all": "Tout sélectionner",
       "none": "Tout désélectionner",
@@ -4131,7 +4131,11 @@
       "tooMany": "Importez au plus {{max}} modules à la fois.",
       "submit": "Importer {{count}} cas",
       "done": "Modules importés",
-      "doneSummary": "{{modules}} modules : {{created}} tests créés, {{updated}} mis à jour, {{skipped}} cas ignorés."
+      "doneSummary": "{{modules}} modules : {{created}} tests créés, {{updated}} mis à jour, {{skipped}} cas ignorés.",
+      "sync": "Synchroniser les tests existants : module, zone fonctionnelle, scénario, titre et texte des étapes manuelles. Les étapes enregistrées ou automatisées, les points de contrôle, les jeux de données, les préconditions et les nettoyages ne sont jamais modifiés ; les cas obsolètes dans le hub sont étiquetés, pas supprimés.",
+      "pages": "Seulement ces feature highlights (pages)",
+      "pagesPlaceholder": "Séparées par des virgules ; vide : toutes les pages",
+      "doneDetail": "{{already}} déjà importés, {{deprecated}} obsolètes exclus, {{failed}} en échec."
     }
   },
   "hubWaves": {
@@ -4501,7 +4505,8 @@
     "newTitle": "Nouveau test manuel",
     "editTitle": "Modifier le test manuel",
     "description": "Les étapes qu’une personne exécute, chacune avec le résultat attendu. Dans une exécution de plan, il attend un verdict dans le rapport.",
-    "name": "Nom",
+    "name": "Nom",
+    "caseId": "Identifiant de cas QA",
     "step": "Étape {{n}}",
     "action": "Action",
     "expected": "Résultat attendu",

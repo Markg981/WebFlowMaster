@@ -4,7 +4,7 @@ Generated from `shared/schema/` (one file per domain) with `node scripts/generat
 
 Read the [domain schema](./database-schema) for explanations and relationships, then find the table here. Each row lists the TypeScript property, SQL name and complete builder: type, nullability, default and references declared on the column. Table callback constraints are not expanded here.
 
-**93 tables / 1142 declared columns.**
+**93 tables / 1144 declared columns.**
 
 ## Index
 
@@ -37,7 +37,7 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 | [ai_usage](#ai-usage)                                         | `aiUsage`                    | 3       |
 | [api_keys](#api-keys)                                         | `apiKeys`                    | 11      |
 | [sessions](#sessions)                                         | `sessions`                   | 3       |
-| [tests](#tests)                                               | `tests`                      | 23      |
+| [tests](#tests)                                               | `tests`                      | 25      |
 | [test_runs](#test-runs)                                       | `testRuns`                   | 7       |
 | [detected_elements](#detected-elements)                       | `detectedElements`           | 11      |
 | [excel_sequences_map](#excel-sequences-map)                   | `excelSequencesMap`          | 5       |
@@ -525,10 +525,12 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 | `component`        | `component`         | `text('component')`                                                             |
 | `priority`         | `priority`          | `text('priority').default('Medium')`                                            |
 | `severity`         | `severity`          | `text('severity').default('Major')`                                             |
+| `externalCaseId`   | `external_case_id`  | `text('external_case_id')`                                                      |
+| `externalSource`   | `external_source`   | `text('external_source')`                                                       |
 
 ## test_runs {#test-runs}
 
-`testRuns` — `shared/schema/authoring.ts:90`
+`testRuns` — `shared/schema/authoring.ts:108`
 
 | TS property      | SQL column        | Declaration                                                                 |
 | ---------------- | ----------------- | --------------------------------------------------------------------------- |
@@ -542,7 +544,7 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 
 ## detected_elements {#detected-elements}
 
-`detectedElements` — `shared/schema/authoring.ts:111`
+`detectedElements` — `shared/schema/authoring.ts:129`
 
 | TS property        | SQL column          | Declaration                                                                          |
 | ------------------ | ------------------- | ------------------------------------------------------------------------------------ |
@@ -560,7 +562,7 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 
 ## excel_sequences_map {#excel-sequences-map}
 
-`excelSequencesMap` — `shared/schema/authoring.ts:138`
+`excelSequencesMap` — `shared/schema/authoring.ts:156`
 
 | TS property       | SQL column           | Declaration                                                                          |
 | ----------------- | -------------------- | ------------------------------------------------------------------------------------ |
@@ -572,7 +574,7 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 
 ## step_groups {#step-groups}
 
-`stepGroups` — `shared/schema/authoring.ts:174`
+`stepGroups` — `shared/schema/authoring.ts:192`
 
 | TS property      | SQL column        | Declaration                                                                     |
 | ---------------- | ----------------- | ------------------------------------------------------------------------------- |
@@ -588,7 +590,7 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 
 ## custom_actions {#custom-actions}
 
-`customActions` — `shared/schema/authoring.ts:207`
+`customActions` — `shared/schema/authoring.ts:225`
 
 | TS property      | SQL column        | Declaration                                                                  |
 | ---------------- | ----------------- | ---------------------------------------------------------------------------- |
@@ -604,7 +606,7 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 
 ## test_data_sets {#test-data-sets}
 
-`testDataSets` — `shared/schema/authoring.ts:237`
+`testDataSets` — `shared/schema/authoring.ts:255`
 
 | TS property      | SQL column        | Declaration                                                                 |
 | ---------------- | ----------------- | --------------------------------------------------------------------------- |
@@ -619,7 +621,7 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 
 ## project_elements {#project-elements}
 
-`projectElements` — `shared/schema/authoring.ts:270`
+`projectElements` — `shared/schema/authoring.ts:288`
 
 | TS property        | SQL column          | Declaration                                                                                |
 | ------------------ | ------------------- | ------------------------------------------------------------------------------------------ |
@@ -641,7 +643,7 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 
 ## healing_proposals {#healing-proposals}
 
-`healingProposals` — `shared/schema/authoring.ts:318`
+`healingProposals` — `shared/schema/authoring.ts:336`
 
 | TS property         | SQL column           | Declaration                                                                                                 |
 | ------------------- | -------------------- | ----------------------------------------------------------------------------------------------------------- |
@@ -672,7 +674,7 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 
 ## tags {#tags}
 
-`tags` — `shared/schema/authoring.ts:383`
+`tags` — `shared/schema/authoring.ts:401`
 
 | TS property      | SQL column        | Declaration                                                                 |
 | ---------------- | ----------------- | --------------------------------------------------------------------------- |
@@ -683,7 +685,7 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 
 ## test_tags {#test-tags}
 
-`testTags` — `shared/schema/authoring.ts:407`
+`testTags` — `shared/schema/authoring.ts:425`
 
 | TS property      | SQL column        | Declaration                                                                     |
 | ---------------- | ----------------- | ------------------------------------------------------------------------------- |
@@ -698,7 +700,7 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 
 ## test_versions {#test-versions}
 
-`testVersions` — `shared/schema/authoring.ts:452`
+`testVersions` — `shared/schema/authoring.ts:470`
 
 | TS property           | SQL column              | Declaration                                                                                         |
 | --------------------- | ----------------------- | --------------------------------------------------------------------------------------------------- |
@@ -725,7 +727,7 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 
 ## test_publications {#test-publications}
 
-`testPublications` — `shared/schema/authoring.ts:517`
+`testPublications` — `shared/schema/authoring.ts:535`
 
 | TS property      | SQL column        | Declaration                                                                                         |
 | ---------------- | ----------------- | --------------------------------------------------------------------------------------------------- |
@@ -742,7 +744,7 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 
 ## test_reviews {#test-reviews}
 
-`testReviews` — `shared/schema/authoring.ts:561`
+`testReviews` — `shared/schema/authoring.ts:579`
 
 | TS property       | SQL column         | Declaration                                                                                         |
 | ----------------- | ------------------ | --------------------------------------------------------------------------------------------------- |
@@ -762,7 +764,7 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 
 ## mobile_tests {#mobile-tests}
 
-`mobileTests` — `shared/schema/authoring.ts:608`
+`mobileTests` — `shared/schema/authoring.ts:626`
 
 | TS property        | SQL column          | Declaration                                                                     |
 | ------------------ | ------------------- | ------------------------------------------------------------------------------- |
@@ -784,7 +786,7 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 
 ## mobile_step_groups {#mobile-step-groups}
 
-`mobileStepGroups` — `shared/schema/authoring.ts:638`
+`mobileStepGroups` — `shared/schema/authoring.ts:656`
 
 | TS property      | SQL column        | Declaration                                                                     |
 | ---------------- | ----------------- | ------------------------------------------------------------------------------- |
@@ -801,7 +803,7 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 
 ## load_tests {#load-tests}
 
-`loadTests` — `shared/schema/authoring.ts:673`
+`loadTests` — `shared/schema/authoring.ts:691`
 
 | TS property      | SQL column        | Declaration                                                                          |
 | ---------------- | ----------------- | ------------------------------------------------------------------------------------ |

@@ -133,16 +133,32 @@ export function HubJobBanner({
 /** The toast for a module import that ended well: what it made of the chosen modules. */
 export function moduleImportToast(job: HubJob, t: TFunction) {
   const summary = (job.summary ?? {}) as Partial<HubModuleImportSummary>;
+  const already = Number(summary.alreadyImported ?? 0);
+  const deprecated = Number(summary.skippedDeprecated ?? 0);
+  const failed = Number(summary.failed ?? 0);
+  const main = t('testCaseHub.modules.doneSummary', {
+    defaultValue:
+      '{{modules}} modules: {{created}} tests created, {{updated}} updated, {{skipped}} cases skipped.',
+    modules: Array.isArray(summary.modules) ? summary.modules.length : 0,
+    created: Number(summary.created ?? 0),
+    updated: Number(summary.updated ?? 0),
+    skipped: Number(summary.skipped ?? 0),
+  });
+  // The extra counts only appear when there is something to say, so a plain import reads as before.
+  const detail =
+    already + deprecated + failed > 0
+      ? ' ' +
+        t('testCaseHub.modules.doneDetail', {
+          defaultValue:
+            '{{already}} already imported, {{deprecated}} deprecated left out, {{failed}} failed.',
+          already,
+          deprecated,
+          failed,
+        })
+      : '';
   return {
     title: t('testCaseHub.modules.done', 'Modules imported'),
-    description: t('testCaseHub.modules.doneSummary', {
-      defaultValue:
-        '{{modules}} modules: {{created}} tests created, {{updated}} updated, {{skipped}} cases skipped.',
-      modules: Array.isArray(summary.modules) ? summary.modules.length : 0,
-      created: Number(summary.created ?? 0),
-      updated: Number(summary.updated ?? 0),
-      skipped: Number(summary.skipped ?? 0),
-    }),
+    description: main + detail,
   };
 }
 

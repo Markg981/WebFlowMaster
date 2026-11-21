@@ -42,6 +42,12 @@ const testFields = {
   component: nullableText,
   priority: nullableText,
   severity: nullableText,
+  externalCaseId: {
+    type: ['string', 'null'],
+    pattern: '^[A-Za-z0-9]+_TC_[0-9]{1,6}$',
+    description:
+      'The QA hub case id (NCC_TC_00301), normalised on save. One live test per project may hold a case: a second answers 409 external_case_id_conflict with existingTestId.',
+  },
   status: { ...text, enum: ['draft', 'ready', 'archived'] },
 };
 export const anyObject = { type: 'object', additionalProperties: true } as const;
@@ -159,6 +165,10 @@ export const authoringSchemas = {
   AuthoredTest: object({
     id: integer,
     ...testFields,
+    externalSource: {
+      type: ['string', 'null'],
+      description: "'qa-hub' when externalCaseId is set.",
+    },
     createdAt: date,
     updatedAt: date,
     publishedVersion: { type: ['integer', 'null'] },
@@ -369,7 +379,17 @@ export const authoringPaths = {
       scope: 'tests:read',
       response: 'AuthoredTest',
       list: true,
-      parameters: [...pagination, { name: 'projectId', in: 'query', schema: integer }],
+      parameters: [
+        ...pagination,
+        { name: 'projectId', in: 'query', schema: integer },
+        {
+          name: 'externalCaseId',
+          in: 'query',
+          schema: { type: 'string' },
+          description:
+            'The test holding this QA case id, in any spelling (NCC_TC_0134 is NCC_TC_00134).',
+        },
+      ],
       summary: 'List visible web, manual and BDD tests.',
     }),
     post: operation({

@@ -114,6 +114,7 @@ beforeAll(async () => {
 
   const { default: hubRoutes } = await import('./testcase-hub.routes');
   const { default: waveRoutes } = await import('./hub-waves.routes');
+  const { default: testRoutes } = await import('./tests.routes');
   ({ settleHubJobs } = await import('../../integrations/hub-waves'));
   const { runWithTenant } = await import('../../platform/middleware/tenancy');
   app = express();
@@ -128,6 +129,7 @@ beforeAll(async () => {
   });
   app.use(hubRoutes);
   app.use(waveRoutes);
+  app.use(testRoutes);
 
   currentUser = editor;
   expect(
@@ -192,7 +194,7 @@ describe('importing whole modules', () => {
   it('imports every active case of a module into its suite, and only that module', async () => {
     const job = await importModules({ modules: [ARCHIVING] });
     expect(job.summary).toMatchObject({ created: 3, updated: 0, skipped: 0 });
-    expect(job.summary.modules).toEqual([
+    expect(job.summary.modules).toMatchObject([
       { module: ARCHIVING, requested: 3, created: 3, updated: 0, unchanged: 0, skipped: 0 },
     ]);
 
@@ -221,7 +223,7 @@ describe('importing whole modules', () => {
   it('takes up only what is missing on the next import, deprecated cases when asked', async () => {
     const job = await importModules({ modules: [SALES, ARCHIVING], includeDeprecated: true });
     // In the order asked for.
-    expect(job.summary.modules).toEqual([
+    expect(job.summary.modules).toMatchObject([
       { module: SALES, requested: 2, created: 2, updated: 0, unchanged: 0, skipped: 0 },
       { module: ARCHIVING, requested: 1, created: 1, updated: 0, unchanged: 0, skipped: 0 },
     ]);
@@ -261,5 +263,36 @@ describe('importing whole modules', () => {
       .post('/api/testcase-hub/import/modules')
       .send({ modules: [ARCHIVING] });
     expect(denied.status).toBe(403);
+  });
+});
+
+describe('the QA case id', () => {
+  const MOD = ARCHIVING;
+  const idsOf = async () =>
+    (
+      await privilegedDb
+        .select({ id: tests.id, caseId: tests.externalCaseId, source: tests.externalSource })
+        .from(tests)
+        .where(eq(tests.organizationId, organizationId))
+    ).filter((row) => row.caseId);
+
+  it('stores the id and the source, and a second run creates nothing', async () => {
+    const first = await importModules({ modules: [MOD] });
+    expect(first.summary.created).toBeGreaterThanOrEqual(0);
+    const rows = await idsOf();
+    expect(rows.length).toBeGreaterThan(0);
+    expect(rows.every((r) => r.source === 'qa-hub')).toBe(true);
+    const before = (await libraryTests()).length;
+
+    const again = await importModules({ modules: [MOD] });
+    expect(again.summary).toMatchObject({ created: 0, updated: 0, failed: 0 });
+    expect((await libraryTests()).length).toBe(before);
+  });
+
+  it('finds a test by its id on the REST list, any spelling', async () => {
+    const [row] = await idsOf();
+    const res = await request(app).get('/api/tests').query({ externalCaseId: row.caseId!.toLowerCase() });
+    expect(res.status).toBe(200);
+    expect(res.body.map((t: any) => t.id)).toEqual([row.id]);
   });
 });

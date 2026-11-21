@@ -387,4 +387,21 @@ describe('TestLibraryPage', () => {
 
     expect(await screen.findByText('Could not load the catalog.')).toBeInTheDocument();
   });
+
+  it('shows the QA case id next to the name of a test that has one', async () => {
+    fetchMock.mockImplementation((url: string) =>
+      Promise.resolve(
+        url.startsWith('/api/catalog/tests')
+          ? catalog([
+              { ...tests[0], externalCaseId: 'NCC_TC_00301' },
+              { ...tests[1], externalCaseId: null },
+            ])
+          : respond(url),
+      ),
+    );
+    renderPage();
+    await screen.findByText('Checkout');
+    expect(screen.getByTestId('test-qa-id-1')).toHaveTextContent('NCC_TC_00301');
+    expect(screen.queryByTestId('test-qa-id-2')).toBeNull();
+  });
 });

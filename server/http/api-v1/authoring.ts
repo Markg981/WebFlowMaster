@@ -62,6 +62,12 @@ import {
 } from '../../tenancy/tenant-quotas';
 import schedulerService from '../../execution/scheduler-service';
 import { partialUpdate } from '@shared/partial-update';
+import { QA_HUB_SOURCE } from '@shared/testcases-hub';
+import {
+  ExternalCaseIdError,
+  externalCaseColumns,
+  normaliseExternalCaseId,
+} from '../../authoring/external-case-id';
 
 const numericId = z.coerce.number().int().positive();
 export const projectCreateSchema = z.object({ name: z.string().trim().min(1).max(200) }).strict();
@@ -86,6 +92,7 @@ export const testCreateSchema = insertTestSchema
     component: true,
     priority: true,
     severity: true,
+    externalCaseId: true,
   })
   .extend({
     name: z.string().trim().min(1).max(200),
@@ -234,6 +241,8 @@ export function publicTest(row: Test) {
     component: row.component,
     priority: row.priority,
     severity: row.severity,
+    externalCaseId: row.externalCaseId,
+    externalSource: row.externalSource,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
   };
@@ -434,16 +443,41 @@ async function saveTest(
   if (duplicate)
     throw new AuthoringError(409, 'name_conflict', 'A test with this name already exists.');
   const definition = await prepareBddForSave(tx, input, existing);
+  // The QA case id: checked when it or the project is in the body, so a conflict answers 409
+  // with the holder's id instead of a unique-index error.
+  let caseColumns = {};
+  try {
+    if (definition.externalCaseId !== undefined || definition.projectId !== undefined)
+      caseColumns = await externalCaseColumns(tx, {
+        externalCaseId:
+          definition.externalCaseId !== undefined
+            ? definition.externalCaseId
+            : existing?.externalCaseId,
+        projectId:
+          definition.projectId !== undefined ? definition.projectId : (existing?.projectId ?? null),
+        testId: existing?.id,
+      });
+  } catch (error) {
+    if (error instanceof ExternalCaseIdError)
+      throw new AuthoringError(
+        error.code === 'external_case_id_conflict' ? 409 : 400,
+        error.code === 'external_case_id_conflict' ? 'external_case_id_conflict' : 'invalid_request',
+        error.message,
+        { existingTestId: error.existingTestId },
+      );
+    throw error;
+  }
   const [row] = existing
     ? await tx
         .update(tests)
-        .set({ ...definition, updatedAt: new Date() })
+        .set({ ...definition, ...caseColumns, updatedAt: new Date() })
         .where(eq(tests.id, existing.id))
         .returning()
     : await tx
         .insert(tests)
         .values({
           ...(definition as z.infer<typeof testCreateSchema>),
+          ...caseColumns,
           userId: req.user!.id,
           organizationId: req.user!.organizationId,
         })
@@ -768,10 +802,26 @@ export function registerAuthoringRoutes(router: Router) {
     'tests:read',
     async (req, res) => {
       const p = page(req);
-      const filter =
+      // ?externalCaseId=NCC_TC_00301 finds the test holding a QA case, in any spelling of the id.
+      let caseId: string | null = null;
+      try {
+        caseId =
+          typeof req.query.externalCaseId === 'string'
+            ? normaliseExternalCaseId(req.query.externalCaseId)
+            : null;
+      } catch (error) {
+        if (error instanceof ExternalCaseIdError)
+          throw new AuthoringError(400, 'invalid_request', error.message);
+        throw error;
+      }
+      const filter = and(
         req.query.projectId === undefined
           ? undefined
-          : eq(tests.projectId, numericId.parse(req.query.projectId));
+          : eq(tests.projectId, numericId.parse(req.query.projectId)),
+        caseId
+          ? and(eq(tests.externalSource, QA_HUB_SOURCE), eq(tests.externalCaseId, caseId))
+          : undefined,
+      );
       const rows = await withTenantTransaction((tx) =>
         tx.select().from(tests).where(filter).orderBy(tests.id).limit(p.limit).offset(p.offset),
       );

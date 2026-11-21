@@ -89,6 +89,14 @@ export const API_SCOPES = {
     minimumRole: 'editor',
     description: 'Create and delete plan webhooks; the token is shown once, on creation.',
   },
+  'qa-hub:read': {
+    minimumRole: 'viewer',
+    description: 'Read QA hub import jobs and the audit of what is imported against the hub.',
+  },
+  'qa-hub:write': {
+    minimumRole: 'editor',
+    description: 'Start QA hub module imports and syncs (background jobs) into accessible projects.',
+  },
   'billing:read': {
     minimumRole: 'viewer',
     description:
