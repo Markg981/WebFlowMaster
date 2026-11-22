@@ -247,6 +247,44 @@ function sheetOf(
   };
 }
 
+/**
+ * ExcelJS only reads parts whose elements are unprefixed (`<workbook>`), but the Open XML SDK
+ * writes them with a prefix (`<x:workbook xmlns:x="...">`): ExcelJS then finds no workbook and
+ * fails on `undefined.sheets`. Each XML part whose root element is prefixed, and that has no
+ * default namespace, gets that prefix's namespace as its default one and loses the prefix on
+ * every element, but only for the namespaces ExcelJS reads unprefixed: it expects `cp:`/`dc:`
+ * in docProps/core.xml, for instance. Other prefixes (`r:id`, `mc:Ignorable`, `x14ac:`) are left
+ * as they are. The theme is skipped: ExcelJS keeps it as raw text. A workbook with no prefixed
+ * part is returned as it was read.
+ */
+const UNPREFIXED_NAMESPACES = new Set([
+  'http://schemas.openxmlformats.org/spreadsheetml/2006/main',
+  'http://schemas.openxmlformats.org/officeDocument/2006/extended-properties',
+]);
+
+export async function withDefaultNamespaces(buffer: Buffer): Promise<Buffer> {
+  const JSZip = (await import('jszip')).default;
+  const zip = await JSZip.loadAsync(buffer);
+  let changed = false;
+  for (const entry of Object.values(zip.files)) {
+    if (entry.dir || !/\.xml$/i.test(entry.name) || /(^|\/)xl\/theme\//.test(entry.name)) continue;
+    const xml = await entry.async('string');
+    const root = /^﻿?\s*(?:<\?xml[^>]*\?>\s*)?<([\w.-]+):[\w.-]+[\s/>]/.exec(xml);
+    if (!root) continue;
+    const prefix = root[1]!;
+    const declaration = new RegExp(`\\sxmlns:${prefix}="([^"]*)"`).exec(xml);
+    const rootTag = xml.slice(root.index, xml.indexOf('>', root.index + root[0].length - 1) + 1);
+    if (!declaration || !UNPREFIXED_NAMESPACES.has(declaration[1]!) || /\sxmlns="/.test(rootTag))
+      continue;
+    const unprefixed = xml
+      .replace(declaration[0], ` xmlns="${declaration[1]}"`)
+      .replace(new RegExp(`<(/?)${prefix}:`, 'g'), '<$1');
+    zip.file(entry.name, unprefixed);
+    changed = true;
+  }
+  return changed ? zip.generateAsync({ type: 'nodebuffer', compression: 'DEFLATE' }) : buffer;
+}
+
 async function workbookSheets(
   file: string,
   root: string,
@@ -256,7 +294,7 @@ async function workbookSheets(
   await assertXlsxWithinLimits(file, root);
   const ExcelJS = (await import('exceljs')).default;
   const workbook = new ExcelJS.Workbook();
-  await workbook.xlsx.readFile(file);
+  await workbook.xlsx.load(await withDefaultNamespaces(await fs.readFile(file)));
   let cut = false;
   const sheets = workbook.worksheets.map((ws) => {
     const read = sheetOf(ws, options);
