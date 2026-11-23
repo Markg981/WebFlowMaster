@@ -294,7 +294,9 @@ async function workbookSheets(
   await assertXlsxWithinLimits(file, root);
   const ExcelJS = (await import('exceljs')).default;
   const workbook = new ExcelJS.Workbook();
-  await workbook.xlsx.load(await withDefaultNamespaces(await fs.readFile(file)));
+  // ExcelJS types `load` with the pre-generic Buffer; the bytes are the same.
+  const xlsx = await withDefaultNamespaces(await fs.readFile(file));
+  await workbook.xlsx.load(xlsx as unknown as Parameters<typeof workbook.xlsx.load>[0]);
   let cut = false;
   const sheets = workbook.worksheets.map((ws) => {
     const read = sheetOf(ws, options);
