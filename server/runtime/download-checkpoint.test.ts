@@ -164,6 +164,66 @@ describe('downloadCheckpoint of a workbook', () => {
     expect(again.hash).toBe(hash);
   });
 
+  it('reads a workbook written by the Open XML SDK (prefixed namespaces, absolute targets)', async () => {
+    const MAIN = 'http://schemas.openxmlformats.org/spreadsheetml/2006/main';
+    const REL = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships';
+    const PKG = 'http://schemas.openxmlformats.org/package/2006/relationships';
+    const head = '﻿<?xml version="1.0" encoding="utf-8"?>';
+    const part = (name: string, xml: string) => ({ name, data: Buffer.from(head + xml) });
+    const sdk = buildZip([
+      part(
+        '[Content_Types].xml',
+        '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">' +
+          '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml" />' +
+          '<Default Extension="xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml" />' +
+          '<Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml" />' +
+          '<Override PartName="/xl/sharedStrings.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sharedStrings+xml" />' +
+          '<Override PartName="/docProps/app.xml" ContentType="application/vnd.openxmlformats-officedocument.extended-properties+xml" />' +
+          '</Types>',
+      ),
+      part(
+        '_rels/.rels',
+        `<Relationships xmlns="${PKG}">` +
+          `<Relationship Type="${REL}/officeDocument" Target="/xl/workbook.xml" Id="R1" />` +
+          `<Relationship Type="${REL}/extended-properties" Target="/docProps/app.xml" Id="rId1" />` +
+          '</Relationships>',
+      ),
+      part(
+        'docProps/app.xml',
+        '<ap:Properties xmlns:ap="http://schemas.openxmlformats.org/officeDocument/2006/extended-properties"><ap:Application>SDK</ap:Application></ap:Properties>',
+      ),
+      part(
+        'xl/workbook.xml',
+        `<x:workbook xmlns:r="${REL}" xmlns:x="${MAIN}"><x:sheets><x:sheet name="Overfill" sheetId="1" r:id="rId2" /></x:sheets></x:workbook>`,
+      ),
+      part(
+        'xl/_rels/workbook.xml.rels',
+        `<Relationships xmlns="${PKG}">` +
+          `<Relationship Type="${REL}/worksheet" Target="/xl/worksheets/sheet1.xml" Id="rId2" />` +
+          `<Relationship Type="${REL}/sharedStrings" Target="/xl/sharedStrings.xml" Id="rId3" />` +
+          '</Relationships>',
+      ),
+      part(
+        'xl/sharedStrings.xml',
+        `<x:sst xmlns:x="${MAIN}" count="2" uniqueCount="2"><x:si><x:t>Batch Code</x:t></x:si><x:si><x:t>53101580A3</x:t></x:si></x:sst>`,
+      ),
+      part(
+        'xl/worksheets/sheet1.xml',
+        `<x:worksheet xmlns:r="${REL}" xmlns:x="${MAIN}"><x:sheetData>` +
+          '<x:row r="1"><x:c r="A1" t="s"><x:v>0</x:v></x:c><x:c r="B1" t="str"><x:v>E(g)</x:v></x:c></x:row>' +
+          '<x:row r="2"><x:c r="A2" t="s"><x:v>1</x:v></x:c><x:c r="B2"><x:v>23</x:v></x:c></x:row>' +
+          '</x:sheetData></x:worksheet>',
+      ),
+    ]);
+    const { data } = await capture('NCC_Overfill_Report20261122205347.xlsx', sdk);
+    expect(data.sheets?.map((s) => s.name)).toEqual(['Overfill']);
+    expect(data.sheets![0].range).toBe('A1:B2');
+    expect(data.sheets![0].rows).toEqual([
+      ['Batch Code', 'E(g)'],
+      ['53101580A3', '23'],
+    ]);
+  });
+
   it('refuses a workbook that inflates past the zip-bomb limits before reading it', async () => {
     const bomb = buildZip([
       {
