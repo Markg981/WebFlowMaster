@@ -25,9 +25,12 @@ test('gRPC stream settings persist and a real service completes through the inte
   await page.getByLabel('gRPC mode', { exact: true }).selectOption('server_stream');
   await expect(page.getByLabel('gRPC mode', { exact: true })).toHaveValue('server_stream');
   const maxMessages = page.getByLabel('Maximum received messages', { exact: true });
-  await maxMessages.fill('5');
-  // WebKit can drop a fill that lands during a re-render: confirm the controlled input kept it before saving.
-  await expect(maxMessages).toHaveValue('5');
+  // WebKit can drop a fill that lands during a re-render (the field reads back empty): fill
+  // again until the controlled input keeps the value, then save.
+  await expect(async () => {
+    await maxMessages.fill('5');
+    await expect(maxMessages).toHaveValue('5', { timeout: 2_000 });
+  }).toPass({ timeout: 15_000 });
   const name = `CI gRPC stream ${randomUUID()}`;
   await page.getByRole('button', { name: 'Save Test', exact: true }).click();
   const dialog = page.getByRole('dialog');
