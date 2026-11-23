@@ -269,7 +269,7 @@ export async function withDefaultNamespaces(buffer: Buffer): Promise<Buffer> {
   for (const entry of Object.values(zip.files)) {
     if (entry.dir || !/\.xml$/i.test(entry.name) || /(^|\/)xl\/theme\//.test(entry.name)) continue;
     const xml = await entry.async('string');
-    const root = /^﻿?\s*(?:<\?xml[^>]*\?>\s*)?<([\w.-]+):[\w.-]+[\s/>]/.exec(xml);
+    const root = /^\uFEFF?\s*(?:<\?xml[^>]*\?>\s*)?<([\w.-]+):[\w.-]+[\s/>]/.exec(xml);
     if (!root) continue;
     const prefix = root[1]!;
     const declaration = new RegExp(`\\sxmlns:${prefix}="([^"]*)"`).exec(xml);
