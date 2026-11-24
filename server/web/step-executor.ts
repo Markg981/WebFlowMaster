@@ -428,8 +428,49 @@ async function takeDownload(
     dir,
     `download_${Date.now()}_${name.replace(/[^\w.-]+/g, '_').slice(-80)}`,
   );
-  await download.saveAs(file);
+  await saveDownload(download, file);
   return { name, file, dir, temporary: !rt.artifactDir };
+}
+
+/** Errors Windows raises while another process (antivirus, indexer) still holds the downloaded file. */
+const LOCKED_FILE = new Set(['EBUSY', 'EPERM', 'EACCES']);
+
+/**
+ * Saves a download, waiting out a short-lived lock on Windows: right after the browser writes the file an
+ * antivirus or the search indexer may hold it, and `saveAs` (a copy) fails with EBUSY. That failure says
+ * nothing about the page under test, yet it failed whole tests and broke legacy-vs-legacy comparisons
+ * (DMO overfill A-A, 2026-11-24). Retries the copy with a growing delay, then streams the content instead.
+ */
+export async function saveDownload(
+  download: Pick<Download, 'saveAs' | 'createReadStream'>,
+  file: string,
+  delaysMs: readonly number[] = [200, 500, 1000, 2000, 4000],
+): Promise<void> {
+  let lastError: unknown;
+  for (let attempt = 0; attempt <= delaysMs.length; attempt++) {
+    try {
+      await download.saveAs(file);
+      return;
+    } catch (error) {
+      if (!LOCKED_FILE.has((error as NodeJS.ErrnoException).code ?? '') && !/\b(EBUSY|EPERM|EACCES)\b/.test(String(error)))
+        throw error;
+      lastError = error;
+      if (attempt < delaysMs.length) await new Promise((resolve) => setTimeout(resolve, delaysMs[attempt]));
+    }
+  }
+  try {
+    const stream = await download.createReadStream();
+    await fs.remove(file);
+    await new Promise<void>((resolve, reject) => {
+      const out = fs.createWriteStream(file);
+      stream.on('error', reject);
+      out.on('error', reject);
+      out.on('finish', () => resolve());
+      stream.pipe(out);
+    });
+  } catch {
+    throw lastError;
+  }
 }
 
 /** Splits "name=value" at the first `=`, so a value may contain its own. */
