@@ -452,10 +452,14 @@ export async function saveDownload(
       await download.saveAs(file);
       return;
     } catch (error) {
-      if (!LOCKED_FILE.has((error as NodeJS.ErrnoException).code ?? '') && !/\b(EBUSY|EPERM|EACCES)\b/.test(String(error)))
+      if (
+        !LOCKED_FILE.has((error as NodeJS.ErrnoException).code ?? '') &&
+        !/\b(EBUSY|EPERM|EACCES)\b/.test(String(error))
+      )
         throw error;
       lastError = error;
-      if (attempt < delaysMs.length) await new Promise((resolve) => setTimeout(resolve, delaysMs[attempt]));
+      if (attempt < delaysMs.length)
+        await new Promise((resolve) => setTimeout(resolve, delaysMs[attempt]));
     }
   }
   try {

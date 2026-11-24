@@ -14,7 +14,8 @@ function lockedDownload(failures: number, code = 'EBUSY') {
     },
     async saveAs(file: string) {
       calls++;
-      if (calls <= failures) throw Object.assign(new Error(`${code}: resource busy or locked, copyfile`), { code });
+      if (calls <= failures)
+        throw Object.assign(new Error(`${code}: resource busy or locked, copyfile`), { code });
       await fs.writeFile(file, 'copied');
     },
     async createReadStream() {
@@ -50,7 +51,9 @@ describe('saveDownload', () => {
 
   it('does not retry an error that is not a lock', async () => {
     const download = lockedDownload(1, 'ENOSPC');
-    await expect(saveDownload(download, path.join(dir, 'c.xlsx'), [1, 1])).rejects.toThrow(/ENOSPC/);
+    await expect(saveDownload(download, path.join(dir, 'c.xlsx'), [1, 1])).rejects.toThrow(
+      /ENOSPC/,
+    );
     expect(download.calls).toBe(1);
   });
 });
