@@ -1176,6 +1176,32 @@ describe('checkpointText on a chart drawn as SVG or as canvas (TD-010)', () => {
   });
 });
 
+describe('checkpointText on a selector that also matches hidden nodes (TD-008)', () => {
+  it('records only what a person can see', async () => {
+    const browser = await chromium.launch();
+    try {
+      const page = await browser.newPage();
+      await page.setContent(
+        '<div class="t">Visible header</div>' +
+          '<div style="display:none"><div class="t">Release</div></div>' +
+          '<div class="t" style="display:none">Tare</div>' +
+          '<div class="t" style="visibility:hidden">Ghost</div>',
+      );
+      const step = {
+        id: 's1',
+        action: { id: 'checkpointText', name: 'Checkpoint text' },
+        value: 'detail',
+        targetElement: { selector: '.t' },
+      } as unknown as MappedTestStep;
+      const outcome = await executeStep({ page }, step);
+      const texts = (outcome.checkpoint?.data as { texts: string[] }).texts;
+      expect(texts.filter((t) => t.trim() !== '')).toEqual(['Visible header']);
+    } finally {
+      await browser.close().catch(() => {});
+    }
+  });
+});
+
 describe('queued dialog answers nobody consumed', () => {
   it('are counted so the run can report them', async () => {
     const { queueDialogAnswer, unusedDialogAnswers } = await import('./step-executor');

@@ -1431,26 +1431,36 @@ const HANDLERS: Record<AdhocActionId, StepHandler> = {
     const matches = rt.locator(target.selector);
     await matches.first().waitFor({ state: 'attached', timeout: rt.timeoutMs });
     const texts = await matches.evaluateAll((nodes) =>
-      nodes.map((node) =>
-        node instanceof HTMLInputElement ||
-        node instanceof HTMLTextAreaElement ||
-        node instanceof HTMLSelectElement
-          ? node instanceof HTMLInputElement && node.type === 'password'
-            ? ''
-            : node.value
-          : // The labels of an SVG chart are text in the page, those of a canvas chart are not:
-            // the same chart in either technology must read the same, so SVG text is left out
-            // (as checkpointTable does, TD-010).
-            node instanceof SVGElement
-            ? ''
-            : node.querySelector('svg')
-              ? (() => {
-                  const copy = node.cloneNode(true) as Element;
-                  copy.querySelectorAll('svg').forEach((svg) => svg.remove());
-                  return (copy.textContent ?? '').replace(/\s+/g, ' ').trim();
-                })()
-              : ((node as HTMLElement).innerText ?? node.textContent ?? ''),
-      ),
+      nodes
+        // innerText of a node that is not rendered (display:none, or inside such a node) returns
+        // its textContent, so a hidden match would count as text the page shows (TD-008).
+        .filter(
+          (node) =>
+            node instanceof HTMLInputElement ||
+            node instanceof HTMLTextAreaElement ||
+            node instanceof HTMLSelectElement ||
+            (node as HTMLElement).getClientRects().length > 0,
+        )
+        .map((node) =>
+          node instanceof HTMLInputElement ||
+          node instanceof HTMLTextAreaElement ||
+          node instanceof HTMLSelectElement
+            ? node instanceof HTMLInputElement && node.type === 'password'
+              ? ''
+              : node.value
+            : // The labels of an SVG chart are text in the page, those of a canvas chart are not:
+              // the same chart in either technology must read the same, so SVG text is left out
+              // (as checkpointTable does, TD-010).
+              node instanceof SVGElement
+              ? ''
+              : node.querySelector('svg')
+                ? (() => {
+                    const copy = node.cloneNode(true) as Element;
+                    copy.querySelectorAll('svg').forEach((svg) => svg.remove());
+                    return (copy.textContent ?? '').replace(/\s+/g, ' ').trim();
+                  })()
+                : ((node as HTMLElement).innerText ?? node.textContent ?? ''),
+        ),
     );
     const checkpoint = textCheckpoint(name, texts);
     const kept = (checkpoint.data as { texts: string[] }).texts.length;
