@@ -1141,6 +1141,41 @@ describe('runBounded: a step the run can stop', () => {
   });
 });
 
+describe('checkpointText on a chart drawn as SVG or as canvas (TD-010)', () => {
+  it('reads the same text for an SVG chart, a canvas chart and a plain wrapper', async () => {
+    const browser = await chromium.launch();
+    try {
+      const page = await browser.newPage();
+      await page.setContent(
+        '<svg id="svg" width="100" height="40"><text x="5" y="20">25.0 Weight Average (g)</text></svg>' +
+          '<div id="wrap"><svg width="100" height="40"><text x="5" y="20">25.0</text></svg> Title</div>' +
+          '<div id="cv"><canvas width="100" height="40"></canvas> Title</div>' +
+          '<div id="cv0"><canvas width="100" height="40"></canvas></div>' +
+          '<p id="plain">Plain text</p>',
+      );
+      const read = async (selector: string) => {
+        const step = {
+          id: 's1',
+          action: { id: 'checkpointText', name: 'Checkpoint text' },
+          value: 'chart',
+          targetElement: { selector },
+        } as unknown as MappedTestStep;
+        const outcome = await executeStep({ page }, step);
+        return (outcome.checkpoint?.data as { texts: string[] }).texts;
+      };
+      const svg = await read('#svg');
+      const cv0 = await read('#cv0');
+      expect(svg.map((t) => t.trim())).toEqual(cv0.map((t) => t.trim()));
+      expect((await read('#wrap')).map((t) => t.trim())).toEqual(
+        (await read('#cv')).map((t) => t.trim()),
+      );
+      expect(await read('#plain')).toEqual(['Plain text']);
+    } finally {
+      await browser.close().catch(() => {});
+    }
+  });
+});
+
 describe('checkpointTable reads every cell with one text rule (TD-009)', () => {
   it('a cell with an svg and a cell without read the same text', async () => {
     const browser = await chromium.launch();

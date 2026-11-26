@@ -1448,7 +1448,18 @@ const HANDLERS: Record<AdhocActionId, StepHandler> = {
             ? node instanceof HTMLInputElement && node.type === 'password'
               ? ''
               : node.value
-            : ((node as HTMLElement).innerText ?? node.textContent ?? ''),
+            : // The labels of an SVG chart are text in the page, those of a canvas chart are not:
+              // the same chart in either technology must read the same, so SVG text is left out
+              // (as checkpointTable does, TD-010).
+              node instanceof SVGElement
+              ? ''
+              : node.querySelector('svg')
+                ? (() => {
+                    const copy = node.cloneNode(true) as Element;
+                    copy.querySelectorAll('svg').forEach((svg) => svg.remove());
+                    return (copy.textContent ?? '').replace(/\s+/g, ' ').trim();
+                  })()
+                : ((node as HTMLElement).innerText ?? node.textContent ?? ''),
         ),
     );
     const checkpoint = textCheckpoint(name, texts);
