@@ -1431,15 +1431,25 @@ const HANDLERS: Record<AdhocActionId, StepHandler> = {
     const matches = rt.locator(target.selector);
     await matches.first().waitFor({ state: 'attached', timeout: rt.timeoutMs });
     const texts = await matches.evaluateAll((nodes) =>
-      nodes.map((node) =>
-        node instanceof HTMLInputElement ||
-        node instanceof HTMLTextAreaElement ||
-        node instanceof HTMLSelectElement
-          ? node instanceof HTMLInputElement && node.type === 'password'
-            ? ''
-            : node.value
-          : ((node as HTMLElement).innerText ?? node.textContent ?? ''),
-      ),
+      nodes
+        // innerText of a node that is not rendered (display:none, or inside such a node) returns
+        // its textContent, so a hidden match would count as text the page shows (TD-008).
+        .filter(
+          (node) =>
+            node instanceof HTMLInputElement ||
+            node instanceof HTMLTextAreaElement ||
+            node instanceof HTMLSelectElement ||
+            (node as HTMLElement).getClientRects().length > 0,
+        )
+        .map((node) =>
+          node instanceof HTMLInputElement ||
+          node instanceof HTMLTextAreaElement ||
+          node instanceof HTMLSelectElement
+            ? node instanceof HTMLInputElement && node.type === 'password'
+              ? ''
+              : node.value
+            : ((node as HTMLElement).innerText ?? node.textContent ?? ''),
+        ),
     );
     const checkpoint = textCheckpoint(name, texts);
     const kept = (checkpoint.data as { texts: string[] }).texts.length;
