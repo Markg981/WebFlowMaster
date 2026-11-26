@@ -88,9 +88,40 @@ function shown(value: unknown): string {
   return text.length > 300 ? `${text.slice(0, 300)}…` : text;
 }
 
+const CLIP = 300;
+const WINDOW = 150;
+
+function asText(value: unknown): string {
+  return typeof value === 'string' ? value : JSON.stringify(value);
+}
+
+/**
+ * Both values of a difference for a table cell. A value longer than the clip is cut; when the
+ * difference lies beyond the cut, the cell shows a window around the first differing character
+ * and its position, so that a reported difference is never hidden by the clipping (TD-011).
+ */
+export function shownPair(baseline: unknown, candidate: unknown): [string, string] {
+  if (baseline === undefined || candidate === undefined) return [shown(baseline), shown(candidate)];
+  const a = asText(baseline);
+  const b = asText(candidate);
+  const first = firstDifference(a, b);
+  if (first < CLIP || (a.length <= CLIP && b.length <= CLIP)) return [shown(baseline), shown(candidate)];
+  const from = Math.max(0, first - WINDOW);
+  const window = (t: string) =>
+    `[length ${t.length}; first difference at position ${first}] ${from > 0 ? '…' : ''}${t.slice(from, first + WINDOW)}${t.length > first + WINDOW ? '…' : ''}`;
+  return [window(a), window(b)];
+}
+
+function firstDifference(a: string, b: string): number {
+  const n = Math.min(a.length, b.length);
+  for (let i = 0; i < n; i++) if (a[i] !== b[i]) return i;
+  return n;
+}
+
 function differenceRow(d: ComparisonDifference): string {
   const where = [d.checkpoint, d.stepId].filter(Boolean).join(' · ') || 'whole test';
-  return `<tr><td>${escapeHtml(d.kind)}</td><td>${escapeHtml(where)}</td><td class="mono">${escapeHtml(d.path)}</td><td class="mono">${escapeHtml(shown(d.baseline))}</td><td class="mono">${escapeHtml(shown(d.candidate))}</td><td>${escapeHtml(d.severity)}${d.knownDifferenceId ? '<span class="tag">known</span>' : ''}</td></tr>`;
+  const [baselineShown, candidateShown] = shownPair(d.baseline, d.candidate);
+  return `<tr><td>${escapeHtml(d.kind)}</td><td>${escapeHtml(where)}</td><td class="mono">${escapeHtml(d.path)}</td><td class="mono">${escapeHtml(baselineShown)}</td><td class="mono">${escapeHtml(candidateShown)}</td><td>${escapeHtml(d.severity)}${d.knownDifferenceId ? '<span class="tag">known</span>' : ''}</td></tr>`;
 }
 
 function caseSection(result: ComparisonReportResult): string {
