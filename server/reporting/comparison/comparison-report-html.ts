@@ -105,7 +105,8 @@ export function shownPair(baseline: unknown, candidate: unknown): [string, strin
   const a = asText(baseline);
   const b = asText(candidate);
   const first = firstDifference(a, b);
-  if (first < CLIP || (a.length <= CLIP && b.length <= CLIP)) return [shown(baseline), shown(candidate)];
+  if (first < CLIP || (a.length <= CLIP && b.length <= CLIP))
+    return [shown(baseline), shown(candidate)];
   const from = Math.max(0, first - WINDOW);
   const window = (t: string) =>
     `[length ${t.length}; first difference at position ${first}] ${from > 0 ? '…' : ''}${t.slice(from, first + WINDOW)}${t.length > first + WINDOW ? '…' : ''}`;
