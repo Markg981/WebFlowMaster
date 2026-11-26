@@ -1141,6 +1141,36 @@ describe('runBounded: a step the run can stop', () => {
   });
 });
 
+describe('checkpointTable reads every cell with one text rule (TD-009)', () => {
+  it('a cell with an svg and a cell without read the same text', async () => {
+    const browser = await chromium.launch();
+    try {
+      const page = await browser.newPage();
+      await page.setContent(
+        '<table id="t"><tr>' +
+          '<td><svg width="10" height="10"><text>lbl</text></svg><span style="display:none">g</span>a</td>' +
+          '<td><span style="display:none">g</span>a</td>' +
+          '<td><svg width="10" height="10"></svg>  b\n  c </td>' +
+          '<td>  b\n  c </td>' +
+          '</tr></table>',
+      );
+      const step = {
+        id: 's1',
+        action: { id: 'checkpointTable', name: 'Checkpoint table' },
+        value: 'tbl',
+        targetElement: { selector: '#t' },
+      } as unknown as MappedTestStep;
+      const outcome = await executeStep({ page }, step);
+      const rows = (outcome.checkpoint?.data as { rows: string[][] }).rows;
+      expect(rows[0][0]).toBe(rows[0][1]);
+      expect(rows[0][2]).toBe(rows[0][3]);
+      expect(rows[0][0]).not.toContain('g');
+    } finally {
+      await browser.close().catch(() => {});
+    }
+  });
+});
+
 describe('checkpointText on a selector that also matches hidden nodes (TD-008)', () => {
   it('records only what a person can see', async () => {
     const browser = await chromium.launch();

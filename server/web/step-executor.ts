@@ -1481,13 +1481,24 @@ const HANDLERS: Record<AdhocActionId, StepHandler> = {
           .slice(0, maxRows + 1)
           .map((row) =>
             Array.from(row.querySelectorAll(cellSelector)).map((cell) => {
-              if (!cell.querySelector('svg'))
-                return (cell as HTMLElement).innerText ?? cell.textContent ?? '';
-              // innerText needs layout, which a detached copy has not: its textContent, with
-              // the whitespace innerText would have collapsed, collapsed here.
-              const copy = cell.cloneNode(true) as Element;
-              copy.querySelectorAll('svg').forEach((svg) => svg.remove());
-              return (copy.textContent ?? '').replace(/\s+/g, ' ').trim();
+              const read = () => (cell as HTMLElement).innerText ?? cell.textContent ?? '';
+              const svgs = Array.from(cell.querySelectorAll('svg'));
+              if (svgs.length === 0) return read();
+              // One rule for every cell (TD-009): innerText, which leaves out hidden text. The
+              // svgs are hidden while it is read, then put back, so a chart label is not text and
+              // a cell with a chart reads like the same cell without one.
+              const saved = svgs.map((svg) => svg.style.getPropertyValue('display'));
+              const priorities = svgs.map((svg) => svg.style.getPropertyPriority('display'));
+              svgs.forEach((svg) => svg.style.setProperty('display', 'none', 'important'));
+              try {
+                return read();
+              } finally {
+                svgs.forEach((svg, i) =>
+                  saved[i] === ''
+                    ? svg.style.removeProperty('display')
+                    : svg.style.setProperty('display', saved[i], priorities[i]),
+                );
+              }
             }),
           ),
       { rowSelector: value.rows, cellSelector: value.cells, maxRows: MAX_TABLE_ROWS },
