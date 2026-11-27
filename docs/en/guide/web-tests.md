@@ -425,7 +425,10 @@ expression masked in the file name, then optionally `|` and one masked in the co
 ```
 
 What a mask matches becomes `<masked>` on both sides — a timestamp in the file name, a print date
-in the content. With a content mask but none for the name, write `name | | mask`. What is recorded
+in the content. With a content mask but none for the name, write `name | | mask`. When the export
+starts on the change of a `<select>` (a "choose a format" drop-down) rather than on a click, add
+`; option=<label>`: the step picks that option of the target select instead of clicking it, for
+example `batches; option=Export Batches`. What is recorded
 depends on the file:
 
 - **Excel** (`.xlsx`): the sheet names in order, and for each sheet its used range, its merged

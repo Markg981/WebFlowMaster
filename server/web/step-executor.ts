@@ -398,23 +398,30 @@ function requireSelector(
 }
 
 /**
- * Clicks the selector and saves the file it downloads: in the run's artifact directory, kept with
- * its evidence, or in a temporary one the caller removes (`temporary`) in the builder's preview.
+ * Clicks the selector (or, with `option`, picks that option of the `<select>` it names: a page whose
+ * export starts on the select's change event) and saves the file it downloads: in the run's artifact
+ * directory, kept with its evidence, or in a temporary one the caller removes (`temporary`) in the
+ * builder's preview.
  */
 async function takeDownload(
   rt: StepRuntime,
   selector: string,
+  option?: string,
 ): Promise<{ name: string; file: string; dir: string; temporary: boolean } | { error: string }> {
   let download: Download;
   try {
     [download] = await Promise.all([
       rt.page.waitForEvent('download', { timeout: rt.timeoutMs }),
-      rt.click(selector),
+      option === undefined
+        ? rt.click(selector)
+        : rt.locator(selector).first().selectOption({ label: option }),
     ]);
   } catch (error) {
     if (error instanceof Error && /timeout/i.test(error.message)) {
+      const trigger =
+        option === undefined ? `Clicking ${selector}` : `Choosing "${option}" in ${selector}`;
       return {
-        error: `Clicking ${selector} did not download a file within ${Math.round(rt.timeoutMs / 1000)} s.`,
+        error: `${trigger} did not download a file within ${Math.round(rt.timeoutMs / 1000)} s.`,
       };
     }
     throw error;
@@ -1568,7 +1575,7 @@ const HANDLERS: Record<AdhocActionId, StepHandler> = {
     if ('error' in value)
       return failed(`Value not valid for checkpointDownload action: ${value.error}.`);
 
-    const taken = await takeDownload(rt, target.selector);
+    const taken = await takeDownload(rt, target.selector, value.option);
     if ('error' in taken) return failed(taken.error);
     const { name, file, dir, temporary } = taken;
     let checkpoint: CheckpointCapture;

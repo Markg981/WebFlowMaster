@@ -97,6 +97,7 @@ describe('in a real browser', () => {
       }
       res.writeHead(200, { 'Content-Type': 'text/html' });
       res.end(`<a id="csv" href="/report.csv">CSV</a> <a id="pdf" href="/invoice.pdf">PDF</a> <a id="xlsx" href="/summary.xlsx">XLSX</a> <a id="none" href="#">nothing</a>
+        <select id="export" onchange="if (this.value) location.href = this.value; this.value = ''"><option value="">Export</option><option value="/summary.xlsx">Export Batches</option></select>
         <button id="where" onclick="navigator.geolocation.getCurrentPosition(p => document.title = p.coords.latitude + ',' + p.coords.longitude)">where</button>`);
     });
     await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
@@ -203,6 +204,21 @@ describe('in a real browser', () => {
     ).toMatchObject({ status: 'failed', error: expect.stringContaining('not valid') });
     await page.context().close();
     await fs.remove(dir);
+  });
+
+  it('checkpoints the file a select downloads when one of its options is chosen', async () => {
+    const page = await (await browser.newContext({ acceptDownloads: true })).newPage();
+    await page.goto(base);
+    const outcome = await executeStep(
+      { page, vars: {} },
+      step('checkpointDownload', 'batches; option=Export Batches | \\d{8}_\\d{6}', '#export'),
+    );
+    expect(outcome).toMatchObject({
+      status: 'passed',
+      checkpoint: { name: 'batches', kind: 'download' },
+    });
+    expect(outcome.checkpoint!.data).toMatchObject({ fileName: 'summary_<masked>.xlsx' });
+    await page.context().close();
   });
 
   it('says so when the click downloads nothing', async () => {

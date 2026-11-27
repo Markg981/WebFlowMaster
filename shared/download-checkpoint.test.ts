@@ -63,11 +63,21 @@ describe('parseDownloadCheckpointValue', () => {
     expect(value.contentMask?.source).toBe('Page \\d+');
   });
 
+  it('reads the option of a select that downloads on change; none means a click', () => {
+    const value = parseDownloadCheckpointValue('batches; option= Export Batches ; rows=50 | _\\d+');
+    if ('error' in value) throw new Error(value.error);
+    expect(value).toMatchObject({ name: 'batches', option: 'Export Batches', rows: 50 });
+    expect(value.fileMask?.source).toBe('_\\d+');
+    const plain = parseDownloadCheckpointValue('batches');
+    expect('error' in plain || plain.option).toBe(undefined);
+  });
+
   it.each([
     ['', 'the name of the checkpoint comes first'],
     ['x; rows=0', 'rows must be between 1 and 5000'],
     ['x; cols=501', 'cols must be between 1 and 500'],
-    ['x; sheets=2', '"sheets=2" is not rows=<number> or cols=<number>'],
+    ['x; sheets=2', '"sheets=2" is not rows=<number>, cols=<number> or option=<label>'],
+    ['x; option= ', 'option= needs the label of the option to pick'],
     ['x | (', 'the file-name mask is not a regular expression'],
     ['x | a |', 'the content mask after the second | is empty'],
   ])('refuses %j', (raw, error) => {
@@ -110,7 +120,7 @@ describe('checkpointDownload step validation', () => {
       'Step 2: checkpointDownload needs the element whose click downloads the file.',
     );
     expect(downloadCheckpointProblem([step('x; rows=abc')])).toBe(
-      'Step 1: checkpointDownload value: "rows=abc" is not rows=<number> or cols=<number>.',
+      'Step 1: checkpointDownload value: "rows=abc" is not rows=<number>, cols=<number> or option=<label>.',
     );
     expect(downloadCheckpointProblem(undefined)).toBeNull();
   });
