@@ -129,6 +129,16 @@ async function closeAll(browser: Browser, context: BrowserContext | null): Promi
   if (browser.isConnected()) await closeWithin(() => browser.close(), SESSION_CLOSE_STEP_MS);
 }
 
+/**
+ * tsx runs the server and the worker with esbuild keepNames, which wraps a named function in
+ * `__name(fn, "name")`. That helper exists only in Node: a callback passed to page.evaluate that
+ * declares a named function throws "__name is not defined" in the page, and vitest (another
+ * transformer) never shows it (TD-012: checkpointTable failed every test it ran). Every page of a
+ * session gets an identity shim, as element-detection-service.ts already does for its own script.
+ * A string, so no transformer can rewrite it.
+ */
+export const NAME_SHIM = 'globalThis.__name = globalThis.__name || ((fn) => fn);';
+
 export async function openBrowserSession(opts: BrowserSessionOptions): Promise<BrowserSession> {
   let browser: Browser;
   try {
@@ -141,6 +151,7 @@ export async function openBrowserSession(opts: BrowserSessionOptions): Promise<B
   let stage: BrowserSessionStage = 'context';
   try {
     context = await browser.newContext(contextOptionsFor(opts));
+    await context.addInitScript(NAME_SHIM);
     // The runner's own browser is on the runner's network, which the policy protects. A
     // grid's or an agent's browser is on its owner's, where the policy has no say.
     if (!opts.browser.grid && !opts.browser.agent) await guardBrowserContext(context);
