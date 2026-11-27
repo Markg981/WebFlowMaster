@@ -30,6 +30,8 @@ vi.mock('../runtime/browsers', async (importOriginal) => {
     screenshot: mocks.screenshot,
   };
   const context = {
+    // The __name shim every session page gets (TD-012).
+    addInitScript: vi.fn().mockResolvedValue(undefined),
     newPage: vi.fn().mockResolvedValue(page),
     close: vi.fn().mockResolvedValue(undefined),
     // The egress policy routes every request and WebSocket of a local run's context.

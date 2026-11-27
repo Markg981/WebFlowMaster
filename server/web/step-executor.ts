@@ -1492,9 +1492,11 @@ const HANDLERS: Record<AdhocActionId, StepHandler> = {
           .slice(0, maxRows + 1)
           .map((row) =>
             Array.from(row.querySelectorAll(cellSelector)).map((cell) => {
-              const read = () => (cell as HTMLElement).innerText ?? cell.textContent ?? '';
+              // No named function in here: tsx (esbuild keepNames) wraps it in `__name(…)`, a helper
+              // that exists only in Node, and the page throws "__name is not defined" (TD-012).
               const svgs = Array.from(cell.querySelectorAll('svg'));
-              if (svgs.length === 0) return read();
+              if (svgs.length === 0)
+                return (cell as HTMLElement).innerText ?? cell.textContent ?? '';
               // One rule for every cell (TD-009): innerText, which leaves out hidden text. The
               // svgs are hidden while it is read, then put back, so a chart label is not text and
               // a cell with a chart reads like the same cell without one.
@@ -1502,7 +1504,7 @@ const HANDLERS: Record<AdhocActionId, StepHandler> = {
               const priorities = svgs.map((svg) => svg.style.getPropertyPriority('display'));
               svgs.forEach((svg) => svg.style.setProperty('display', 'none', 'important'));
               try {
-                return read();
+                return (cell as HTMLElement).innerText ?? cell.textContent ?? '';
               } finally {
                 svgs.forEach((svg, i) =>
                   saved[i] === ''

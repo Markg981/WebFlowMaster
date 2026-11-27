@@ -23,11 +23,13 @@ const {
   browserForSetting,
   contextOptionsFor,
   openBrowserSession,
+  NAME_SHIM,
 } = await import('./browser-session');
 
 function fakeBrowser(overrides: { newPage?: () => Promise<unknown> } = {}) {
   const page = { setDefaultTimeout: vi.fn() };
   const context = {
+    addInitScript: vi.fn().mockResolvedValue(undefined),
     newPage: vi.fn(overrides.newPage ?? (async () => page)),
     close: vi.fn().mockResolvedValue(undefined),
   };
@@ -103,6 +105,34 @@ describe('openBrowserSession', () => {
     await session[Symbol.asyncDispose]();
     expect(context.close).toHaveBeenCalledTimes(1);
     expect(browser.close).toHaveBeenCalledTimes(1);
+  });
+
+  it('gives every page the __name shim before the page opens (TD-012)', async () => {
+    const { browser, context } = fakeBrowser();
+    mocks.launchBrowser.mockResolvedValue(browser);
+    await openBrowserSession({ browser: chromium });
+    expect(context.addInitScript).toHaveBeenCalledWith(NAME_SHIM);
+    expect(context.addInitScript.mock.invocationCallOrder[0]).toBeLessThan(
+      context.newPage.mock.invocationCallOrder[0],
+    );
+  });
+
+  it('the shim lets a keepNames-wrapped callback run in a real page (TD-012)', async () => {
+    const { chromium: engine } = await import('playwright');
+    const real = await engine.launch();
+    try {
+      const ctx = await real.newContext();
+      await ctx.addInitScript(NAME_SHIM);
+      const page = await ctx.newPage();
+      await page.setContent('<p>x</p>');
+      // What tsx emits for `const read = () => 1; return read();` inside an evaluate callback.
+      const wrapped = '(() => { const read = __name(() => 1, "read"); return read(); })()';
+      expect(await page.evaluate(wrapped)).toBe(1);
+      const bare = await (await real.newContext()).newPage();
+      await expect(bare.evaluate(wrapped)).rejects.toThrow(/__name is not defined/);
+    } finally {
+      await real.close().catch(() => {});
+    }
   });
 
   it('leaves the egress guard off for a grid browser', async () => {
