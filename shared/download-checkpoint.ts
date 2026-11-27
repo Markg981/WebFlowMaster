@@ -1,10 +1,11 @@
 /**
  * The value of a `checkpointDownload` step (server/runtime/download-checkpoint.ts):
  *
- *   name[; rows=N][; cols=N] [| file-name mask [| content mask]]
+ *   name[; rows=N][; cols=N][; option=label] [| file-name mask [| content mask]]
  *
  * The name pairs the checkpoint with the other run's. `rows` and `cols` bound what is kept of each
- * sheet. The file-name mask is a regular expression whose matches in the suggested file name are
+ * sheet. `option` picks that option of the target `<select>` instead of clicking it: a page whose
+ * export starts on the select's change event (a "choose a format" drop-down) downloads only then. The file-name mask is a regular expression whose matches in the suggested file name are
  * replaced by `<masked>` (a timestamp the application stamps into it); the content mask, everything
  * after the second `|` (it may hold a `|` of its own), does the same in every cell and every line
  * of a PDF (a print date). With no file-name mask: `name | | content mask`.
@@ -30,6 +31,8 @@ export interface DownloadCheckpointValue {
   name: string;
   rows: number;
   cols: number;
+  /** The label of the `<select>` option whose choice downloads the file; a click when absent. */
+  option?: string;
   fileMask?: RegExp;
   contentMask?: RegExp;
 }
@@ -42,6 +45,7 @@ export interface DownloadCheckpointValueParts {
   name: string;
   rows: number;
   cols: number;
+  option?: string;
   fileMask?: string;
   contentMask?: string;
 }
@@ -59,10 +63,18 @@ export function splitDownloadCheckpointValue(
   if (name === '') return { error: 'the name of the checkpoint comes first' };
   let rows = DEFAULT_DOWNLOAD_ROWS;
   let cols = DEFAULT_DOWNLOAD_COLS;
+  let selectOption: string | undefined;
   for (const option of options) {
     if (option.trim() === '') continue;
+    const picked = /^\s*option\s*=(.*)$/i.exec(option);
+    if (picked) {
+      selectOption = picked[1].trim();
+      if (selectOption === '') return { error: 'option= needs the label of the option to pick' };
+      continue;
+    }
     const m = /^\s*(rows|cols)\s*=\s*(\d+)\s*$/i.exec(option);
-    if (!m) return { error: `"${option.trim()}" is not rows=<number> or cols=<number>` };
+    if (!m)
+      return { error: `"${option.trim()}" is not rows=<number>, cols=<number> or option=<label>` };
     const n = Number(m[2]);
     const isRows = m[1].toLowerCase() === 'rows';
     const max = isRows ? MAX_DOWNLOAD_ROWS : MAX_DOWNLOAD_COLS;
@@ -72,6 +84,7 @@ export function splitDownloadCheckpointValue(
     else cols = n;
   }
   const parts: DownloadCheckpointValueParts = { name, rows, cols };
+  if (selectOption !== undefined) parts.option = selectOption;
   if (at < 0) return parts;
   const rest = raw.slice(at + 1);
   const maskAt = rest.indexOf('|');
@@ -103,6 +116,7 @@ export function parseDownloadCheckpointValue(
   const parts = splitDownloadCheckpointValue(raw);
   if ('error' in parts) return parts;
   const value: DownloadCheckpointValue = { name: parts.name, rows: parts.rows, cols: parts.cols };
+  if (parts.option !== undefined) value.option = parts.option;
   if (parts.fileMask) {
     const re = regexOf(parts.fileMask, 'file-name');
     if ('error' in re) return re;

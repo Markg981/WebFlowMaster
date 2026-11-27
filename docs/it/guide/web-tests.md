@@ -450,7 +450,10 @@ contenuto:
 
 Ciò che una maschera trova diventa `<masked>` su entrambi i lati — un timestamp nel nome del file,
 una data di stampa nel contenuto. Con una maschera sul contenuto ma nessuna sul nome, scrivete
-`nome | | maschera`. Cosa viene registrato dipende dal file:
+`nome | | maschera`. Quando l'export parte dal cambio di una `<select>` (una tendina "scegli il
+formato") e non da un clic, aggiungete `; option=<etichetta>`: lo step sceglie quell'opzione della
+select indicata invece di cliccarla, per esempio `batches; option=Export Batches`. Cosa viene
+registrato dipende dal file:
 
 - **Excel** (`.xlsx`): i nomi dei fogli nell'ordine e, per ogni foglio, l'intervallo usato, gli
   intervalli uniti, se è nascosto, e le celle come vengono **visualizzate** — con il formato numerico
