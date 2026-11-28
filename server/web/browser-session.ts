@@ -1,5 +1,6 @@
 import type { Browser, BrowserContext, BrowserContextOptions, Page } from 'playwright';
 import { allowsSelfSignedCertificate } from '../platform/outbound-http';
+import { browserTimezone } from './browser-timezone';
 import { guardBrowserContext } from '../platform/egress-policy';
 import {
   launchBrowser,
@@ -94,10 +95,15 @@ export interface BrowserSession extends AsyncDisposable {
 }
 
 export function contextOptionsFor(opts: BrowserSessionOptions): BrowserContextOptions {
+  // Read when each context opens: a run that crosses an hour boundary may need the other skew zone.
+  const timezoneId = browserTimezone();
   return {
     ignoreHTTPSErrors: allowsSelfSignedCertificate(opts.url ?? ''),
     viewport: opts.viewport === 'window' ? null : DESKTOP_VIEWPORT,
     ...(opts.userAgent ? { userAgent: opts.userAgent } : {}),
+    // WFM_BROWSER_TIMEZONE (./browser-timezone.ts): a fixed zone, or `skew:<server zone>` so a page that takes
+    // "today" from the browser instead of the server shows the defect whatever the hour of the run.
+    ...(timezoneId ? { timezoneId } : {}),
     ...opts.context,
   };
 }
