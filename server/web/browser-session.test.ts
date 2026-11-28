@@ -61,6 +61,22 @@ describe('browserForSetting', () => {
 });
 
 describe('contextOptionsFor', () => {
+  it('opens the context in WFM_BROWSER_TIMEZONE when set, and an explicit context option still wins', () => {
+    const before = process.env.WFM_BROWSER_TIMEZONE;
+    try {
+      delete process.env.WFM_BROWSER_TIMEZONE;
+      expect(contextOptionsFor({ browser: chromium }).timezoneId).toBeUndefined();
+      process.env.WFM_BROWSER_TIMEZONE = 'Asia/Karachi';
+      expect(contextOptionsFor({ browser: chromium }).timezoneId).toBe('Asia/Karachi');
+      expect(contextOptionsFor({ browser: chromium, context: { timezoneId: 'UTC' } }).timezoneId).toBe('UTC');
+      process.env.WFM_BROWSER_TIMEZONE = 'skew:Asia/Karachi';
+      expect(['Etc/GMT-14', 'Etc/GMT+12']).toContain(contextOptionsFor({ browser: chromium }).timezoneId);
+    } finally {
+      if (before === undefined) delete process.env.WFM_BROWSER_TIMEZONE;
+      else process.env.WFM_BROWSER_TIMEZONE = before;
+    }
+  });
+
   it('pins the desktop window unless the session follows the window', () => {
     expect(contextOptionsFor({ browser: chromium }).viewport).toEqual(DESKTOP_VIEWPORT);
     expect(contextOptionsFor({ browser: chromium, viewport: 'window' }).viewport).toBeNull();
